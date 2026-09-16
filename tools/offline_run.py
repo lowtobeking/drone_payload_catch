@@ -171,6 +171,27 @@ def run_compare(cfg, name, n=12):
               f' {row[2][0]:>6}/{n}  {row[2][1]:>10.3f}m')
 
 
+def run_controller_compare(cfg, name, sigma=0.15, n=10):
+    """同一工况下 B 用 PD vs 终端 MPC 的对比。"""
+    defaults = cfg['defaults']
+    scen = cfg['scenarios'][name]
+    layout = cfg['layouts'][scen['layout']]
+    print(f'== 控制器对比：{name} （释放 σ={sigma} m，{n} 次）==')
+    print(f'{"控制器":>6} | {"成功":>7} | {"平均最近":>9} | {"平均峰值|a|":>11} | {"平均 t_cap":>11}')
+    for ctrl in ('pd', 'mpc'):
+        ok = 0; miss = []; pa = []; tc = []
+        for k in range(n):
+            noise = SimNoise(release_pos_sigma=sigma, release_vel_sigma=sigma, seed=4000 + k)
+            r, _ = simulate(defaults, layout, scen, noise=noise, controller=ctrl,
+                            closed_loop=True, replan_dt=0.20)
+            ok += int(r.success); miss.append(r.miss_dist); pa.append(r.peak_accel)
+            if r.success:
+                tc.append(r.t_capture)
+        tcs = f'{np.mean(tc):.3f}s' if tc else 'n/a'
+        print(f'{ctrl:>6} | {ok:>3}/{n}   | {np.mean(miss):>7.3f}m  | '
+              f'{np.mean(pa):>9.2f}  | {tcs:>11}')
+
+
 def main():
     ap = argparse.ArgumentParser(description='离线空投—捕获任务体检')
     ap.add_argument('--config', default=DEFAULT_YAML)
@@ -180,6 +201,8 @@ def main():
     ap.add_argument('--sweep-noise', action='store_true')
     ap.add_argument('--compare', action='store_true',
                     help='开环 vs 闭环（释放误差/测量噪声）成功率对比')
+    ap.add_argument('--controller-compare', action='store_true',
+                    help='B 控制器 PD vs 终端 MPC 对比')
     args = ap.parse_args()
 
     cfg = load_cfg(args.config)
@@ -187,7 +210,9 @@ def main():
     for n in names:
         if n not in cfg['scenarios']:
             sys.exit(f'未知工况 "{n}"，可选: {list(cfg["scenarios"])}')
-        if args.compare:
+        if args.controller_compare:
+            run_controller_compare(cfg, n)
+        elif args.compare:
             run_compare(cfg, n)
         elif args.sweep_noise:
             run_sweep(cfg, n)

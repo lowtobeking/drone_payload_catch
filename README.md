@@ -63,6 +63,22 @@ python3 tools/offline_run.py --sweep-noise      # 释放/B 初值噪声扫描
 | v20 | (+3.20, 0, −3) | (2.0,0,0) | 1.96 m | 4.51 m/s | PASS |
 | crosswind | (+0.60, +1.16, −3) | (1.0,0.6,0) | 1.96 m | 4.51 m/s | PASS |
 
+**M3+ B 的终端 MPC（acados）**：`controller='mpc'` 时 B 用 acados 终端 MPC
+（状态 `[p,v]`、控制 `u=a`；跟踪解析会合参考 + 终端代价；`|u|≤a_max` 硬、`|v|≤v_max` 软）。
+与 PD（解析参考 + 前馈 + PD）对比：
+
+| 工况（无扰动） | PD | MPC |
+|---|---|---|
+| M2_line_v10 短下落 | 10/10，捕获距离 0.16m | 10/10，0.27m |
+| M3_high 高抛 | 10/10，0.29m | 10/10，0.28m |
+
+**发现**：短下落场景下 MPC 捕获略松。原因不是 MPC 有 bug，而是**解析参考的几何**：
+`M2_*` 里 B 有 ~4.2s 但只需净下移 0.54m、且要以 4.5m/s 结束，min-energy 三次多项式
+必须让 B **先爬升 ~2.4m 再俯冲**（对偶：B 得“蓄势”才能匹配快速载荷）。PD 带解析前馈
+死跟这条参考；MPC 最小化控制量，倾向于抄近路不走那段过冲 → 终点偏离参考。
+> 这同时暴露了一个更值得改的点：规划器的**参考本身物理上不优雅**（无谓爬升）。
+> 下一步可让规划器直接惩罚/约束过冲，或改用“悬停待机 + 末端俯冲”的时间最优参考。
+
 **M3 闭环重规划**（开环 vs 闭环，每档 12 次）：
 
 - **释放误差**（高抛，下落 ~0.8 s）：`σ=0.20 m` 时 开环 **7/12** → 闭环 **12/12**
@@ -101,7 +117,8 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 |---|---|
 | `payload_catch/payload_model.py` | 载荷抛体模型（无阻力解析；可选 linear/quadratic 阻力 + 风） |
 | `payload_catch/rendezvous.py` | 协调求解 `(t_r,τ_c)` + 三次多项式会合参考 + 软终端速度 + 闭环 `solve_inflight` |
-| `payload_catch/sim_core.py` | 离线闭环仿真（A 恒速飞行 + B 双积分器 PD + 捕获判定 + 闭环重规划） |
+| `payload_catch/sim_core.py` | 离线闭环仿真（A 恒速飞行 + B 控制 + 捕获判定 + 闭环重规划） |
+| `payload_catch/mpc_terminal.py` | B 的 acados 终端（会合）MPC |
 | `tools/offline_run.py` | 体检报告 CLI（`--plot` / `--sweep-noise` / `--compare`） |
 | `config/catch_scenarios.yaml` | 单一真值源 |
 | `env.sh` | 环境变量（acados/ROS/RMW/PX4 SITL） |
@@ -113,8 +130,8 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 - [x] **M0** 项目骨架 + 载荷模型 + 会合规划 + 离线闭环
 - [x] **M2** A 带速飞行抛投（恒速直线，含斜向）
 - [x] **M3** 闭环重规划（`solve_inflight` + 载荷状态噪声），开环 vs 闭环对比
+- [x] **M3+** B 的终端 MPC（acados），与 PD 对照
 - [~] **B** 环境打通：`px4_msgs` 已修正、DDS 通；传感器桥 `Gyro STALE` 待解
-- [ ] **M3+** B 的终端约束 MPC（acados，可选）
 - [ ] **M1** ROS 2 节点：载荷状态源 / 规划器 / B 控制器 / 捕获监控 / A 悬停释放
 - [ ] **M4** 更完整鲁棒性（延迟、丢包、估计滤波）+ 指标统计
 - [ ] **M5** Gazebo 高保真捕获机构 + 安全层 + 真机化

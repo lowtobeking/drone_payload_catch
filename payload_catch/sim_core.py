@@ -77,6 +77,17 @@ def _interp_traj(ts: np.ndarray, xs: np.ndarray, t: float) -> Vec3:
     return xs[i] * (1.0 - a) + xs[i + 1] * a
 
 
+_MPC_CACHE: Dict = {}
+
+
+def _get_mpc(key, **kwargs):
+    """进程内缓存终端 MPC（acados 生成/编译较慢，多次仿真复用同一实例）。"""
+    if key not in _MPC_CACHE:
+        from .mpc_terminal import TerminalMPC
+        _MPC_CACHE[key] = TerminalMPC(**kwargs)
+    return _MPC_CACHE[key]
+
+
 def _make_planner(g, pcfg: Dict, bcfg: Dict, ccfg: Dict) -> RendezvousPlanner:
     return RendezvousPlanner(
         g=float(g), b_max_speed=float(bcfg['max_speed']),
@@ -91,7 +102,8 @@ def simulate(defaults: Dict, layout: Dict, scenario: Dict,
              noise: Optional[SimNoise] = None,
              kp: float = 9.0, kd: float = 6.0,
              closed_loop: bool = False, replan_dt: float = 0.20,
-             inflight_tau_max: float = 2.0) -> Tuple[SimResult, PlanResult]:
+             inflight_tau_max: float = 2.0,
+             controller: str = 'pd') -> Tuple[SimResult, PlanResult]:
     """跑一次完整任务，返回 (指标, 规划方案)。"""
     noise = noise or SimNoise()
     rng = np.random.default_rng(noise.seed)
@@ -130,6 +142,24 @@ def simulate(defaults: Dict, layout: Dict, scenario: Dict,
     ref_t, ref_p, ref_v, ref_a = RendezvousPlanner.resample(plan, n=401)
     ref_t0 = 0.0            # 当前参考的时间原点
     last_replan = -1e9
+    cur_plan = plan
+    # B 控制器：'pd'（解析参考 + PD）或 'mpc'（acados 终端 MPC）
+    controller = str(scenario.get('controller', controller)).lower()
+    mcfg = {**defaults.get('mpc', {}), **scenario.get('mpc', {})}
+    mpc = None
+    if controller == 'mpc':
+        closed_loop = True          # MPC 需要滚动更新的参考与终端目标
+        _key = (int(mcfg.get('N', 20)), dt, float(bcfg['max_accel']), float(bcfg['max_speed']),
+                float(mcfg.get('q_pos', 40.0)), float(mcfg.get('q_vel', 8.0)),
+                float(mcfg.get('r_a', 0.5)), float(mcfg.get('q_pos_e', 400.0)),
+                float(mcfg.get('q_vel_e', 80.0)))
+        mpc = _get_mpc(_key,
+                       N=int(mcfg.get('N', 20)), dt=dt,
+                       a_max=float(bcfg['max_accel']), v_max=float(bcfg['max_speed']),
+                       q_pos=float(mcfg.get('q_pos', 40.0)), q_vel=float(mcfg.get('q_vel', 8.0)),
+                       r_a=float(mcfg.get('r_a', 0.5)),
+                       q_pos_e=float(mcfg.get('q_pos_e', 400.0)),
+                       q_vel_e=float(mcfg.get('q_vel_e', 80.0)))
 
     # ── 载荷 ─────────────────────────────────────────────────────────────
     payload_params = PayloadParams(
@@ -181,6 +211,7 @@ def simulate(defaults: Dict, layout: Dict, scenario: Dict,
             if rp.feasible:
                 ref_t, ref_p, ref_v, ref_a = RendezvousPlanner.resample(rp, n=201)
                 ref_t0 = t
+                cur_plan = rp
                 res.replan_count += 1
 
         # 3) B 跟踪当前参考
@@ -191,7 +222,16 @@ def simulate(defaults: Dict, layout: Dict, scenario: Dict,
             ar = _interp_traj(ref_t, ref_a, tl)
         else:
             pr, vr, ar = ref_p[-1], ref_v[-1], np.zeros(3)
-        a_cmd = ar + kp * (pr - p_b) + kd * (vr - v_b)
+        if mpc is not None and tl <= ref_t[-1] + 1e-6:
+            x0m = np.concatenate([p_b, v_b])
+            u0m, st = mpc.solve(x0m, ref_t, ref_p, ref_v,
+                                cur_plan.p_c, cur_plan.v_p, t_start=tl)
+            if st in (0, 2):
+                a_cmd = u0m
+            else:
+                a_cmd = ar + kp * (pr - p_b) + kd * (vr - v_b)
+        else:
+            a_cmd = ar + kp * (pr - p_b) + kd * (vr - v_b)
         a_norm = float(np.linalg.norm(a_cmd))
         if a_norm > float(bcfg['max_accel']):
             a_cmd = a_cmd * (float(bcfg['max_accel']) / a_norm)

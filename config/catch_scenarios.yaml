@@ -50,6 +50,14 @@ defaults:
 
   wind: [0.0, 0.0, 0.0]       # [N,E,D] m/s，标称无风
 
+  mpc:                        # B 的终端 MPC（acados）权重/视界
+    N:            20          # 视界步数（N·dt 秒）
+    q_pos:        40.0
+    q_vel:        8.0
+    r_a:          0.5
+    q_pos_e:      400.0
+    q_vel_e:      80.0
+
 # ── 布局：A 初始位置+速度、B 待命点（均世界系 NED）─────────────────────────
 layouts:
   hover_catch:                          # M1 基准：A 悬停
@@ -118,6 +126,19 @@ scenarios:
     drone_b: {max_speed: 9.0, max_accel: 10.0}
     planner: {tau_max: 1.4, catch_alt_min: 1.2, catch_alt_max: 2.5}
     description: 高抛 + 风+阻力；开环按无阻力预测会偏，闭环重规划可纠正
+
+  # ── M3+ MPC 对照工况：B 用 acados 终端 MPC ──
+  M3p_line_mpc:
+    layout: line_catch
+    controller: mpc
+    description: M2_line_v10 但 B 用终端 MPC
+
+  M3p_high_mpc:
+    layout: high_hover_catch
+    controller: mpc
+    drone_b: {max_speed: 9.0, max_accel: 10.0}
+    planner: {tau_max: 1.2, catch_alt_min: 1.2, catch_alt_max: 2.5}
+    description: M3_high 但 B 用终端 MPC
 
 # ── 判定阈值（离线报告用；后续 verdict 用）────────────────────────────────
 thresholds:
