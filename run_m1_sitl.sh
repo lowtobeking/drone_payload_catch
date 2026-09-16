@@ -3,6 +3,10 @@
 # 用法: bash ~/drone_payload_catch/run_m1_sitl.sh [运行秒数, 默认 60]
 set +u
 RUN_S="${1:-60}"
+A_HOVER="${A_HOVER:-0.0,0.0,-3.0}"        # 世界 NED（launch a_hover）
+B_STANDBY="${B_STANDBY:-0.2,0.0,-2.8}"    # 世界 NED（launch b_standby）
+B_OFFSET="${B_OFFSET:-0.2,0.0,0.0}"       # B 的 PX4 原点在世界 NED（launch b_offset）
+B_POSE_ENU="${B_POSE_ENU:-0,0.2,0,0,0,0}" # B 的 Gazebo 出生 ENU
 BASE="$HOME/payload_catch_ws"
 D="$HOME/payload_catch_sitl"; mkdir -p "$D"; rm -f "$D"/*.log
 source "$HOME/drone_payload_catch/env.sh"
@@ -20,10 +24,10 @@ sleep 15
 MicroXRCEAgent udp4 -p 8888 > "$D/agent.log" 2>&1 &
 sleep 3
 
-echo "### spawn 2×PX4 (A=ENU 0,0  B=ENU 0,0.2)"
+echo "### spawn 2×PX4 (A=ENU 0,0  B=ENU $B_POSE_ENU)"
 cd "$PX4_DIR" || exit 1
 export GZ_SIM_RESOURCE_PATH="$PX4_DIR/Tools/simulation/gz/models:$PX4_DIR/Tools/simulation/gz/worlds"
-POSES=("0,0,0,0,0,0" "0,0.2,0,0,0,0")
+POSES=("0,0,0,0,0,0" "$B_POSE_ENU")
 for i in "${!POSES[@]}"; do
   PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL=x500 \
     PX4_GZ_MODEL_POSE="${POSES[$i]}" \
@@ -40,7 +44,7 @@ done
 echo "  就绪后再等 8s 让 EKF 稳定"; sleep 8
 
 echo "### launch payload_catch (A/B/payload)"
-timeout $((RUN_S + 40)) ros2 launch payload_catch catch_launch.py controller:="${CTRL:-pd}" > "$D/launch.log" 2>&1 &
+timeout $((RUN_S + 40)) ros2 launch payload_catch catch_launch.py controller:="${CTRL:-pd}" a_hover:="[$A_HOVER]" b_standby:="[$B_STANDBY]" b_offset:="[$B_OFFSET]" > "$D/launch.log" 2>&1 &
 sleep "$RUN_S"
 
 echo "### 结果"
