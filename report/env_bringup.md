@@ -107,3 +107,75 @@ MicroXRCEAgent udp4 -p 8888 &
 for p in 'bin/px4' 'gz sim' 'simulation-gazebo' 'MicroXRCEAgent'; do pkill -9 -f "$p"; done
 ```
 > ⚠️ 不要把这些 `pkill` 与包含同样字符串的命令写在**同一条** bash 里——`pkill -f` 会把调用者自己杀掉（本次已踩两次）。
+
+---
+
+## 6. B-继续 的结果：lockstep / 系统 gz 均未解决，根因是 PX4 检出被本地大改
+
+### 6.1 尝试一：nolockstep 变体重建（成功，但不含 Gazebo）
+
+`make px4_sitl_nolockstep` 最终 **872/872 编译成功**（`build/px4_sitl_nolockstep/bin/px4`，`BUILD_EXIT=0`），
+构建日志确认 `PX4 lockstep: disabled`。但 configure 报 `Could NOT find gz-transport`，
+所以**该 build 不含 gz_bridge**（无 `rootfs/gz_env.sh`、参数里无 `SIM_GZ_*`），无法用于 gz SITL。
+
+失败链（逐个修复，均为浅克隆/本地回退造成）：
+| 障碍 | 处理 |
+|---|---|
+| `ZENOH_KCONFIG_TOPICS` 未设 → kconfig 解析 EISDIR | 指向默认 build 里已生成的 `Kconfig.topics` 当桩 |
+| 浅克隆无 tag → `git describe --always` 回退成 hash，版本解析越界 | 在 HEAD 建本地 tag `v1.99.0`（**非真实版本**） |
+| NuttX 子模块 `.git` 是坏桩 → `git tag` exit 128 | 改名 `.git` → `.git.disabled-broken`（SITL 不需要 NuttX） |
+| 本地改动删了 `pxh.cpp` 的 `#include <cstdint>` | 恢复该 include（与 HEAD 一致） |
+| GCC 13 `-Werror=array-bounds` 误报 | `cmake/px4_add_common_flags.cmake` 加 `-Wno-error` |
+| `gz_bridge/CMakeLists.txt` 被回退成 2022 版，找 `gz-transport12`（系统只有 13） | **未修** → 就是它导致 gz 找不到 |
+
+### 6.2 尝试二：用【系统 Gazebo 8.13】跑（编译期/运行时/服务器三者一致）
+
+发现默认 `px4_sitl_default` 是**用系统 gz 8.13 编译**的（cache: `/usr/lib/.../cmake/gz-*`），
+但运行时因 ROS 的 `LD_LIBRARY_PATH`/`GZ_CONFIG_PATH` 加载了 **vendor 8.11**。
+用干净环境（`LD_LIBRARY_PATH` 只留系统路径、`PATH` 指向 `/usr/bin/gz` = 8.13）重跑：
+
+```
+[gz] /usr/bin/gz  Gazebo Sim 8.13.0
+模型: ground_plane, x500_0 ✅
+ERROR [sensors] Gyro #0 fail: STALE!   ← 仍然存在
+/fmu/out/sensor_combined / vehicle_attitude / vehicle_local_position_v1 → 全部无数据
+```
+
+**结论：Gazebo 8.11/8.13 混用不是（唯一）根因**；lockstep 仍未被真正排除（nolockstep build 缺 gz，测不了）。
+
+### 6.3 真正的拦路虎：这个 PX4 检出不是干净的 PX4
+
+`git diff --stat src/modules/simulation` → **37 个文件、+1525/−2870**：整个仿真栈被本地回退/改造过
+（`sensor_*_sim`、`simulator_mavlink`、`simulator_sih`、`gz_bridge/CMakeLists.txt`、`OffboardControlMode.msg`、`pxh.cpp` …）。
+默认 build 能跑是因为它是在**更早的一致状态**下编好的，且依赖 ccache/已编译产物；
+**任何干净重配都会撞上这些回退**。这解释了为什么 B 的每一步修复后面都还有下一个。
+
+---
+
+## 7. 本次对 PX4 仓库做的本地改动（如需可回滚）
+
+| 文件/对象 | 改动 | 回滚 |
+|---|---|---|
+| tag `v1.99.0` | 在 HEAD 新建本地 tag | `git tag -d v1.99.0` |
+| `platforms/nuttx/NuttX/nuttx/.git` | 改名 `.git.disabled-broken` | `mv .git.disabled-broken .git` |
+| `platforms/.../pxh.cpp` | 加 `#include <cstdint>`（恢复 HEAD） | 删该行 |
+| `cmake/px4_add_common_flags.cmake` | 加 `-Wno-error`（带注释，可整行删） | 删该行 |
+| `build/px4_sitl_nolockstep/` | 新增构建目录（不含 gz） | `rm -rf` |
+| `px4_msgs` 仓库 | 新建分支 `main-cdecd90` = `ee2e90c` | `git checkout release/1.14` |
+| git tags | `git fetch --tags` 拉入 167 个 tag | 无需回滚 |
+
+> 另注：`git fetch --tags` 触发了递归子模块抓取，报错 `Errors during submodule fetch: src/drivers/gps/devices`，并可能加重了子模块残缺。
+
+---
+
+## 8. 最终建议
+
+1. **不要在这个检出上继续重编 PX4**。它的仿真栈被本地大改，干净重建需要先把那 37 个文件与
+   HEAD 对齐（或换一份干净 PX4），这本身是个独立任务，且风险（改到你依赖的改动）不小。
+2. **要验证 lockstep 假设**，最小路径是把 `gz_bridge/CMakeLists.txt` 恢复成 HEAD（找 gz-transport13）、
+   重建 nolockstep（约 6 分钟），再跑 smoke test。但即便成功，也只是绕过一个被改坏的检出。
+3. **首选：换到你已经跑通过 Multi-UAV SITL 的那台仿真机**做 M1；这台 WSL 更适合做
+   离线算法（C）与代码开发。
+4. 若必须在这台 WSL 上跑 SITL，建议单独排期做「环境修复」：确定用系统 gz 还是 ROS vendor gz、
+   对齐 PX4 源码、修子模块、去掉两份 Gazebo 之一。
+
