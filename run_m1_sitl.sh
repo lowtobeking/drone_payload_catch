@@ -18,10 +18,10 @@ sleep 15
 MicroXRCEAgent udp4 -p 8888 > "$D/agent.log" 2>&1 &
 sleep 3
 
-echo "### spawn 2×PX4 (A=ENU 0,0  B=ENU 0,0.6)"
+echo "### spawn 2×PX4 (A=ENU 0,0  B=ENU 0,0.2)"
 cd "$PX4_DIR" || exit 1
 export GZ_SIM_RESOURCE_PATH="$PX4_DIR/Tools/simulation/gz/models:$PX4_DIR/Tools/simulation/gz/worlds"
-POSES=("0,0,0,0,0,0" "0,0.6,0,0,0,0")
+POSES=("0,0,0,0,0,0" "0,0.2,0,0,0,0")
 for i in "${!POSES[@]}"; do
   PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL=x500 \
     PX4_GZ_MODEL_POSE="${POSES[$i]}" \
