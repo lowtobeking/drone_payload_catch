@@ -7,10 +7,12 @@
 #   tools/gen_spawn.py 后续      → 生成 A/B 两架 PX4 的出生 POSES
 #
 # 坐标: 一律世界系 NED = [North, East, Down]（z 向下为正）。
-#       高度(离地) = -z；A 悬停在 z=-2.5 即离地 2.5 m。
+#       高度(离地) = -z；A 在 z=-3.0 即离地 3.0 m。
 #
-# 任务: A 携载重物悬停，在算法求出的 (释放时刻 t_r, 捕获点) 释放；
-#       B 实时机动到该空间点，位置到达 + 相对速度尽量小即判捕获。
+# 任务: A 携载飞行，在算法求出的 (释放时刻 t_r, 捕获时刻 t_c) 抛投；
+#       B 实时机动到空间会合点，位置到达 + 相对速度尽量小即判捕获。
+#
+# A 的运动: 恒速直线  p_A(t) = a_init + a_vel·t。a_vel 全零即悬停释放。
 # ============================================================================
 
 # ── 公共参数 ────────────────────────────────────────────────────────────────
@@ -25,43 +27,97 @@ defaults:
     drag_k:        0.0        # linear: 1/s；quadratic: m⁻¹（含义随 drag_mode）
 
   drone_b:                    # B 的动力学限幅（仿真宽松档，便于先跑通）
-    max_speed:      4.0       # m/s（三维速度范数上限；须 ≥ 捕获点的载荷速度）
-    max_accel:      5.0       # m/s²（加速度范数上限）
+    max_speed:      5.0       # m/s（三维速度范数上限；须 ≥ 会合点的载荷速度）
+    max_accel:      6.0       # m/s²（加速度范数上限）
 
   capture:                    # 捕获判据：位置进 r_c，且相对速度 < v_c
     radius:         0.30      # m，r_c
     rel_speed:      1.50      # m/s，v_c
 
-  planner:                    # 协调求解器（外层搜 (t_r, 捕获高度)）
-    catch_alt_min:  0.80      # m，捕获高度搜索下界（离地）
-    catch_alt_max:  2.00      # m，捕获高度搜索上界（须 ≤ A 高度 − 小量）
-    release_delay_min: 0.0    # s，释放时刻 t_r 搜索下界
-    release_delay_max: 8.0    # s，释放时刻 t_r 搜索上界
-    catch_alt_step: 0.02      # m
-    release_delay_step: 0.02  # s
+  planner:                    # 协调求解器：搜 (t_r, τ_c)
+    t_r_min:        0.0       # s，释放时刻搜索下界
+    t_r_max:        8.0       # s，释放时刻搜索上界
+    t_r_step:       0.05      # s
+    tau_min:        0.05      # s，下落时长搜索下界
+    tau_max:        1.20      # s，下落时长搜索上界
+    tau_step:       0.01      # s
+    catch_alt_min:  0.80      # m，捕获高度下界（离地）
+    catch_alt_max:  2.00      # m，捕获高度上界
     w_time:         0.20      # 代价权重：释放越晚越贵（防无限拖延）
     w_accel:        1.00      # 代价权重：B 峰值加速度 / a_max
-    w_vel:          5.00      # 代价权重：终端速度失配（自由终点速度时用）
-    ground_margin:  0.30      # m，B 轨迹离地最小余量
+    w_vel:          5.00      # 代价权重：终端速度失配（软终端速度时用）
+    ground_margin:  0.30      # m，B 轨迹 / 载荷离地最小余量
 
   wind: [0.0, 0.0, 0.0]       # [N,E,D] m/s，标称无风
 
-# ── 布局：A 悬停点 + B 待命点（均世界系 NED）───────────────────────────────
+# ── 布局：A 初始位置+速度、B 待命点（均世界系 NED）─────────────────────────
 layouts:
-  hover_catch:                          # M1 基准：B 在 A 侧上方
-    a_hover:   [0.0, 0.0, -2.5]         # A 悬停，离地 2.5 m
-    b_standby: [1.2, 0.0, -3.5]         # B 待命，横向偏 1.2 m、离地 3.5 m
+  hover_catch:                          # M1 基准：A 悬停
+    a_init:    [0.0, 0.0, -2.5]
+    a_vel:     [0.0, 0.0, 0.0]
+    b_standby: [1.2, 0.0, -3.5]
+
+  line_catch:                           # M2：A 沿 +N 恒速飞行
+    a_init:    [-4.0, 0.0, -3.0]
+    a_vel:     [1.0, 0.0, 0.0]          # 1.0 m/s 向北
+    b_standby: [2.0, 0.0, -2.5]
+
+  high_hover_catch:                     # M3：更高的释放点，下落时间长 → 模型失配显现
+    a_init:    [0.0, 0.0, -5.0]
+    a_vel:     [0.0, 0.0, 0.0]
+    b_standby: [1.5, 0.0, -4.0]
 
 # ── 工况 ───────────────────────────────────────────────────────────────────
 scenarios:
+  # ── M1 悬停释放 ──
   M1_basic:
     layout: hover_catch
     description: 标称无风；验证规划—会合—捕获闭环
 
   M1_wind:
     layout: hover_catch
-    wind: [0.5, 0.3, 0.0]               # 常值风，鲁棒性输入（第一版不补偿）
+    wind: [0.5, 0.3, 0.0]               # 常值风（drag=none 时对载荷无效，占位）
     description: 常值风扰动下的捕获
+
+  # ── M2 带速抛投：A 以 0.5 / 1.0 / 2.0 m/s 平飞 ──
+  M2_line_v05:
+    layout: line_catch
+    a_vel: [0.5, 0.0, 0.0]
+    description: A 0.5 m/s 平飞抛投
+
+  M2_line_v10:
+    layout: line_catch
+    a_vel: [1.0, 0.0, 0.0]
+    description: A 1.0 m/s 平飞抛投（基准）
+
+  M2_line_v20:
+    layout: line_catch
+    a_vel: [2.0, 0.0, 0.0]
+    description: A 2.0 m/s 平飞抛投（速度应力）
+
+  # 横向抛投：A 沿 +E 飞，载荷带横向速度
+  M2_crosswind:
+    layout: line_catch
+    a_init: [-3.0, -1.0, -3.0]
+    a_vel:  [1.0, 0.6, 0.0]
+    description: A 斜向平飞（N+E 分量）抛投
+
+  # ── M3 闭环重规划：高抛（下落时间长 → B 有更多时间纠正释放误差）──
+  M3_high:
+    layout: high_hover_catch
+    drone_b: {max_speed: 9.0, max_accel: 10.0}
+    planner: {tau_max: 1.2, catch_alt_min: 1.2, catch_alt_max: 2.5}
+    description: 高抛（下落~0.8s）；释放误差下闭环重规划的时间裕度更大
+
+  # ── M3 闭环重规划：模型失配（规划器按无阻力预测，实际有风+阻力）──
+  M3_wind_drag:
+    layout: high_hover_catch
+    closed_loop: true
+    payload: {drag_mode: linear, drag_k: 2.0}
+    wind: [2.0, 1.0, 0.0]
+    drone_b: {max_speed: 9.0, max_accel: 10.0}
+    planner: {tau_max: 1.4, catch_alt_min: 1.2, catch_alt_max: 2.5}
+    description: 高抛 + 风+阻力；开环按无阻力预测会偏，闭环重规划可纠正
 
 # ── 判定阈值（离线报告用；后续 verdict 用）────────────────────────────────
 thresholds:
