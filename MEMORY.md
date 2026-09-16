@@ -1,0 +1,222 @@
+# MEMORY.md — 项目记忆（给下一个 AI / 未来的自己）
+
+> 最后更新：2026-09-16。**新对话请先读本文件**，再按需读 `README.md`、`report/`。
+> 目标读者：接手本项目的 AI 助手。读完应能直接继续干活，不必重跑全部排查。
+
+---
+
+## 0. 一句话现状
+
+「无人机 A 空投载荷、无人机 B 空中接住」项目：
+**离线算法层已完整**（M0/M2/M3/M3+/M4，含多组对照与负结果）；
+**SITL 层已打通并能在温和条件下真实捕获**（M1 + M5-1 + M5-2：PX4-1.16 双机 + Gazebo 真实载荷 + acados MPC）；
+**边界已量化**：横向偏移 0.8m 内可靠，载荷下落速度 ~2m/s 可靠、~4.9m/s 会触发 B 的飞控 failsafe；
+**未做**：真实吸附机构、真机。
+
+---
+
+## 1. 项目定义与硬约定
+
+- **任务**：A 携载重物飞行，在算法求出的**释放时刻/会合点**抛投；B 实时机动到空间会合点接住。
+  约束：**位置必须到达**（硬），**相对速度尽量小**（软）。
+- **第一版简化（已实现）**：A 悬停释放；载荷在 Gazebo 里真实下落；捕获用**软件判据**
+  `|p_B−p_p| < r_c` 且 `|v_B−v_p| < v_c`（暂无真实吸附机构）。
+- **坐标**：一切用**世界系 NED**（x=北, y=东, z=下），高度=`-z`。
+  Gazebo ENU→NED：`NED=[ENU_y, ENU_x, -ENU_z]`。
+- **单一真值源**：所有几何/参数/工况都在 `config/catch_scenarios.yaml`，**不要硬编码**。
+- **核心算法层不依赖 ROS**（`payload_model` / `rendezvous` / `sim_core` / `mpc_terminal` / `payload_filter`），
+  保证可离线验证；ROS 节点只做接口。
+
+---
+
+## 2. 环境事实（🔴 最容易踩坑，务必先看）
+
+**本机可用的 SITL 环境不在 `$HOME/PX4-Autopilot`，而在 `~/drone_package_20260908/`。**
+那里有一份 2026-09-08 的**已跑通工作快照**，其 `SITL仿真调试记忆_20260908.md` 是权威说明。
+
+| 项 | 正解 | 备注 |
+|---|---|---|
+| PX4 树 | `~/drone_package_20260908/PX4-Autopilot-1.16` | **不要用 `$HOME/PX4-Autopilot`(main)** |
+| 为什么 | main 的 `x500` 外层模型 **IMU 无噪声** → 静止输出恒 0 → `DataValidator` 判 STALE → 永不许解锁 | 这是之前 `Gyro #0 fail: STALE` 的真正根因；我在 main 上白排查了很久 |
+| px4_msgs | `~/drone_package_20260908/ros2_ws/src/px4_msgs` @ **tag v1.16.2** | 与固件 1.16 匹配；不匹配会"话题静默不可见" |
+| Gazebo | 系统 Harmonic **8.13**（`/usr/bin/gz`） | 另有一套 ROS vendor 8.11，**不要混用**（会把运行时库拉成 8.11） |
+| world | `~/drone_package_20260908/gz_overrides/worlds/default.sdf`（自建"全系统"） | 1.16 自带 default.sdf 不含 Imu/NavSat/Sensors 插件 + 球坐标，传感器不发 |
+| RMW | `rmw_fastrtps_cpp` | 本机全局是 cyclonedds；MicroXRCEAgent 是 Fast-DDS，不匹配则看不到话题 |
+| `SYS_HAS_MAG` | 1 | 0 时静态起飞无 yaw 基准，gnss pos 融合被拒，`xy_valid` 永 false |
+| 话题版本化 | 1.16：`vehicle_status_v1`；`vehicle_local_position`/`vehicle_attitude`/`trajectory_setpoint`/`offboard_control_mode` **无后缀** | |
+
+**一键环境**：`source ~/drone_payload_catch/env.sh`
+（内部已指向 PX4-1.16 + v1.16.2 workspace + 全系统 world + acados + fastrtps）。
+
+已在 `/opt/ros/jazzy` 装好 `ros_gz_bridge`、`ros_gz_sim`，且 **`gz.transport13` / `gz.msgs10` Python 绑定可用**
+（`PayloadNode` 用它订阅 Gazebo 载荷状态）。
+
+---
+
+## 3. 目录 / 文件地图
+
+```
+drone_payload_catch/
+├── MEMORY.md                  ← 本文件
+├── README.md                  ← 设计/用法/路线图
+├── env.sh                     ← source 它进入正确环境
+├── config/catch_scenarios.yaml← 单一真值源（defaults/layouts/scenarios/thresholds）
+├── payload_catch/
+│   ├── payload_model.py       ← 载荷抛体模型（解析；可选阻力/风）
+│   ├── rendezvous.py          ← 会合规划：min-energy 三次、软终端速度、过冲惩罚、分段参考、solve_inflight
+│   ├── sim_core.py            ← 离线闭环仿真（A 恒速飞行 + B 控制 + 捕获 + 闭环重规划）
+│   ├── mpc_terminal.py        ← B 的 acados 终端 MPC（含指纹缓存）
+│   ├── payload_filter.py      ← 载荷状态估计（KF / 朴素）
+│   ├── px4_iface.py           ← PX4 接口基类（话题/QoS/ARM+OFFBOARD/setpoint/世界系偏移）
+│   ├── a_node.py              ← A：起飞→悬停在释放点
+│   ├── b_node.py              ← B：规划+预位→释放后闭环会合→捕获（pd|mpc）
+│   └── payload_node.py        ← 载荷：Gazebo 生成/瞬移/状态发布（含解析兜底）
+├── launch/catch_launch.py     ← M1 SITL 启动
+├── models/payload/            ← Gazebo 载荷模型（0.3kg 小方盒 + odometry 插件）
+├── tools/
+│   ├── offline_run.py         ← 离线体检 CLI（--all/--plot/--sweep-noise/--compare/--controller-compare/--mc）
+│   ├── prebuild_mpc.py        ← 预热 acados MPC（消除 SITL 启动期编译尖峰）
+│   └── sweep_sitl_difficulty.sh ← SITL 难度扫描
+├── run_m1_sitl.sh             ← M1 一键 SITL（gz + 2×PX4 + agent + 节点；可传 CTRL/A_HOVER/...）
+└── report/
+    ├── env_bringup.md         ← 环境排查全记录（含我在 PX4 上做的改动与回滚清单）
+    └── m5_sitl_results.md     ← M5 难度扫描结果
+```
+
+训练/编译产物：acados 缓存在 `~/.cache/payload_catch/acados_terminal_mpc/`（**非 /tmp**）。
+
+---
+
+## 4. 怎么跑
+
+### 4.1 离线（不需要 ROS/SITL，秒级）
+```bash
+cd ~/drone_payload_catch
+python3 -m payload_catch.payload_model          # 自测
+python3 -m payload_catch.rendezvous
+python3 tools/offline_run.py --all              # 13 个工况，全部 PASS
+python3 tools/offline_run.py --scenario M4_high_kf --mc       # 蒙特卡洛
+python3 tools/offline_run.py --scenario M2_line_v10 --compare # 开环 vs 闭环
+```
+
+### 4.2 SITL（2 机 + Gazebo 载荷）
+```bash
+source ~/drone_payload_catch/env.sh
+bash ~/drone_payload_catch/run_m1_sitl.sh 50          # PD 控制器
+CTRL=mpc bash ~/drone_payload_catch/run_m1_sitl.sh 50 # acados MPC
+# 可调几何：
+A_HOVER="0.0,0.0,-3.0" B_STANDBY="0.2,0.0,-2.8" B_OFFSET="0.2,0.0,0.0" \
+  B_POSE_ENU="0,0.2,0,0,0,0" CTRL=mpc bash run_m1_sitl.sh 45
+```
+结果看 `~/payload_catch_sitl/launch.log` 里的 `*** CAPTURED ***` 与 `B phase=...`。
+⚠️ launch 向量参数**必须全 float**（`[0.2,0.0,-2.8]`，不能 `[0.2,0,-2.8]`，否则 launch 报类型不一致）。
+
+### 4.3 构建本项目（改代码后）
+```bash
+cd ~/payload_catch_ws && source ~/drone_payload_catch/env.sh
+colcon build --packages-select payload_catch
+```
+（`~/payload_catch_ws/src/payload_catch` 是软链到本仓库。改 yaml/setup 后需重新 build，
+因为 launch 读 install 副本；但 **launch 参数可覆盖几何**，改参数不必 build。）
+
+---
+
+## 5. 里程碑进度与关键结果
+
+| 里程碑 | 内容 | 状态 |
+|---|---|---|
+| M0 | 骨架 + 载荷模型 + 会合规划 + 离线闭环 | ✅ |
+| M2 | A 带速抛投（0.5/1.0/2.0 m/s + 斜向） | ✅ 离线全 PASS |
+| M3 | 闭环重规划 | ✅ 释放误差 σ=0.2：开环 7/12→闭环 12/12；风+阻力失配：开环 0/10→闭环 10/10 |
+| M3+ | acados 终端 MPC + 与 PD 对照 | ✅ 能接；**未超过** 解析前馈 PD |
+| M4 | 载荷 KF 估计 + 延迟/丢包 + 蒙特卡洛 | ✅ KF 估计误差降 2–4 倍；但**成功率无提升**（真值基线同样 ~92% → 瓶颈不在估计） |
+| B | 环境打通 | ✅ 用 PX4-1.16 解决（见 §2） |
+| M1 | SITL 端到端（A 悬停释放 / B 会合） | ✅ |
+| M5-1 | Gazebo 真实载荷 | ✅ |
+| M5-2 | b_node 接入 acados MPC | ✅ |
+| M5 step3 | 难度扫描找边界 | ✅ 见下 |
+| M5-3 | 真实吸附机构（接住→带走） | ❌ 未做 |
+| 真机 | — | ❌ 未做 |
+
+**SITL 难度扫描结果**（`report/m5_sitl_results.md`，MPC 控制器）：
+- 偏移 0.2/0.5/0.8 m（A 3.0 m，v_p≈2 m/s）：**全部捕获**，可重复。
+- A 4.0 m（v_p≈4.9 m/s）：**全部失败**，B `Attitude failure (roll)`/`Compass`+`Battery` → **failsafe**。
+- 结论：横向偏移不是瓶颈；**真瓶颈是载荷下落速度（B 的末端俯冲）**。
+
+---
+
+## 6. 关键设计决策与负结果（避免重走弯路）
+
+1. **A 运动第一版用恒速直线**（`a_vel=0` 即悬停）；载荷 = 无阻力抛体，可选阻力/风。
+2. **协调搜索**：在 `(t_r, τ_c)` 网格上最小化
+   `J = w_time·t_r + w_accel·(峰值a/a_max) + w_vel·|Δv|² (+ w_overshoot·过冲)`。
+3. **B 会合轨迹**：min-energy 三次多项式（解析），终端速度精确匹配；不可行时退**软终端速度**。
+4. **`solve_inflight`**：载荷离手后的重规划入口（闭环，抗释放误差/模型失配）。
+5. **负结果 A：终端 MPC 没有赢过 PD。** PD 带解析 min-energy 前馈，在简单双积分器里已接近最优。
+6. **负结果 B：过冲不是缺陷。** min-energy 参考在"时间充裕、终端速度大"时会先爬升再俯冲；
+   强行用 `w_overshoot`/`staged` 参考去掉过冲 → 用满 `a_max`、**丢失反馈余量** → σ=0.15 成功率 8/10→6/10。
+   **默认保留 `cubic` 参考**。真正的改进方向是从**会合几何**（给 B 下滑跑道）入手。
+7. **负结果 C：更好的估计器不提升成功率。** KF 估计误差降 2–4 倍，但用真值的 `none` 基线同样只有 ~92%
+   ⇒ 瓶颈是释放误差+动力学，不是估计精度。
+8. **`release_mode`/`ctrl` 的默认**：`reference_mode=cubic`、`controller='pd'`（launch 默认；SITL 用 `CTRL=mpc`）。
+
+---
+
+## 7. 已知坑 / 陷阱（血泪）
+
+1. **`pkill -f <pattern>` 会把执行命令的 shell 自己杀掉**，如果命令串里含同样 pattern
+   （如 `pkill -9 -f 'px4'` 在含 `px4` 路径的命令里）。务必把 pkill 写进**独立脚本文件**再执行。
+2. **launch 参数向量必须全 float**（见 §4.2）。
+3. **`setup.cfg` 的 `install_scripts` 不要指到 `/usr/local/bin`**（需 root，构建失败）；用 ament 标准 `$base/lib/payload_catch`。
+4. **acados json 路径**：新版把 json 写到 `c_generated_code/`，指纹缓存要按这个路径判断，否则永远 miss。
+5. **改了 OCP 结构/权重** → 清 `~/.cache/payload_catch/acados_terminal_mpc/`（指纹其实会自动失效，但保险起见）。
+6. **drone1（B）固有健康告警**：`Compass 1` + `Battery unhealthy`，参考项目带着它也能飞；但**额外负载**
+   （全量订阅 `/world/default/pose/info` + 现场编 acados）会顶出 gz 时钟抖动 → EKF 姿态失效 → failsafe。
+   **对策（已实施）**：载荷只订阅自身 `/payload/odom`；MPC 用指纹缓存 + `tools/prebuild_mpc.py` 预热；
+   PX4 启动间隔 12s、等双机 Ready 后额外等 8s 让 EKF 稳。
+7. **载荷捕获后会与 B 碰撞被弹开**（因为还没做真实吸附）——软件判据在碰撞前已触发，属预期。
+8. **Gazebo `create` 服务首次调用可能 ~5s 超时**：所以 `payload_node` **启动时**就把载荷生成在远处停车位
+   (ENU 100,100)，释放时用 `set_pose` 瞬移到释放点（避免释放时刻的服务延迟）。
+9. **b_node 早退陷阱**：`control()` 不能用 `p_pay is None` 早退，否则 HOLD 阶段永远执行不到规划。
+10. **参考轨迹执行完后不能继续用末点速度前馈**（会让 B 一直俯冲砸地）；结束后应在会合点悬停。
+
+---
+
+## 8. 当前边界与未做
+
+- **可靠区**：横向偏移 ≤0.8 m、载荷下落速度 ≈2 m/s；B 无 failsafe；`*** CAPTURED ***` 可重复。
+- **失败区**：下落速度 ≈4.9 m/s → B failsafe（飞控/传感器鲁棒性，而非算法）。
+- **未做**：真实吸附机构（接住后刚性绑定/带着飞）；真机；户外/RTK；视觉感知（现为真值+噪声）。
+
+---
+
+## 9. 下一步候选（按价值）
+
+1. **M5-3 真实吸附**：接住后把载荷刚性绑到 B（detachable joint 或软件 attach），让"接住→带走"闭环。
+   —— 让系统完整，且比调 EKF 可控。**推荐先做**。
+2. **推高速度边界**：修 B 的传感器/EKF 鲁棒性（mag 优先级、EKF 参数、无 mag 的 yaw 源），
+   或把末端俯冲做得更平滑（把离线验证过的 `staged` 参考用到 SITL，降低对姿态冲击）。
+3. **真机化**：把已验证的 SITL 配置搬到真机（`report/env_bringup.md` 有 PX4 改动与回滚清单）。
+
+---
+
+## 10. 提交历史（git log，自上而下）
+
+```
+16fcdf8 M5 step3: SITL 难度扫描 + 结果记录
+4fb558d M5 step1+2: 降负载(载荷 odom) + acados MPC 指纹缓存 -> B 无 failsafe, MPC 捕获成功
+f382a0a M5 step2: b_node 接入 acados 终端 MPC
+118cce3 M5 step1: 温和场景 SITL 干净捕获(Gazebo 载荷)
+dc003f8 M5-1: 载荷放进 Gazebo（真实物理下落）
+d1109db M1: PX4 SITL 端到端跑通
+9b39c0a M4: 载荷状态估计(KF) + 延迟/丢包 + 蒙特卡洛
+dcc15cd ref: 参考轨迹改进尝试 + 效率-鲁棒性权衡
+f10dedb M3+: B 的 acados 终端 MPC + 与 PD 对照
+587e845 M2+M3: 带速抛投 + 闭环重规划
+60b0847 B(续): nolockstep 重建（缺 gz）+ 系统 gz 仍 STALE + 根因=PX4 检出被本地大改
+b78bf5c B: 环境打通（px4_msgs 修正 + DDS 通）
+cb7c1f0 M0: 项目骨架 + 载荷模型 + 会合规划 + 离线闭环
+```
+
+> 注：`b78bf5c`/`60b0847` 记录的是"在错误的 PX4 main 树上排查"，**结论已被 §2 取代**——
+> 直接看 §2，不必重读那两个 commit 的细节。
