@@ -31,6 +31,7 @@ class BNode(Px4Drone):
         self.declare_parameter('b_max_speed', 5.0)
         self.declare_parameter('b_max_accel', 6.0)
         self.declare_parameter('kp_pos', 1.2)
+        self.declare_parameter('controller', 'pd')      # pd | mpc
         self.declare_parameter('a_release_world', [0.0, 0.0, -3.0])   # A 的悬停/释放点(世界系)
         self.declare_parameter('start_delay', 18.0)                   # 起飞稳定后开始规划(s)
         self.declare_parameter('plan_tr_max', 3.0)
@@ -53,6 +54,17 @@ class BNode(Px4Drone):
         self.planned = False
         self.plan = None
         self.pub_release_at = self.create_publisher(Float64, '/payload/release_at', 10)
+        self.controller = str(self.get_parameter('controller').value).lower()
+        self.mpc = None
+        if self.controller == 'mpc':
+            from .mpc_terminal import TerminalMPC
+            self.mpc = TerminalMPC(
+                N=30, dt=0.02,
+                a_max=float(self.get_parameter('b_max_accel').value),
+                v_max=float(self.get_parameter('b_max_speed').value))
+            self.get_logger().warn('b_node: 控制器 = acados 终端 MPC')
+        self.cur_pc = None
+        self.cur_vc = None
         self.planner = RendezvousPlanner(
             g=9.81, b_max_speed=self.v_max,
             b_max_accel=float(self.get_parameter('b_max_accel').value),
@@ -155,6 +167,7 @@ class BNode(Px4Drone):
                 catch_alt_range=self.calt)
             if rp.feasible:
                 self.ref_t, self.ref_p, self.ref_v, _ = RendezvousPlanner.resample(rp, n=201)
+                self.cur_pc, self.cur_vc = rp.p_c.copy(), rp.v_p.copy()
                 self.ref_t0 = now
 
         if (self.ref_t is not None) and (now - self.ref_t0) < float(self.ref_t[-1]):
@@ -162,7 +175,16 @@ class BNode(Px4Drone):
             j = int(round(tl / float(self.ref_t[-1]) * (len(self.ref_t) - 1)))
             p_ref = self.ref_p[j]
             v_ref = self.ref_v[j].copy()
-            v_sp = v_ref + self.kp * (p_ref - self.pos_world)
+            if self.mpc is not None:
+                x0 = np.concatenate([self.pos_world, self.vel])
+                _u0, st, v_pred = self.mpc.solve(x0, self.ref_t, self.ref_p, self.ref_v,
+                                                 self.cur_pc, self.cur_vc, t_start=tl)
+                if st in (0, 2):
+                    v_sp = v_pred + 0.5 * self.kp * (p_ref - self.pos_world)
+                else:
+                    v_sp = v_ref + self.kp * (p_ref - self.pos_world)
+            else:
+                v_sp = v_ref + self.kp * (p_ref - self.pos_world)
         else:
             # 参考执行完（或已过会合时刻）→ 在会合点悬停。
             # ⚠️ 不能继续用末点 v_ref(=载荷速度)：那会让 B 一直俯冲砸地。

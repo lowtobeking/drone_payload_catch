@@ -100,7 +100,7 @@ class TerminalMPC:
     # ---------------------------------------------------------------- solve
     def solve(self, x0: np.ndarray, ref_t: np.ndarray, ref_p: np.ndarray,
               ref_v: np.ndarray, p_c: np.ndarray, v_c: np.ndarray,
-              t_start: float = 0.0) -> Tuple[np.ndarray, int]:
+              t_start: float = 0.0) -> Tuple[np.ndarray, int, np.ndarray]:
         """给定期望参考（定义在 [0, ref_t[-1]]，其后保持），返回 (u0, status)。
 
         参考按 t_start + min(k·dt, T_rem) 采样（t_start = 当前时刻在参考里的位置）；
@@ -130,7 +130,9 @@ class TerminalMPC:
         self._solver.set(N, 'yref', np.concatenate([ref_p[j_end], ref_v[j_end]]))
         status = self._solver.solve()
         u0 = np.asarray(self._solver.get(0, 'u'), float).reshape(self._nu)
-        return u0, int(status)
+        # 预测的下一拍速度（PX4 速度接口用它当前馈设定点）
+        x1 = np.asarray(self._solver.get(1, 'x'), float).reshape(self._nx)
+        return u0, int(status), x1[3:6].copy()
 
 
 if __name__ == '__main__':

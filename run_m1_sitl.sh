@@ -37,7 +37,7 @@ for i in 0 1; do
 done
 
 echo "### launch payload_catch (A/B/payload)"
-timeout $((RUN_S + 40)) ros2 launch payload_catch catch_launch.py > "$D/launch.log" 2>&1 &
+timeout $((RUN_S + 40)) ros2 launch payload_catch catch_launch.py controller:="${CTRL:-pd}" > "$D/launch.log" 2>&1 &
 sleep "$RUN_S"
 
 echo "### 结果"
