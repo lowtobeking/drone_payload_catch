@@ -90,6 +90,55 @@ def payload_state(p_r: Vec3, v_r: Vec3, tau: float, g: float = 9.81
     return p, v
 
 
+def staged_reference(p0: Vec3, v0: Vec3, p_c: Vec3, v_c: Vec3, T: float,
+                     a_max: float, n: int = 401
+                     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """分段参考：先送上"最优待机高度"、再末端匀加速俯冲。
+
+    传统 min-energy 三次多项式在“终端速度大、净位移小”时会过度爬升
+    （B 得先攼高度攼下滑跑道）。本函数把竖直运动拆成两段，使爬升量
+    接近理论最小：
+      预冲段（时长 t_dive = v_cz/a_max）从待机高度 z_stage 以 a_max 加速到
+      (z_c, v_cz)，由 v_cz² = 2·a_max·(h_stage − h_c) 得
+          h_stage = h_c + v_cz²/(2·a_max)
+          z_stage = z_c − v_cz²/(2·a_max)
+      转场段（[0, T−t_dive]）从 (z0, vz0) 静止到静止地到 z_stage。
+    水平轴仍用全程三次（需在 T 时刻匹配 v_c 的水平分量）。
+    若 v_cz≤0 或时间不够（T≤t_dive），退回全程三次。
+    """
+    ts = np.linspace(0.0, T, n)
+    p = np.zeros((n, 3)); v = np.zeros((n, 3)); a = np.zeros((n, 3))
+    a_xy_max = 0.0
+    for k in range(2):
+        c = min_energy_cubic(p0[k], v0[k], p_c[k], v_c[k], T)
+        p[:, k], v[:, k], a[:, k] = eval_cubic_vec(c, ts)
+        a_xy_max = max(a_xy_max, float(np.max(np.abs(a[:, k]))))
+    # 俯冲加速度预留水平分量余量，保证 ‖a‖≤a_max
+    a_dive = math.sqrt(max(a_max * a_max - a_xy_max * a_xy_max, (0.05 * a_max) ** 2))
+    z0, vz0, zc, vzc = float(p0[2]), float(v0[2]), float(p_c[2]), float(v_c[2])
+    if vzc <= 1e-6 or T <= 1e-6 or a_dive <= 1e-6:
+        c = min_energy_cubic(z0, vz0, zc, vzc, T)
+        p[:, 2], v[:, 2], a[:, 2] = eval_cubic_vec(c, ts)
+        return ts, p, v, a
+    t_dive = vzc / a_dive
+    z_stage = zc - vzc * vzc / (2.0 * a_dive)
+    t1 = T - t_dive
+    if t1 <= 1e-3:
+        c = min_energy_cubic(z0, vz0, zc, vzc, T)
+        p[:, 2], v[:, 2], a[:, 2] = eval_cubic_vec(c, ts)
+        return ts, p, v, a
+    c1 = min_energy_cubic(z0, vz0, z_stage, 0.0, t1)
+    for i, t in enumerate(ts):
+        if t <= t1:
+            p[i, 2], v[i, 2], a[i, 2] = eval_cubic(c1, t)
+        else:
+            tau = t - t1
+            p[i, 2] = z_stage + 0.5 * a_dive * tau * tau
+            v[i, 2] = a_dive * tau
+            a[i, 2] = a_dive
+    return ts, p, v, a
+
+
 # ------------------------------------------------------------------- results
 @dataclass
 class PlanResult:
@@ -106,6 +155,7 @@ class PlanResult:
     peak_speed: float = 0.0
     min_alt: float = 0.0
     delta_v: float = 0.0      # 捕获时刻 B 与载荷的速度失配
+    overshoot: float = 0.0    # B 轨迹高度超出 [起始,会合] 包络的量
     cost: float = math.inf
     reason: str = ''
     traj_t: Optional[np.ndarray] = None
@@ -122,6 +172,7 @@ class RendezvousPlanner:
                  b_max_speed: float = 4.0, b_max_accel: float = 5.0,
                  capture_radius: float = 0.30, capture_rel_speed: float = 1.50,
                  w_time: float = 0.20, w_accel: float = 1.0, w_vel: float = 5.0,
+                 w_overshoot: float = 0.0,
                  ground_margin: float = 0.30, n_check: int = 24):
         self.g = float(g)
         self.v_max = float(b_max_speed)
@@ -131,6 +182,7 @@ class RendezvousPlanner:
         self.w_time = float(w_time)
         self.w_accel = float(w_accel)
         self.w_vel = float(w_vel)
+        self.w_overshoot = float(w_overshoot)
         self.ground_margin = float(ground_margin)
         self.n_check = int(n_check)
 
@@ -169,9 +221,17 @@ class RendezvousPlanner:
         if min_alt < self.ground_margin - 1e-9:
             res.reason = f'min_alt {min_alt:.2f}<{self.ground_margin:.2f}'
             return res
+        # 过冲惩罚：B 轨迹的高度超出 [起始, 会合] 包络的部分。
+        # 过冲本身有时是物理必需（需要下降跑道），但无谓的爬升既费能量又不优雅；
+        # 把过冲计入代价可让协调器偏好“更省过冲”的会合几何。
+        alt = -POS[:, 2]
+        alt_env = max(-POS[0, 2], -p_c[2])
+        overshoot = float(max(0.0, alt.max() - alt_env))
+        res.overshoot = overshoot
         res.cost = (self.w_time * t_r
                     + self.w_accel * (peak_accel / self.a_max)
-                    + self.w_vel * dv * dv)
+                    + self.w_vel * dv * dv
+                    + self.w_overshoot * overshoot)
         res.feasible = True
         res.reason = 'ok'
         return res
@@ -309,7 +369,8 @@ class RendezvousPlanner:
             # 重规划里“释放时刻”已固定，代价用剩余时间代替 t_r
             r.cost = (self.w_time * tau_c
                       + self.w_accel * (r.peak_accel / self.a_max)
-                      + self.w_vel * r.delta_v * r.delta_v)
+                      + self.w_vel * r.delta_v * r.delta_v
+                      + self.w_overshoot * r.overshoot)
             if best is None or r.cost < best.cost:
                 best = r
         if best is None:
@@ -317,6 +378,20 @@ class RendezvousPlanner:
         return best
 
     # -------------------------------------------------- reference resampling
+    @staticmethod
+    def reference(res: PlanResult, n: int = 401, mode: str = 'cubic',
+                  a_max: Optional[float] = None
+                  ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """生成 B 的参考轨迹。mode='cubic'（min-energy 三次）或 'staged'（分段俯冲）。"""
+        if res.traj_t is None:
+            raise RuntimeError('方案没有轨迹（不可行）')
+        T = float(res.t_c)
+        if mode == 'staged' and a_max:
+            p0 = res.traj_p[0]
+            v0 = res.traj_v[0]
+            return staged_reference(p0, v0, res.p_c, res.v_p, T, float(a_max), n)
+        return RendezvousPlanner.resample(res, n)
+
     @staticmethod
     def resample(res: PlanResult, n: int = 401
                  ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:

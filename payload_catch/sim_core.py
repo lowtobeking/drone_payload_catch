@@ -94,7 +94,8 @@ def _make_planner(g, pcfg: Dict, bcfg: Dict, ccfg: Dict) -> RendezvousPlanner:
         b_max_accel=float(bcfg['max_accel']),
         capture_radius=float(ccfg['radius']), capture_rel_speed=float(ccfg['rel_speed']),
         w_time=float(pcfg['w_time']), w_accel=float(pcfg['w_accel']),
-        w_vel=float(pcfg['w_vel']), ground_margin=float(pcfg['ground_margin']))
+        w_vel=float(pcfg['w_vel']), w_overshoot=float(pcfg.get('w_overshoot', 0.0)),
+        ground_margin=float(pcfg['ground_margin']))
 
 
 def simulate(defaults: Dict, layout: Dict, scenario: Dict,
@@ -116,6 +117,8 @@ def simulate(defaults: Dict, layout: Dict, scenario: Dict,
     bcfg = {**defaults['drone_b'], **scenario.get('drone_b', {})}
     ccfg = {**defaults['capture'], **scenario.get('capture', {})}
     pay = {**defaults['payload'], **scenario.get('payload', {})}
+    ref_mode = str(pcfg.get('reference_mode', 'cubic')).lower()   # cubic | staged
+    ref_a = float(pcfg.get('reference_a_frac', 1.0)) * float(bcfg['max_accel'])
 
     a_init = np.asarray(
         scenario.get('a_init', layout.get('a_init', layout.get('a_hover'))), float).reshape(3)
@@ -139,7 +142,8 @@ def simulate(defaults: Dict, layout: Dict, scenario: Dict,
     if not plan.feasible:
         return SimResult(success=False, note=f'规划不可行: {plan.reason}'), plan
 
-    ref_t, ref_p, ref_v, ref_a = RendezvousPlanner.resample(plan, n=401)
+    ref_t, ref_p, ref_v, ref_a = RendezvousPlanner.reference(
+        plan, n=401, mode=ref_mode, a_max=ref_a)
     ref_t0 = 0.0            # 当前参考的时间原点
     last_replan = -1e9
     cur_plan = plan
@@ -209,7 +213,8 @@ def simulate(defaults: Dict, layout: Dict, scenario: Dict,
                 catch_alt_range=(pcfg['catch_alt_min'], pcfg['catch_alt_max']))
             last_replan = t
             if rp.feasible:
-                ref_t, ref_p, ref_v, ref_a = RendezvousPlanner.resample(rp, n=201)
+                ref_t, ref_p, ref_v, ref_a = RendezvousPlanner.reference(
+                    rp, n=201, mode=ref_mode, a_max=ref_a)
                 ref_t0 = t
                 cur_plan = rp
                 res.replan_count += 1

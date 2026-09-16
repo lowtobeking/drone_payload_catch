@@ -46,6 +46,9 @@ defaults:
     w_time:         0.20      # 代价权重：释放越晚越贵（防无限拖延）
     w_accel:        1.00      # 代价权重：B 峰值加速度 / a_max
     w_vel:          5.00      # 代价权重：终端速度失配（软终端速度时用）
+    w_overshoot:    0.00      # 代价权重：B 轨迹超出 [起始,会合] 高度包络的过冲(0=旧行为)
+    reference_mode: cubic     # B 参考轨迹：cubic(min-energy 三次) | staged(分段俯冲)
+    reference_a_frac: 1.0     # staged 时俯冲加速度占 a_max 的比例(留反馈余量, 如 0.8)
     ground_margin:  0.30      # m，B 轨迹 / 载荷离地最小余量
 
   wind: [0.0, 0.0, 0.0]       # [N,E,D] m/s，标称无风
