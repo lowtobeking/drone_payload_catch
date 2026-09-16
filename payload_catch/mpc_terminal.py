@@ -13,6 +13,9 @@
 """
 from __future__ import annotations
 
+import glob
+import hashlib
+import json
 import os
 from typing import Optional, Tuple
 
@@ -93,9 +96,35 @@ class TerminalMPC:
         ocp.solver_options.print_level = self._print_level
         ocp.solver_options.qp_solver_iter_max = 50
         ocp.code_export_directory = os.path.join(self._build_dir, 'c_generated_code')
-        ocp.code_gen_options.json_file = os.path.join(self._build_dir, 'acados_ocp.json')
-        self._solver = AcadosOcpSolver(ocp)
+        json_file = os.path.join(self._build_dir, 'c_generated_code', 'acados_ocp.json')
+        ocp.code_gen_options.json_file = json_file
         self._nx, self._nu = nx, nu
+        # 指纹缓存：命中则直接 load（不 generate/build），消除启动期编译尖峰
+        fp = self._fingerprint()
+        fp_file = os.path.join(self._build_dir, 'fingerprint.txt')
+        so = glob.glob(os.path.join(self._build_dir, 'c_generated_code', 'libacados_ocp_solver_*.so'))
+        hit = (os.path.exists(fp_file) and os.path.exists(json_file) and so
+               and open(fp_file).read().strip() == fp)
+        if hit:
+            try:
+                self._solver = AcadosOcpSolver(ocp, json_file=json_file,
+                                               generate=False, build=False)
+                print('[mpc] acados 缓存命中，直接加载', flush=True)
+                return
+            except Exception as e:  # noqa: BLE001
+                print(f'[mpc] 缓存加载失败({type(e).__name__})，重新生成', flush=True)
+        self._solver = AcadosOcpSolver(ocp)
+        try:
+            with open(fp_file, 'w') as f:
+                f.write(fp)
+        except OSError:
+            pass
+
+    def _fingerprint(self) -> str:
+        params = dict(N=self.N, dt=self.dt, a_max=self.a_max, v_max=self.v_max,
+                      q_pos=self.q_pos, q_vel=self.q_vel, r_a=self.r_a,
+                      q_pos_e=self.q_pos_e, q_vel_e=self.q_vel_e)
+        return hashlib.sha256(json.dumps(params, sort_keys=True).encode()).hexdigest()
 
     # ---------------------------------------------------------------- solve
     def solve(self, x0: np.ndarray, ref_t: np.ndarray, ref_p: np.ndarray,

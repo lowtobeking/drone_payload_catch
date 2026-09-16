@@ -6,6 +6,8 @@ RUN_S="${1:-60}"
 BASE="$HOME/payload_catch_ws"
 D="$HOME/payload_catch_sitl"; mkdir -p "$D"; rm -f "$D"/*.log
 source "$HOME/drone_payload_catch/env.sh"
+# 预热 acados MPC（消除 SITL 启动期编译尖峰）
+python3 "$HOME/drone_payload_catch/tools/prebuild_mpc.py" 2>&1 | tail -1
 
 echo "### cleanup"
 for p in 'px4 -d -i' 'gz sim' MicroXRCEAgent 'a_node|b_node|payload_node'; do pkill -9 -f "$p" 2>/dev/null; done
@@ -27,14 +29,15 @@ for i in "${!POSES[@]}"; do
     PX4_GZ_MODEL_POSE="${POSES[$i]}" \
     ./build/px4_sitl_default/bin/px4 -d -i "$i" < /dev/null > "$HOME/px4_logs/px4_$i.log" 2>&1 &
   echo "  px4 -i $i pose ${POSES[$i]}"
-  [ "$i" -lt 1 ] && sleep 5
+  [ "$i" -lt 1 ] && sleep 12
 done
-for i in 0 1; do
-  for k in $(seq 1 15); do
-    sleep 2
-    grep -aq "Ready for takeoff" "$HOME/px4_logs/px4_$i.log" && { echo "  px4_$i READY"; break; }
-  done
+for k in $(seq 1 40); do
+  sleep 3
+  r0=$(grep -ac "Ready for takeoff" "$HOME/px4_logs/px4_0.log" 2>/dev/null)
+  r1=$(grep -ac "Ready for takeoff" "$HOME/px4_logs/px4_1.log" 2>/dev/null)
+  if [ "${r0:-0}" -ge 1 ] && [ "${r1:-0}" -ge 1 ]; then echo "  双机 READY ~$((k*3))s"; break; fi
 done
+echo "  就绪后再等 8s 让 EKF 稳定"; sleep 8
 
 echo "### launch payload_catch (A/B/payload)"
 timeout $((RUN_S + 40)) ros2 launch payload_catch catch_launch.py controller:="${CTRL:-pd}" > "$D/launch.log" 2>&1 &

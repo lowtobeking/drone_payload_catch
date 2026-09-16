@@ -83,7 +83,7 @@ class PayloadNode(Node):
         if self.use_gz:
             self._gz = GzNode()
             # 用 SceneBroadcaster 的全实体位姿（世界 ENU，最可靠）；速度用有限差分
-            self._gz.subscribe(Pose_V, f'/world/{self.world}/pose/info', self._on_poses)
+            self._gz.subscribe(Odometry, str(self.get_parameter('odom_topic').value), self._on_odom)
             self.get_logger().info(
                 f'payload: Gazebo 模式，pose=/world/{self.world}/pose/info model={self.model_path}')
             import os as _os
@@ -111,17 +111,12 @@ class PayloadNode(Node):
             self.abs_release_at = float(msg.data)
             self.get_logger().warn(f'payload_node: 收到释放时刻 {self.abs_release_at:.3f}')
 
-    def _on_poses(self, msg):
-        for ent in msg.pose:
-            if ent.name != 'payload':
-                continue
-            p_ned = enu_to_ned_pos(ent.position)
-            now = self.get_clock().now().nanoseconds * 1e-9
-            if self._gz_p is not None and self._gz_t is not None and (now - self._gz_t) > 1e-4:
-                self._gz_v = (p_ned - self._gz_p) / (now - self._gz_t)
-            self._gz_p = p_ned
-            self._gz_t = now
-            return
+    def _on_odom(self, msg):
+        p = msg.pose.position
+        v = msg.twist.linear
+        self._gz_p = enu_to_ned_pos(p)
+        self._gz_v = enu_to_ned_vec(v)
+        self._gz_t = self.get_clock().now().nanoseconds * 1e-9
 
     # ----------------------------------------------------------------- spawn
     def _spawn_parked(self):
