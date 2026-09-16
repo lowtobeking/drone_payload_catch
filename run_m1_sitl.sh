@@ -43,6 +43,7 @@ sleep "$RUN_S"
 echo "### 结果"
 echo "--- CAPTURED? ---"; grep -aE "CAPTURED|payload released|rendezvous" "$D/launch.log" | tail -6
 echo "--- B/载荷 世界位置(末尾) ---"; grep -aE "solve|CAPTURED" "$D/launch.log" | tail -4
+echo "--- gz 模型列表 ---"; timeout 6 gz model --list 2>/dev/null | tail -4
 echo "--- px4 events ---"; for i in 0 1; do echo "px4_$i:"; grep -aE "Ready for takeoff|Armed by|Takeoff detected|Preflight Fail" "$HOME/px4_logs/px4_$i.log" | tail -3; done
 
 echo "### cleanup"

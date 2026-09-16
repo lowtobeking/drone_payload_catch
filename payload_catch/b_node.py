@@ -107,7 +107,8 @@ class BNode(Px4Drone):
             self.get_logger().info(
                 f'B phase={self.phase} pos_w={self.pos_world.round(2)} vel={self.vel.round(2)} '
                 f'pay={pp} caught={self.caught}')
-        if self.phase == 'DONE' or self.p_pay is None:
+        # ⚠️ 早退只能看 DONE；不能因 p_pay is None 早退——否则 HOLD 阶段的规划永远执行不到
+        if self.phase == 'DONE':
             v = self.hover_velocity(self.standby[:2], -self.standby[2],
                                     kp_xy=1.0, max_speed=self.v_max, kp_z=1.0, max_climb=1.5)
             self.publish_velocity(v, yaw=self.yaw)
@@ -141,6 +142,11 @@ class BNode(Px4Drone):
             return
 
         # RENDEZ：闭环重规划 + 速度前馈 + 位置 P
+        if self.p_pay is None:                       # 载荷状态还没来：先悬停
+            v = self.hover_velocity(self.standby[:2], -self.standby[2],
+                                    kp_xy=1.0, max_speed=self.v_max, kp_z=1.0, max_climb=1.5)
+            self.publish_velocity(v, yaw=self.yaw)
+            return
         if (now - self.last_replan) >= self.replan_dt:
             self.last_replan = now
             rp = self.planner.solve_inflight(

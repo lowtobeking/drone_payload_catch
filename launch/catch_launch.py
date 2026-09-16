@@ -17,6 +17,7 @@ def generate_launch_description():
     b_standby = LaunchConfiguration('b_standby')
     b_offset = LaunchConfiguration('b_offset')
     release_delay = LaunchConfiguration('release_delay')
+    model_path = LaunchConfiguration('model_path')
 
     a = Node(package='payload_catch', executable='a_node', name='a_node', output='screen',
              parameters=[{'drone_id': 0, 'hover_world': a_hover}])
@@ -29,11 +30,14 @@ def generate_launch_description():
     payload = Node(package='payload_catch', executable='payload_node', name='payload_node',
                    output='screen',
                    parameters=[{'release_pos': a_hover, 'release_vel': [0.0, 0.0, 0.0],
-                                'release_delay': release_delay}])
+                                'release_delay': release_delay, 'use_gazebo': True,
+                                'model_path': model_path}])
     return LaunchDescription([
         DeclareLaunchArgument('a_hover', default_value='[0.0, 0.0, -3.0]'),
         DeclareLaunchArgument('b_standby', default_value='[0.5, 0.0, -3.5]'),
         DeclareLaunchArgument('b_offset', default_value='[0.6, 0.0, 0.0]'),
         DeclareLaunchArgument('release_delay', default_value='25.0'),
+        DeclareLaunchArgument('model_path',
+                              default_value='/home/caolihao/drone_payload_catch/models/payload/model.sdf'),
         a, b, payload,
     ])
