@@ -21,7 +21,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
@@ -41,6 +41,8 @@ class SimNoise:
     b_pos_sigma: float = 0.0           # m，B 初始位置噪声
     payload_pos_sigma: float = 0.0     # m，载荷位置测量噪声（给 B 的规划用）
     payload_vel_sigma: float = 0.0     # m/s，载荷速度测量噪声
+    meas_latency: float = 0.0          # s，测量延迟
+    meas_dropout: float = 0.0          # 测量丢包率 [0,1]
     seed: int = 0
 
 
@@ -53,6 +55,7 @@ class SimResult:
     peak_accel: float = 0.0
     peak_speed: float = 0.0
     replan_count: int = 0
+    est_err: List[float] = field(default_factory=list)   # 估计位置误差(相对真值)
     final_b: Vec3 = field(default_factory=lambda: np.zeros(3))
     final_p: Vec3 = field(default_factory=lambda: np.zeros(3))
     note: str = ''
@@ -108,6 +111,13 @@ def simulate(defaults: Dict, layout: Dict, scenario: Dict,
     """跑一次完整任务，返回 (指标, 规划方案)。"""
     noise = noise or SimNoise()
     rng = np.random.default_rng(noise.seed)
+    # 测量配置（defaults + scenario）覆盖到 noise 副本：噪声/延迟/丢包单一真值源
+    # 只让 scenario 显式声明时覆盖；否则沿用调用方传入的 SimNoise（兼容旧 --compare/--sweep）
+    meas_cfg = scenario.get('measurement', {})
+    noise = replace(noise,
+                    payload_pos_sigma=float(meas_cfg.get('pos_sigma', noise.payload_pos_sigma)),
+                    meas_latency=float(meas_cfg.get('latency_s', noise.meas_latency)),
+                    meas_dropout=float(meas_cfg.get('dropout', noise.meas_dropout)))
 
     g = float(defaults['g'])
     hz = float(defaults['control_hz'])
@@ -173,6 +183,22 @@ def simulate(defaults: Dict, layout: Dict, scenario: Dict,
         wind=tuple(scenario.get('wind', defaults.get('wind', (0, 0, 0)))))
     payload = PayloadModel(payload_params)
 
+    # ── 载荷状态估计 + 测量管线（延迟/丢包）──────────────────────────────
+    # est_mode: none=用真值(理想上界) | naive=有限差分+外推 | kf=卡尔曼滤波
+    est_cfg = {**defaults.get('estimator', {}), **scenario.get('estimator', {})}
+    est_mode = str(est_cfg.get('mode', 'none')).lower()
+    estimator = None
+    if est_mode == 'kf':
+        from .payload_filter import BallisticKF
+        estimator = BallisticKF(g=g, q_accel=float(est_cfg.get('q_accel', 2.0)),
+                                meas_sigma=float(est_cfg.get('meas_sigma', 0.05)))
+    elif est_mode == 'naive':
+        from .payload_filter import NaiveEstimator
+        estimator = NaiveEstimator(g)
+    hist_p: List[Vec3] = []
+    hist_v: List[Vec3] = []
+    lat_steps = int(round(noise.meas_latency / dt))
+
     # ── 状态 ─────────────────────────────────────────────────────────────
     p_b = p_b0.copy()
     v_b = v_b0.copy()
@@ -200,13 +226,31 @@ def simulate(defaults: Dict, layout: Dict, scenario: Dict,
         else:
             p_p, v_p = a_init + a_vel * t, a_vel.copy()
 
+        # 1.5) 记录真值历史；按延迟/丢包生成一帧测量并送入估计器
+        hist_p.append(p_p.copy()); hist_v.append(v_p.copy())
+        k_step = len(hist_p) - 1
+        if estimator is not None and payload.released:
+            j = k_step - lat_steps
+            if 0 <= j <= k_step and hist_p[j] is not None and (j * dt) >= plan.t_r - 1e-9:
+                if noise.meas_dropout <= 0.0 or rng.random() >= noise.meas_dropout:
+                    z = hist_p[j].copy()
+                    if noise.payload_pos_sigma > 0:
+                        z = z + rng.normal(0.0, noise.payload_pos_sigma, 3)
+                    estimator.process(z, j * dt, v_hint=a_vel)
+
         # 2) 闭环重规划：用观测到的载荷状态重解会合
         if closed_loop and payload.released and (t - last_replan) >= replan_dt:
-            p_meas = p_p.copy(); v_meas = v_p.copy()
-            if noise.payload_pos_sigma > 0:
-                p_meas = p_meas + rng.normal(0.0, noise.payload_pos_sigma, 3)
-            if noise.payload_vel_sigma > 0:
-                v_meas = v_meas + rng.normal(0.0, noise.payload_vel_sigma, 3)
+            est = estimator.estimate_at(t) if estimator is not None else None
+            if est is not None:
+                p_meas, v_meas = est
+                res.est_err.append(float(np.linalg.norm(p_meas - p_p)))
+            else:
+                # 无估计器（或尚未初始化）：退回直接测得的真值+噪声（旧行为）
+                p_meas = p_p.copy(); v_meas = v_p.copy()
+                if noise.payload_pos_sigma > 0:
+                    p_meas = p_meas + rng.normal(0.0, noise.payload_pos_sigma, 3)
+                if noise.payload_vel_sigma > 0:
+                    v_meas = v_meas + rng.normal(0.0, noise.payload_vel_sigma, 3)
             rp = planner.solve_inflight(
                 p_meas, v_meas, p_b, v_b,
                 tau_range=(0.05, inflight_tau_max), tau_step=0.02,

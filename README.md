@@ -48,6 +48,7 @@ python3 tools/offline_run.py --all              # 全部工况
 python3 tools/offline_run.py --plot             # 另存 report/figures/offline_*.png
 python3 tools/offline_run.py --scenario M2_line_v10 --compare   # 开环 vs 闭环
 python3 tools/offline_run.py --sweep-noise      # 释放/B 初值噪声扫描
+python3 tools/offline_run.py --scenario M4_high_kf --mc   # M4 蒙特卡洛（估计器对比）
 ```
 
 ## 已有结果（离线）
@@ -104,6 +105,24 @@ min-energy 三次只用了约 74% 的 `a_max`，剩余额度正好被 PD/MPC 用
 
 结论：闭环重规划能显著提升释放误差与模型失配下的捕获成功率。
 
+**M4 鲁棒性：载荷状态估计 + 测量延迟/丢包**（`payload_filter.py`）：
+
+- 测量管线：位置噪声 `pos_sigma`、延迟 `latency_s`、丢包 `dropout`（scenario 单一真值源）。
+- 估计器 `estimator.mode`：`none`（用真值，理想上界）| `naive`（最近测量+有限差分+弹道外推）|
+  `kf`（卡尔曼滤波：状态 `[p,v]`、重力为已知输入、按测量时间戳 predict→update，天然处理延迟/丢包）。
+- 蒙特卡洛：`python3 tools/offline_run.py --scenario M4_high_kf --mc`。
+
+| 测量严重度 | 估计误差 naive | 估计误差 KF | 成功率 naive | 成功率 KF | 成功率 none(真值) |
+|---|---|---|---|---|---|
+| 轻 (0.03m/0/0) | 0.049 m | **0.037 m** | 27/30 | 30/30 | 30/30 |
+| 中 (0.05m/0.1s/20%) | 0.667 m | **0.189 m** | 30/30 | 27/30 | 30/30 |
+| 重 (0.10m/0.2s/40%) | 0.305 m | **0.164 m** | 29/30 | 29/30 | 30/30 |
+
+**结论（含一个负结果）**：KF 把估计误差稳定降低 **2–4 倍** ✅，但**端到端成功率没有提升**
+（收紧捕获判据到 `r_c=0.15/v_c=0.8`、n=50 时：naive 46/50、KF 43/50，差异在统计噪声内）。
+关键旁证：**用真值的 `none` 也只有 46/50** ⇒ **瓶颈不在估计精度**，而在释放误差与 B 的动力学限幅。
+所以"更好的估计"在这套几何/判据下不是增益点；KF 的价值要等跟踪/判据成为瓶颈时才体现。
+
 ## SITL 环境（B 阶段，见 `report/env_bringup.md`）
 
 ```bash
@@ -135,6 +154,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `payload_catch/rendezvous.py` | 协调求解 `(t_r,τ_c)` + 三次多项式会合参考 + 软终端速度 + 闭环 `solve_inflight` |
 | `payload_catch/sim_core.py` | 离线闭环仿真（A 恒速飞行 + B 控制 + 捕获判定 + 闭环重规划） |
 | `payload_catch/mpc_terminal.py` | B 的 acados 终端（会合）MPC |
+| `payload_catch/payload_filter.py` | 载荷状态估计（卡尔曼滤波 / 朴素对照） |
 | `tools/offline_run.py` | 体检报告 CLI（`--plot` / `--sweep-noise` / `--compare`） |
 | `config/catch_scenarios.yaml` | 单一真值源 |
 | `env.sh` | 环境变量（acados/ROS/RMW/PX4 SITL） |

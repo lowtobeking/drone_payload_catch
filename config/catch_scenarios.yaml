@@ -53,6 +53,16 @@ defaults:
 
   wind: [0.0, 0.0, 0.0]       # [N,E,D] m/s，标称无风
 
+  estimator:                  # 载荷状态估计
+    mode:          none       # none=用真值(理想) | naive=有限差分+外推 | kf=卡尔曼滤波
+    q_accel:       2.0        # KF 过程噪声(未建模加速度 std, m/s²)
+    meas_sigma:    0.05       # KF 测量噪声先验 (m)
+
+  measurement:                # 载荷状态测量管线（单一真值源；MC 可覆盖）
+    pos_sigma:     0.0        # m，测量位置噪声
+    latency_s:     0.0        # s，测量延迟
+    dropout:       0.0        # 丢包率 [0,1]
+
   mpc:                        # B 的终端 MPC（acados）权重/视界
     N:            20          # 视界步数（N·dt 秒）
     q_pos:        40.0
@@ -142,6 +152,30 @@ scenarios:
     drone_b: {max_speed: 9.0, max_accel: 10.0}
     planner: {tau_max: 1.2, catch_alt_min: 1.2, catch_alt_max: 2.5}
     description: M3_high 但 B 用终端 MPC
+
+  # ── M4 鲁棒性：测量噪声+延迟+丢包，估计器对照 ──
+  M4_line_naive:
+    layout: line_catch
+    closed_loop: true
+    estimator: {mode: naive}
+    measurement: {pos_sigma: 0.05, latency_s: 0.10, dropout: 0.20}
+    description: 含噪/延迟/丢包测量，朴素估计
+
+  M4_line_kf:
+    layout: line_catch
+    closed_loop: true
+    estimator: {mode: kf}
+    measurement: {pos_sigma: 0.05, latency_s: 0.10, dropout: 0.20}
+    description: 含噪/延迟/丢包测量，卡尔曼滤波
+
+  M4_high_kf:
+    layout: high_hover_catch
+    closed_loop: true
+    estimator: {mode: kf}
+    drone_b: {max_speed: 9.0, max_accel: 10.0}
+    planner: {tau_max: 1.2, catch_alt_min: 1.2, catch_alt_max: 2.5}
+    measurement: {pos_sigma: 0.05, latency_s: 0.10, dropout: 0.20}
+    description: 高抛 + 含噪/延迟/丢包测量 + KF
 
 # ── 判定阈值（离线报告用；后续 verdict 用）────────────────────────────────
 thresholds:

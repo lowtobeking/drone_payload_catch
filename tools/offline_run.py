@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import os
 import sys
 
@@ -192,6 +193,36 @@ def run_controller_compare(cfg, name, sigma=0.15, n=10):
               f'{np.mean(pa):>9.2f}  | {tcs:>11}')
 
 
+def run_mc(cfg, name, n=30):
+    """蒙特卡洛：测量严重度 × 估计器（none/naive/kf）的成功率与估计误差。"""
+    defaults = cfg['defaults']
+    base = cfg['scenarios'][name]
+    layout = cfg['layouts'][base['layout']]
+    print(f'== 蒙特卡洛 {name} （每档 {n} 次，含释放 σ=0.10m）==')
+    levels = [
+        ('轻度', dict(pos_sigma=0.03, latency_s=0.00, dropout=0.00)),
+        ('中度', dict(pos_sigma=0.05, latency_s=0.10, dropout=0.20)),
+        ('重度', dict(pos_sigma=0.10, latency_s=0.20, dropout=0.40)),
+    ]
+    for lname, meas in levels:
+        print(f'-- {lname}：pos_sigma={meas["pos_sigma"]}m latency={meas["latency_s"]}s '
+              f'dropout={meas["dropout"]:.0%} --')
+        for est in ('none', 'naive', 'kf'):
+            sc = copy.deepcopy(base)
+            sc['estimator'] = {'mode': est}
+            sc['measurement'] = meas
+            ok = 0; miss = []; ee = []
+            for k in range(n):
+                noise = SimNoise(release_pos_sigma=0.10, release_vel_sigma=0.10, seed=9000 + k)
+                r, _ = simulate(defaults, layout, sc, noise=noise,
+                                closed_loop=True, controller='pd')
+                ok += int(r.success); miss.append(r.miss_dist)
+                if r.est_err:
+                    ee.append(float(np.mean(r.est_err)))
+            eestr = f'{np.mean(ee):.3f}m' if ee else '  n/a '
+            print(f'   {est:>5}: {ok:>3}/{n}   平均最近={np.mean(miss):.3f}m   平均估计误差={eestr}')
+
+
 def main():
     ap = argparse.ArgumentParser(description='离线空投—捕获任务体检')
     ap.add_argument('--config', default=DEFAULT_YAML)
@@ -203,6 +234,8 @@ def main():
                     help='开环 vs 闭环（释放误差/测量噪声）成功率对比')
     ap.add_argument('--controller-compare', action='store_true',
                     help='B 控制器 PD vs 终端 MPC 对比')
+    ap.add_argument('--mc', action='store_true',
+                    help='蒙特卡洛：测量严重度 × 估计器(none/naive/kf)')
     args = ap.parse_args()
 
     cfg = load_cfg(args.config)
@@ -210,7 +243,9 @@ def main():
     for n in names:
         if n not in cfg['scenarios']:
             sys.exit(f'未知工况 "{n}"，可选: {list(cfg["scenarios"])}')
-        if args.controller_compare:
+        if args.mc:
+            run_mc(cfg, n)
+        elif args.controller_compare:
             run_controller_compare(cfg, n)
         elif args.compare:
             run_compare(cfg, n)
