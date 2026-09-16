@@ -1,0 +1,71 @@
+# ============================================================================
+# catch_scenarios.yaml — 空投—空中捕获任务的【单一真值源】
+# ----------------------------------------------------------------------------
+# 谁读它:
+#   tools/offline_run.py         → 离线(纯 Python)跑通规划/会合/捕获并出报告
+#   launch/catch_launch.py 后续  → 把几何/参数注入 ROS 节点
+#   tools/gen_spawn.py 后续      → 生成 A/B 两架 PX4 的出生 POSES
+#
+# 坐标: 一律世界系 NED = [North, East, Down]（z 向下为正）。
+#       高度(离地) = -z；A 悬停在 z=-2.5 即离地 2.5 m。
+#
+# 任务: A 携载重物悬停，在算法求出的 (释放时刻 t_r, 捕获点) 释放；
+#       B 实时机动到该空间点，位置到达 + 相对速度尽量小即判捕获。
+# ============================================================================
+
+# ── 公共参数 ────────────────────────────────────────────────────────────────
+defaults:
+  g:                9.81      # 重力加速度 m/s²
+  control_hz:      50.0      # 规划/控制频率
+  duration_s:      20.0      # 单次仿真时长上限
+
+  payload:                    # 重物（第一版忽略阻力，风只作鲁棒性输入）
+    mass:           0.30      # kg
+    drag_mode:     none      # none | linear | quadratic
+    drag_k:        0.0        # linear: 1/s；quadratic: m⁻¹（含义随 drag_mode）
+
+  drone_b:                    # B 的动力学限幅（仿真宽松档，便于先跑通）
+    max_speed:      4.0       # m/s（三维速度范数上限；须 ≥ 捕获点的载荷速度）
+    max_accel:      5.0       # m/s²（加速度范数上限）
+
+  capture:                    # 捕获判据：位置进 r_c，且相对速度 < v_c
+    radius:         0.30      # m，r_c
+    rel_speed:      1.50      # m/s，v_c
+
+  planner:                    # 协调求解器（外层搜 (t_r, 捕获高度)）
+    catch_alt_min:  0.80      # m，捕获高度搜索下界（离地）
+    catch_alt_max:  2.00      # m，捕获高度搜索上界（须 ≤ A 高度 − 小量）
+    release_delay_min: 0.0    # s，释放时刻 t_r 搜索下界
+    release_delay_max: 8.0    # s，释放时刻 t_r 搜索上界
+    catch_alt_step: 0.02      # m
+    release_delay_step: 0.02  # s
+    w_time:         0.20      # 代价权重：释放越晚越贵（防无限拖延）
+    w_accel:        1.00      # 代价权重：B 峰值加速度 / a_max
+    w_vel:          5.00      # 代价权重：终端速度失配（自由终点速度时用）
+    ground_margin:  0.30      # m，B 轨迹离地最小余量
+
+  wind: [0.0, 0.0, 0.0]       # [N,E,D] m/s，标称无风
+
+# ── 布局：A 悬停点 + B 待命点（均世界系 NED）───────────────────────────────
+layouts:
+  hover_catch:                          # M1 基准：B 在 A 侧上方
+    a_hover:   [0.0, 0.0, -2.5]         # A 悬停，离地 2.5 m
+    b_standby: [1.2, 0.0, -3.5]         # B 待命，横向偏 1.2 m、离地 3.5 m
+
+# ── 工况 ───────────────────────────────────────────────────────────────────
+scenarios:
+  M1_basic:
+    layout: hover_catch
+    description: 标称无风；验证规划—会合—捕获闭环
+
+  M1_wind:
+    layout: hover_catch
+    wind: [0.5, 0.3, 0.0]               # 常值风，鲁棒性输入（第一版不补偿）
+    description: 常值风扰动下的捕获
+
+# ── 判定阈值（离线报告用；后续 verdict 用）────────────────────────────────
+thresholds:
+  capture_success: true      # 是否捕获成功
+  miss_dist:       0.30      # m，捕获时刻位置偏差上限
+  rel_speed:       1.50      # m/s，捕获时刻相对速度上限
+  peak_accel_ratio: 1.00     # 峰值加速度 / a_max 上限

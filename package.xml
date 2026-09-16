@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>payload_catch</name>
+  <version>0.1.0</version>
+  <description>
+    空投—空中捕获：无人机 A 携载重物在算法求出的释放点/时刻抛投，
+    无人机 B 实时机动到空间目标点接住（位置到达 + 相对速度尽量小）。
+    复用 PX4 SITL + ROS 2 + acados 栈；核心算法层（载荷抛体/会合规划/离线仿真）
+    刻意不依赖 ROS，便于离线验证与移植。
+  </description>
+
+  <maintainer email="caolihao@todo.local">caolihao</maintainer>
+  <license>MIT</license>
+
+  <depend>rclpy</depend>
+  <depend>px4_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+
+  <exec_depend>ros2launch</exec_depend>
+
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
