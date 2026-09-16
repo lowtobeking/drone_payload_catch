@@ -1,5 +1,24 @@
 # 环境打通记录（B 阶段）
 
+> ## ✅ 最终结论（2026-09-16 更新）：Gyro STALE 早已解决——用错了 PX4 树
+>
+> 本文件前面记录的是**在 `$HOME/PX4-Autopilot`（main）上**的失败排查。后来发现
+> `~/drone_package_20260908/` 是一份**已跑通的工作快照**，其中
+> `SITL仿真调试记忆_20260908.md` 直接写明根因：
+>
+> - **PX4 main 的 `x500` 外层模型 IMU 无噪声** → 静止输出恒 0 → `DataValidator` 判 STALE；
+>   **PX4-1.16** 的 x500 `<include merge> x500_base`（自带 IMU 噪声 + navsat + 磁罗盘）无此问题。
+> - 还需：**全系统 world**（含 Imu/NavSat/Sensors 等 system 插件 + 球坐标）、`SYS_HAS_MAG 1`、
+>   **px4_msgs @ v1.16.2**（话题 `vehicle_status_v1`；local_position/attitude 无后缀）。
+>
+> **正解**：`source ~/drone_payload_catch/env.sh`（内部指向 PX4-1.16 + v1.16.2 + 全系统 world），
+> 然后 `bash ~/drone_payload_catch/run_m1_sitl.sh`。
+> 实测：两机 `Ready→Armed→Takeoff detected`，A 悬停释放、B 会合，**捕获成功**
+> （`d=0.35m rel_v=1.2m/s`）。**
+>
+> 下面（§1–§8）保留为"在错误树上踩坑"的过程记录，命令仍可用于诊断，但**不要**再按它去修 main。
+
+
 日期：2026-09-16 · 机器：WSL Ubuntu 24.04 · ROS 2 Jazzy · PX4 main (`cdecd90`) · Gazebo Sim 8.11
 
 ## 结论摘要

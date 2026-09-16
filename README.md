@@ -159,7 +159,10 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `config/catch_scenarios.yaml` | 单一真值源 |
 | `env.sh` | 环境变量（acados/ROS/RMW/PX4 SITL） |
 | `report/env_bringup.md` | B 阶段环境打通记录（含 PX4 检出问题与回滚清单） |
-| `launch/`、`payload_catch/*_node.py` | ROS 2 / SITL 接入（M1 待环境修复） |
+| `payload_catch/px4_iface.py` | PX4 无人机接口基类（话题/QoS/ARM+OFFBOARD/setpoint） |
+| `payload_catch/{a_node,b_node,payload_node}.py` | M1 ROS 节点：A 悬停 / B 会合 / 载荷源 |
+| `launch/catch_launch.py` | M1 SITL 启动 |
+| `run_m1_sitl.sh` | M1 一键 SITL（gz+2×PX4+agent+节点） |
 
 ## 路线图
 
