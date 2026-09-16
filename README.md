@@ -41,6 +41,17 @@ python3 tools/offline_run.py --plot            # 另存 report/figures/offline_*
 python3 tools/offline_run.py --sweep-noise     # 释放/B 初值噪声鲁棒性扫描
 ```
 
+## SITL 环境（B 阶段，见 report/env_bringup.md）
+
+```bash
+source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz 资源路径
+```
+
+- 本机 PX4 是 **main**（`cdecd90`），对应 `px4_msgs` 提交 **`ee2e90c`**（已切分支 `main-cdecd90` 并编译）。
+- DDS 链路已验证通（`/fmu/out/vehicle_status_v4` @2Hz）；**传感器桥 `Gyro STALE` 尚未解决**，
+  详见 `report/env_bringup.md`。
+- PX4 main 的启动方式与参考项目的 1.14 脚本不同：**先起 gz，再 `px4 -i N`**。
+
 当前标称结果（`M1_basic`，A 悬停 2.5 m，B 待命 (1.2, 0, −3.5)）：
 
 ```
@@ -67,12 +78,16 @@ python3 tools/offline_run.py --sweep-noise     # 释放/B 初值噪声鲁棒性�
 | `payload_catch/sim_core.py` | 离线闭环仿真（B 双积分器 + PD 跟踪 + 捕获判定） |
 | `tools/offline_run.py` | 离线体检报告 CLI（`--plot` / `--sweep-noise`） |
 | `config/catch_scenarios.yaml` | 单一真值源 |
+| `env.sh` | 环境变量（acados/ROS/RMW/PX4 SITL） |
+| `report/env_bringup.md` | B 阶段环境打通记录 |
 | `launch/`、`payload_catch/*_node.py` | ROS 2 / SITL 接入（M1 完成） |
 | `report/` | 报告与出图 |
 
 ## 路线图
 
 - [x] **M0** 项目骨架 + 载荷模型 + 会合规划 + 离线闭环（标称必中、噪声扫描）
+- [~] **B** 环境打通：`px4_msgs` 版本已修正并编译、DDS 链路验证通过；
+      **传感器桥 `Gyro STALE` 待解**（见 `report/env_bringup.md`）
 - [ ] **M1** ROS 2 节点：载荷状态源 / 规划器 / B 控制器 / 捕获监控 / A 悬停释放；
       接 PX4 SITL 双机
 - [ ] **M2** 协调联调 + A 带速飞行抛投
