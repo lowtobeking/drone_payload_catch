@@ -11,6 +11,8 @@
 **离线算法层已完整**（M0/M2/M3/M3+/M4，含多组对照与负结果）；
 **SITL 层已打通并能在温和条件下真实捕获**（M1 + M5-1 + M5-2：PX4-1.16 双机 + Gazebo 真实载荷 + acados MPC）；
 **边界已量化**：横向偏移 0.8m 内可靠，载荷下落速度 ~2m/s 可靠、~4.9m/s 会触发 B 的飞控 failsafe；
+**新增 M6「垂直堆叠投放」**（A 严格在 B 正上方 1m 释放、B 温和下潜软着陆、刚性漏斗捕获）：
+离线层已完成并验证（200/200 捕获），**SITL/漏斗硬件未做**；
 **未做**：真实吸附机构、真机。
 
 ---
@@ -67,6 +69,7 @@ drone_payload_catch/
 │   ├── sim_core.py            ← 离线闭环仿真（A 恒速飞行 + B 控制 + 捕获 + 闭环重规划）
 │   ├── mpc_terminal.py        ← B 的 acados 终端 MPC（含指纹缓存）
 │   ├── payload_filter.py      ← 载荷状态估计（KF / 朴素）
+│   ├── stack_drop.py          ← M6 垂直堆叠投放：解析规划 + 漏斗保持判据 + 离线仿真（纯 Python）
 │   ├── px4_iface.py           ← PX4 接口基类（话题/QoS/ARM+OFFBOARD/setpoint/世界系偏移）
 │   ├── a_node.py              ← A：起飞→悬停在释放点
 │   ├── b_node.py              ← B：规划+预位→释放后闭环会合→捕获（pd|mpc）
@@ -75,6 +78,7 @@ drone_payload_catch/
 ├── models/payload/            ← Gazebo 载荷模型（0.3kg 小方盒 + odometry 插件）
 ├── tools/
 │   ├── offline_run.py         ← 离线体检 CLI（--all/--plot/--sweep-noise/--compare/--controller-compare/--mc）
+│   ├── stack_run.py           ← M6 垂直堆叠投放 CLI（--sweep-dive/--sweep-gap/--mc）
 │   ├── prebuild_mpc.py        ← 预热 acados MPC（消除 SITL 启动期编译尖峰）
 │   └── sweep_sitl_difficulty.sh ← SITL 难度扫描
 ├── run_m1_sitl.sh             ← M1 一键 SITL（gz + 2×PX4 + agent + 节点；可传 CTRL/A_HOVER/...）
@@ -97,6 +101,12 @@ python3 -m payload_catch.rendezvous
 python3 tools/offline_run.py --all              # 13 个工况，全部 PASS
 python3 tools/offline_run.py --scenario M4_high_kf --mc       # 蒙特卡洛
 python3 tools/offline_run.py --scenario M2_line_v10 --compare # 开环 vs 闭环
+
+# M6 垂直堆叠投放（A 正上方释放 + B 温和下潜 + 刚性漏斗）
+python3 tools/stack_run.py                      # 单次
+python3 tools/stack_run.py --sweep-dive         # 扫 B 下潜加速度
+python3 tools/stack_run.py --sweep-gap          # 扫 gap
+python3 tools/stack_run.py --mc 200             # 蒙特卡洛，200/200
 ```
 
 ### 4.2 SITL（2 机 + Gazebo 载荷）
@@ -136,6 +146,7 @@ colcon build --packages-select payload_catch
 | M5-2 | b_node 接入 acados MPC | ✅ |
 | M5 step3 | 难度扫描找边界 | ✅ 见下 |
 | M5-3 | 真实吸附机构（接住→带走） | ❌ 未做 |
+| M6 | 垂直堆叠投放（A 正上方释放 + B 温和下潜 + 刚性漏斗） | ✅ 离线层 200/200；SITL 未做 |
 | 真机 | — | ❌ 未做 |
 
 **SITL 难度扫描结果**（`report/m5_sitl_results.md`，MPC 控制器）：
@@ -159,6 +170,16 @@ colcon build --packages-select payload_catch
 7. **负结果 C：更好的估计器不提升成功率。** KF 估计误差降 2–4 倍，但用真值的 `none` 基线同样只有 ~92%
    ⇒ 瓶颈是释放误差+动力学，不是估计精度。
 8. **`release_mode`/`ctrl` 的默认**：`reference_mode=cubic`、`controller='pd'`（launch 默认；SITL 用 `CTRL=mpc`）。
+9. **M6 用专门的垂直投放规划器，不复用 3D 会合搜索。** 3D `RendezvousPlanner` 求最小代价时会让 B
+   **爬到 A 正下方 ~0.1m 处**（只掉 10cm 就接住），或强行末端速度匹配（需峰值加速度 15–600 m/s²，不可行）——
+   都不是“B 在下面等、载荷掉下来”。故新增 `stack_drop.py`（解析、纯 Python）。
+10. **M6 关键物理：纯垂直下落的接触相对速度有下界** `v_rel = sqrt(2·(g − a_dive)·gap)`。
+    B 只能往下压（a_B<g），提前下潜/变速下潜都不能降低它。gap=1m：悬停硬接 4.43 m/s，
+    a_dive=3（温和）→3.69、a_dive=6（全速）→2.76。下潜越猛 v_rel 越小但 B 冲得越低、刹车余量越少（a=6 时
+    刹停后仅 0.35m）。**a_dive=3 是冲击/余量的折中**。
+11. **M6 判据不用固定 `v_c=1.5`，改用刚性漏斗物理保持速度** `v_retain = sqrt(2·g·depth)/e`
+    （由反弹高度 e²v²/(2g) ≤ depth 导出），位置判据 = 落到漏斗口平面时水平偏差 < mouth_radius − object_radius。
+    固定 1.5 会误杀本来能接住的工况（1m 落差的物理下界就有 2.76）。
 
 ---
 
@@ -179,6 +200,9 @@ colcon build --packages-select payload_catch
    (ENU 100,100)，释放时用 `set_pose` 瞬移到释放点（避免释放时刻的服务延迟）。
 9. **b_node 早退陷阱**：`control()` 不能用 `p_pay is None` 早退，否则 HOLD 阶段永远执行不到规划。
 10. **参考轨迹执行完后不能继续用末点速度前馈**（会让 B 一直俯冲砸地）；结束后应在会合点悬停。
+11. **`mpc_terminal.solve` 返回三元组 `(u0, status, v_next)`，`sim_core` 曾按二元组解包** →
+    `--all` 跑到 MPC 工况会 `ValueError: too many values to unpack`。已修为 `_out[0], _out[1]`。
+    （`v_next` 供 PX4 速度接口当前馈设定点，离线仿真忽略。）
 
 ---
 
@@ -192,11 +216,15 @@ colcon build --packages-select payload_catch
 
 ## 9. 下一步候选（按价值）
 
-1. **M5-3 真实吸附**：接住后把载荷刚性绑到 B（detachable joint 或软件 attach），让"接住→带走"闭环。
-   —— 让系统完整，且比调 EKF 可控。**推荐先做**。
-2. **推高速度边界**：修 B 的传感器/EKF 鲁棒性（mag 优先级、EKF 参数、无 mag 的 yaw 源），
+1. **M6 SITL**：把已验证的垂直堆叠方案接到 PX4：起飞阶段 5m 横向接近 → A 到 B 正上方 4.5m、
+   B 待命 3.5m → 水平速度归零、投影重合后释放 → B 温和下潜（a_dive=3）软捕获。
+   需要：相对定位模块（mesh/UWB 的相对位姿，先用 Gazebo 真值+噪声建模）、Gazebo 给 B 加**刚性漏斗**、
+   释放时序同步。**推荐先做**。
+2. **M5-3 真实吸附**：接住后把载荷刚性绑到 B（detachable joint 或软件 attach），让“接住→带走”闭环。
+   —— 可与 M6 合并（漏斗 + 吸附）。
+3. **推高速度边界**：修 B 的传感器/EKF 鲁棒性（mag 优先级、EKF 参数、无 mag 的 yaw 源），
    或把末端俯冲做得更平滑（把离线验证过的 `staged` 参考用到 SITL，降低对姿态冲击）。
-3. **真机化**：把已验证的 SITL 配置搬到真机（`report/env_bringup.md` 有 PX4 改动与回滚清单）。
+4. **真机化**：把已验证的 SITL 配置搬到真机（`report/env_bringup.md` 有 PX4 改动与回滚清单）。
 
 ---
 

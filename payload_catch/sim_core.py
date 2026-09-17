@@ -273,8 +273,9 @@ def simulate(defaults: Dict, layout: Dict, scenario: Dict,
             pr, vr, ar = ref_p[-1], ref_v[-1], np.zeros(3)
         if mpc is not None and tl <= ref_t[-1] + 1e-6:
             x0m = np.concatenate([p_b, v_b])
-            u0m, st = mpc.solve(x0m, ref_t, ref_p, ref_v,
-                                cur_plan.p_c, cur_plan.v_p, t_start=tl)
+            _out = mpc.solve(x0m, ref_t, ref_p, ref_v,
+                             cur_plan.p_c, cur_plan.v_p, t_start=tl)
+            u0m, st = _out[0], _out[1]   # solve 返回 (u0, status[, v_next])
             if st in (0, 2):
                 a_cmd = u0m
             else:

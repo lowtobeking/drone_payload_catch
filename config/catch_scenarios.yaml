@@ -33,6 +33,16 @@ defaults:
   capture:                    # 捕获判据：位置进 r_c，且相对速度 < v_c
     radius:         0.30      # m，r_c
     rel_speed:      1.50      # m/s，v_c
+    funnel:                   # M6 垂直堆叠：刚性漏斗的物理捕获判据
+      mouth_radius: 0.20      # m，漏斗口半径（载荷须落在口内）
+      depth:        0.30      # m，漏斗深度（决定能兜住多快的下落）
+      restitution:  0.60      # 恢复系数 e；v_retain = sqrt(2·g·depth)/e
+      mount_height: 0.10      # m，漏斗口平面在 B 机体中心之上的高度
+      object_radius: 0.05     # m，载荷等效半径（口内有效半径 = mouth_radius − object_radius）
+
+  stack:                      # M6 垂直堆叠投放（A 正上方释放、B 温和下潜软捕获）
+    a_dive:         3.0       # m/s²，B 接触前的下潜加速度（温和=给刹车留余量）
+    a_brake:        6.0       # m/s²，B 接触后的刹车加速度
 
   planner:                    # 协调求解器：搜 (t_r, τ_c)
     t_r_min:        0.0       # s，释放时刻搜索下界
@@ -87,6 +97,11 @@ layouts:
     a_init:    [0.0, 0.0, -5.0]
     a_vel:     [0.0, 0.0, 0.0]
     b_standby: [1.5, 0.0, -4.0]
+
+  stack_drop:                           # M6：A 严格在 B 正上方，垂直投放
+    a_init:    [0.0, 0.0, -4.5]         # A 悬停 4.5m
+    a_vel:     [0.0, 0.0, 0.0]
+    b_standby: [0.0, 0.0, -3.5]         # B 待命 3.5m，与 A 垂直间距 gap=1.0m
 
 # ── 工况 ───────────────────────────────────────────────────────────────────
 scenarios:
@@ -152,6 +167,13 @@ scenarios:
     drone_b: {max_speed: 9.0, max_accel: 10.0}
     planner: {tau_max: 1.2, catch_alt_min: 1.2, catch_alt_max: 2.5}
     description: M3_high 但 B 用终端 MPC
+
+  # ── M6 垂直堆叠投放：A 正上方释放 + B 温和下潜软捕获（刚性漏斗）──
+  M6_stack_drop:
+    layout: stack_drop
+    mode: stack_drop
+    stack: {a_dive: 3.0, a_brake: 6.0}
+    description: A 严格在 B 正上方 1m 释放；B 温和下潜(a=3)，刚性漏斗口半径0.2m兜住
 
   # ── M4 鲁棒性：测量噪声+延迟+丢包，估计器对照 ──
   M4_line_naive:

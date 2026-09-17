@@ -125,6 +125,41 @@ min-energy 三次只用了约 74% 的 `a_max`，剩余额度正好被 PD/MPC 用
 关键旁证：**用真值的 `none` 也只有 46/50** ⇒ **瓶颈不在估计精度**，而在释放误差与 B 的动力学限幅。
 所以"更好的估计"在这套几何/判据下不是增益点；KF 的价值要等跟踪/判据成为瓶颈时才体现。
 
+## M6 垂直堆叠投放（A 正上方释放 + B 温和下潜 + 刚性漏斗）
+
+任务形态：A、B 地面水平相距 5m 起飞、各自升到不同高度，B 飞到 A **严格正下方**；
+两机水平速度均为 0、投影重合时 A 释放。载荷＝纯垂直自由落体；B 在下方以 `a_dive`
+**温和下潜（软着陆）**，随后以 `a_brake` 刹停。
+
+**关键物理**：B 只能往下压（`a_B < g`），纯垂直下落的接触相对速度有下界
+
+```
+v_rel = √( 2·(g − a_dive)·gap )
+```
+
+gap=1m 时：悬停硬接 4.43 m/s；a_dive=3 → 3.69；a_dive=6 → 2.76（但 B 冲得低、刹车余量只剩 0.35m）。
+**a_dive=3 是冲击/余量的折中。**
+
+**捕获判据（比固定 `v_c` 更严谨，来自刚性漏斗物理）**：
+
+```
+位置：落到漏斗口平面时 水平偏差 < mouth_radius − object_radius
+速度：接触相对速度 ≤ v_retain = √(2·g·depth) / e      (e = 恢复系数)
+```
+
+推荐标称（`config` 里已是）：`A=4.5m, B=3.5m, gap=1.0m, a_dive=3, 漏斗口半径0.2m/深0.3m/e=0.6`
+→ `v_rel=3.69 ≤ v_retain=4.04`，离线 200/200 捕获（水平偏差 max 0.096m < 口内有效半径 0.15m）。
+
+```bash
+python3 tools/stack_run.py            # 单次
+python3 tools/stack_run.py --sweep-dive
+python3 tools/stack_run.py --sweep-gap
+python3 tools/stack_run.py --mc 200
+```
+
+> ⚠️ 现有 3D `RendezvousPlanner` **不适合**本场景：它求最小代价时会让 B 爬到 A 正下方 ~0.1m 处，
+> 或要求峰值加速度 15–600 m/s² 来匹配末端速度。故 M6 用独立的解析规划器（`stack_drop.py`）。
+
 ## SITL 环境（B 阶段，见 `report/env_bringup.md`）
 
 ```bash
@@ -147,6 +182,8 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 - `scenarios`：`M1_*`（悬停）、`M2_*`（带速抛投）、`M3_*`（闭环，可带 `closed_loop: true`）；
   scenario 可覆盖 `payload` / `wind` / `drone_b` / `planner` / `capture` / `a_init` / `a_vel`。
 - `thresholds`：离线报告判定阈值。
+- `capture.funnel`（M6）：刚性漏斗 `mouth_radius/depth/restitution/mount_height/object_radius`。
+- `stack`（M6）：B 下潜加速度 `a_dive`、刹车 `a_brake`。
 
 ## 目录
 
@@ -157,6 +194,8 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `payload_catch/sim_core.py` | 离线闭环仿真（A 恒速飞行 + B 控制 + 捕获判定 + 闭环重规划） |
 | `payload_catch/mpc_terminal.py` | B 的 acados 终端（会合）MPC |
 | `payload_catch/payload_filter.py` | 载荷状态估计（卡尔曼滤波 / 朴素对照） |
+| `payload_catch/stack_drop.py` | M6 垂直堆叠投放（解析规划 + 漏斗保持判据 + 离线仿真） |
+| `tools/stack_run.py` | M6 体检 CLI（`--sweep-dive` / `--sweep-gap` / `--mc`） |
 | `tools/offline_run.py` | 体检报告 CLI（`--plot` / `--sweep-noise` / `--compare`） |
 | `config/catch_scenarios.yaml` | 单一真值源 |
 | `env.sh` | 环境变量（acados/ROS/RMW/PX4 SITL） |
@@ -174,7 +213,9 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 - [x] **M3+** B 的终端 MPC（acados），与 PD 对照
 - [~] **B** 环境打通：`px4_msgs` 已修正、DDS 通；传感器桥 `Gyro STALE` 待解
 - [ ] **M1** ROS 2 节点：载荷状态源 / 规划器 / B 控制器 / 捕获监控 / A 悬停释放
-- [ ] **M4** 更完整鲁棒性（延迟、丢包、估计滤波）+ 指标统计
+- [x] **M4** 更完整鲁棒性（延迟、丢包、估计滤波）+ 指标统计
+- [x] **M6** 垂直堆叠投放（离线层：解析规划 + 漏斗判据 + 200/200 验证）
+- [ ] **M6-SITL** 5m 接近 + 相对定位（mesh）+ Gazebo 刚性漏斗 + 温和下潜软捕获
 - [ ] **M5** Gazebo 高保真捕获机构 + 安全层 + 真机化
 
 ## 开发约定
