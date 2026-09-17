@@ -45,6 +45,8 @@ class BNode(Px4Drone):
         self.declare_parameter('align_vel_tol', 0.12)     # 水平速度阈值 (m/s)
         self.declare_parameter('align_alt_tol', 0.20)     # 高度到位阈值 (m)
         self.declare_parameter('align_hold_s', 1.0)       # 稳定保持多久才释放
+        self.declare_parameter('approach_alt_tol', 0.15)  # 垂直爬升到位的容差 (m)
+        self.declare_parameter('min_ab_gap', 0.80)        # 横移/对正时 B 至少比 A 低多少 (m)
         self.declare_parameter('release_lead', 0.20)      # 提前广播释放时刻
         self.declare_parameter('a_dive', 3.0)             # B 下潜加速度 m/s²
         self.declare_parameter('a_brake', 6.0)            # B 刹车加速度 m/s²
@@ -83,6 +85,8 @@ class BNode(Px4Drone):
         self.align_vel_tol = float(self.get_parameter('align_vel_tol').value)
         self.align_alt_tol = float(self.get_parameter('align_alt_tol').value)
         self.align_hold_s = float(self.get_parameter('align_hold_s').value)
+        self.approach_alt_tol = float(self.get_parameter('approach_alt_tol').value)
+        self.min_ab_gap = float(self.get_parameter('min_ab_gap').value)
         self.release_lead = float(self.get_parameter('release_lead').value)
         self.a_dive = float(self.get_parameter('a_dive').value)
         self.a_brake = float(self.get_parameter('a_brake').value)
@@ -103,6 +107,8 @@ class BNode(Px4Drone):
         self.stack_plan = None
         self.release_ref_t0 = None
         self.align_t0 = None
+        self.stack_hover = None         # 捕获后锁定的悬停点（防止重锚漂移靠近 A）
+        self._min_relA = float('inf')   # 全程最小 A-B 间距（碰撞监测）
         self._t_node0 = None
         self.planned = False
         self.plan = None
@@ -196,9 +202,11 @@ class BNode(Px4Drone):
         now = self.get_clock().now().nanoseconds * 1e-9
         if self._tick_count % int(self.hz) == 0:
             pp = None if self.p_pay is None else self.p_pay.round(2)
+            ra = None if self.a_est is None else round(float(np.linalg.norm(self.a_est - self.pos_world)), 3)
+            mr = None if self._min_relA == float('inf') else round(self._min_relA, 3)
             self.get_logger().info(
                 f'B phase={self.phase} pos_w={self.pos_world.round(2)} vel={self.vel.round(2)} '
-                f'pay={pp} caught={self.caught}')
+                f'relA={ra} min_relA={mr} pay={pp} caught={self.caught}')
         if self.mode == 'stack':
             self.control_stack(now)
             return
@@ -295,6 +303,7 @@ class BNode(Px4Drone):
                 and rv <= self.v_retain):
             self.caught = True
             self.phase = 'DONE'
+            self.stack_hover = pos.copy()   # 锁定此刻位置为悬停点
             self.pub_caught.publish(Bool(data=True))
             self.get_logger().warn(
                 f'*** STACK CAPTURED *** horiz={horiz:.3f}m rel_v={rv:.3f}m/s '
@@ -305,21 +314,60 @@ class BNode(Px4Drone):
         p_est, v_est = self._relnav_a(now)
         if p_est is not None:
             self.a_est, self.a_vel_est = p_est, v_est
+            self._min_relA = min(self._min_relA,
+                                 float(np.linalg.norm(self.a_est - pos)))
         standby = self.standby
+        a_alt = -float(self.a_release[2])          # A 的悬停高度（应从 launch 传入 a_hover）
 
         if self.phase == 'CLIMB':
-            v = self.hover_velocity(standby[:2], -standby[2], kp_xy=1.2, max_speed=1.5,
-                                    kp_z=1.2, max_climb=1.2)
-            if float(np.linalg.norm(pos - standby)) < self.align_alt_tol:
-                self.phase = 'ALIGN'
-                self.align_t0 = now
-                self.get_logger().warn('B: CLIMB done → ALIGN')
+            # 1) 只在本机 x/y **垂直爬升**到待命高度：绝不平移，避免斜插进 A 的爬升通道
+            tgt_alt = -standby[2]
+            v = self.hover_velocity([pos[0], pos[1]], tgt_alt, kp_xy=1.0, max_speed=0.8,
+                                    kp_z=1.4, max_climb=1.2)
+            if abs(-pos[2] - tgt_alt) < self.approach_alt_tol:
+                self.phase = 'WAIT_A'
+                self.get_logger().warn('B: CLIMB done → WAIT_A（保持机位等 A 爬到顶）')
             self.publish_velocity(v, yaw=self.yaw)
             return
 
+        if self.phase == 'WAIT_A':
+            # 2) 原地悬停，等 A 到位且比 B 高出 min_ab_gap，才开始横移
+            tgt_alt = -standby[2]
+            v = self.hover_velocity([pos[0], pos[1]], tgt_alt, kp_xy=1.0, max_speed=0.8,
+                                    kp_z=1.4, max_climb=1.2)
+            self.publish_velocity(v, yaw=self.yaw)
+            if self.a_est is None:
+                return
+            a_alt_now = -self.a_est[2]
+            a_vz = abs(float(self.a_vel_est[2])) if self.a_vel_est is not None else 9.9
+            clear = a_alt_now - (-pos[2])
+            if (a_alt_now >= a_alt - self.approach_alt_tol and a_vz < self.align_vel_tol
+                    and clear >= self.min_ab_gap):
+                self.phase = 'TRANSLATE'
+                self.get_logger().warn(
+                    f'B: WAIT_A done (A_alt={a_alt_now:.2f}, clear={clear:.2f}) → TRANSLATE')
+            return
+
+        if self.phase == 'TRANSLATE':
+            # 3) 保持高度平移到 A 正下方；全程比 A 低 min_ab_gap
+            tgt_alt = -standby[2]
+            if self.a_est is not None:
+                tgt_alt = min(tgt_alt, (-self.a_est[2]) - self.min_ab_gap)
+            v = self.hover_velocity(standby[:2], tgt_alt, kp_xy=1.2, max_speed=1.5,
+                                    kp_z=1.4, max_climb=1.0)
+            self.publish_velocity(v, yaw=self.yaw)
+            if float(np.linalg.norm(pos[:2] - standby[:2])) < self.align_xy_tol:
+                self.phase = 'ALIGN'
+                self.align_t0 = now
+                self.get_logger().warn('B: TRANSLATE done → ALIGN')
+            return
+
         if self.phase == 'ALIGN':
-            v = self.hover_velocity(standby[:2], -standby[2], kp_xy=1.2, max_speed=1.5,
-                                    kp_z=1.2, max_climb=1.2)
+            tgt_alt = -standby[2]
+            if self.a_est is not None:
+                tgt_alt = min(tgt_alt, (-self.a_est[2]) - self.min_ab_gap)
+            v = self.hover_velocity(standby[:2], tgt_alt, kp_xy=1.2, max_speed=1.5,
+                                    kp_z=1.4, max_climb=1.2)
             self.publish_velocity(v, yaw=self.yaw)
             if self.a_est is None:
                 self.align_t0 = now
@@ -380,8 +428,15 @@ class BNode(Px4Drone):
             self._stack_capture_check()
             return
 
-        # DONE：在当前位置悬停
-        v = self.hover_velocity(pos[:2], -pos[2], kp_xy=1.5, max_speed=self.v_max,
+        # DONE：捕获后在**固定点**悬停（不能每拍把目标重锚到当前位置，否则带载会漂移靠近 A）
+        if self.stack_hover is None:
+            self.stack_hover = pos.copy()
+        tgt = self.stack_hover.copy()
+        tgt_alt = -tgt[2]
+        # 安全层：悬停高度不得高于 A−min_ab_gap，保证绝不靠近 A
+        if self.a_est is not None:
+            tgt_alt = min(tgt_alt, (-self.a_est[2]) - self.min_ab_gap)
+        v = self.hover_velocity(tgt[:2], tgt_alt, kp_xy=1.5, max_speed=self.v_max,
                                 kp_z=1.5, max_climb=1.5)
         self.publish_velocity(v, yaw=self.yaw)
 

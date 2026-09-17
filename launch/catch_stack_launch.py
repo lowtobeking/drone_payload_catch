@@ -28,6 +28,7 @@ def generate_launch_description():
     b = Node(package='payload_catch', executable='b_node', name='b_node', output='screen',
              parameters=[{'drone_id': 1, 'mode': 'stack',
                           'standby_world': b_standby, 'world_offset': b_offset,
+                          'a_release_world': a_hover,
                           'a_state_topic': '/drone_a/state',
                           'rel_pos_sigma': 0.03, 'rel_latency': 0.05,
                           'align_xy_tol': 0.12, 'align_vel_tol': 0.12, 'align_alt_tol': 0.20,
