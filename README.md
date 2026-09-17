@@ -192,7 +192,12 @@ PX4 日志会看到两机 `Landing detected → Disarmed by landing`。载荷跟
 - **B 用带刚性漏斗的自定义模型** `models/x500_funnel`（`<include merge> model://x500` + 顶部圆锥）；
   先 `gz service create` 成 `x500_funnel_1`，再以 `PX4_GZ_MODEL_NAME` 让 PX4 attach——**不改 PX4 树**。
   启动文件 `launch/catch_stack_launch.py`，一键 `run_m6_sitl.sh`。
-- **相对定位（mesh 替身）**：A 广播 `/drone_a/state`（世界系 NED），B 订阅后加噪声/延迟（`rel_pos_sigma`/`rel_latency`）。
+- **相对定位（mesh 替身）**：A 广播 `/drone_a/state`（世界系 NED），B 订阅后加**延迟/抖动/丢包/慢变偏置/噪声**，
+  再经 **EMA 低通**（`est_lpf_alpha≈0.30`）滤波后才用于对正判断与控制——否则重噪声会把对正门限卡死。
+- **载荷闭环跟踪**：DIVE 阶段 B 跟踪**载荷本身**（带测量噪声/延迟），而非 A，闭环纠正释放误差。
+- **难度扫描**：`bash tools/sweep_m6_sitl.sh`（10 档）→ `report/m6_sitl_results.md`。关键结论：
+  重噪声下不加 EMA 滤波会卡在对正（失败）；载荷闭环在释放误差 σ=0.20m 时把落点误差从 0.033m 降到 0.009m（3.7×）；
+  释放提前量 0.45s / 落差 1.2m / 下潜 a=5 均稳定捕获并落地。
 - **释放时序**：B 飞到 A 正下方、水平速度归零且 A 也稳定后，广播 `/payload/release_at`；
   载荷由 `payload_node` 瞬移到 **A 实际位置下方 0.15m**（避免在 A 机体内生成被弹飞）。
 - **捕获判据**：载荷落到漏斗口平面（注意 PX4 `pos_world.z` 比模型绝对高度低 0.24m，需 `px4_z_bias`）、
@@ -258,7 +263,8 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 - [ ] **M1** ROS 2 节点：载荷状态源 / 规划器 / B 控制器 / 捕获监控 / A 悬停释放
 - [x] **M4** 更完整鲁棒性（延迟、丢包、估计滤波）+ 指标统计
 - [x] **M6** 垂直堆叠投放（离线层：解析规划 + 漏斗判据 + 200/200 验证）
-- [x] **M6-SITL** 5m 接近 + 相对定位（mesh 替身）+ Gazebo 刚性漏斗 + 温和下潜软捕获（`STACK CAPTURED`）
+- [x] **M6-SITL** 5m 接近 + 相对定位（mesh 替身）+ Gazebo 刚性漏斗 + 温和下潜软捕获（`STACK CAPTURED`）+ 双机分开落地
+- [x] **M6 鲁棒性** SITL 难度扫描（相对定位噪声/释放误差/时序/落差/下潜），见 `report/m6_sitl_results.md`
 - [ ] **M5** 真空心漏斗 + 保持机构 + 安全层 + 真机化
 
 ## 开发约定

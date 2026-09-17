@@ -83,12 +83,14 @@ drone_payload_catch/
 │   ├── offline_run.py         ← 离线体检 CLI（--all/--plot/--sweep-noise/--compare/--controller-compare/--mc）
 │   ├── stack_run.py           ← M6 垂直堆叠投放 CLI（--sweep-dive/--sweep-gap/--mc）
 │   ├── prebuild_mpc.py        ← 预热 acados MPC（消除 SITL 启动期编译尖峰）
-│   └── sweep_sitl_difficulty.sh ← SITL 难度扫描
+│   ├── sweep_sitl_difficulty.sh ← SITL 难度扫描
+│   └── sweep_m6_sitl.sh       ← M6 SITL 难度扫描（10 档，输出 report/m6_sitl_results.md）
 ├── run_m1_sitl.sh             ← M1 一键 SITL（gz + 2×PX4 + agent + 节点；可传 CTRL/A_HOVER/...）
 ├── run_m6_sitl.sh            ← M6 一键 SITL（B 带漏斗模型、5m 起飞、A 正上方释放）
 └── report/
     ├── env_bringup.md         ← 环境排查全记录（含我在 PX4 上做的改动与回滚清单）
-    └── m5_sitl_results.md     ← M5 难度扫描结果
+    ├── m5_sitl_results.md     ← M5 难度扫描结果
+    └── m6_sitl_results.md     ← M6 SITL 难度扫描结果（2026-09-17）
 ```
 
 训练/编译产物：acados 缓存在 `~/.cache/payload_catch/acados_terminal_mpc/`（**非 /tmp**）。
@@ -161,6 +163,7 @@ colcon build --packages-select payload_catch
 | M5-3 | 真实吸附机构（接住→带走） | ❌ 未做 |
 | M6 | 垂直堆叠投放（A 正上方释放 + B 温和下潜 + 刚性漏斗） | ✅ 离线 200/200；**SITL 捕获成功** |
 | M6-SITL | 5m 起飞→对正→释放→下潜→漏斗捕获→**两机分开落地** | ✅ `STACK CAPTURED`；两机落点相距~8.5m，均 `Landing detected`+`Disarmed by landing`；全程 min|A−B|≈0.9m（无碰撞） |
+| M6 sweep | SITL 难度扫描（10 档，`report/m6_sitl_results.md`） | ✅ 9/10：重噪声+不滤波 ❌、其余 ✅。载荷闭环在 σ=0.20 时落点误差 3.7× 改善 |
 | 真机 | — | ❌ 未做 |
 
 **SITL 难度扫描结果**（`report/m5_sitl_results.md`，MPC 控制器）：
@@ -230,6 +233,11 @@ colcon build --packages-select payload_catch
     现相位：`CLIMB`(垂直爬升) → `WAIT_A`(等 A 到悬停高度且 clear≥`min_ab_gap`) → `TRANSLATE`(定高横移) → `ALIGN`。
     另：`DONE` 阶段**不能每拍把悬停目标重锚到当前位置**（带载会缓慢漂移靠近 A），改成捕获瞬间锁定悬停点。
     `b_node` 全程跟踪 `min_relA`（最小 A-B 间距）作碰撞监测，安全层保证 B 高度 ≤ A−`min_ab_gap`。
+17. **M6 相对定位估计必须 EMA 低通**（`est_lpf_alpha≈0.30`）：重噪声下若直接用带噪 `rel_xy`
+    做对正门限，1s 内几乎进不了 0.12 阈值 → B 卡在 ALIGN 永不释放（扫描 T3n 实测）。滤波后噪声 ↓~3×。
+    另：`min_relA` 由**估计值**算出，重噪声下会虚低（T3n 显示 0.481，实际 ~1m），别当碰撞。
+18. **M6 参数已全部参数化到 launch**（可 `ros2 launch payload_catch catch_stack_launch.py rel_pos_sigma:=0.1` 覆盖）；
+    扫描脚本 `tools/sweep_m6_sitl.sh` 每档重启 gz+PX4；首轮 `pkill` 竞态会令“双机未 READY”，脚本已自动重试。
 
 ---
 
@@ -256,23 +264,20 @@ colcon build --packages-select payload_catch
 ## 10. 提交历史（git log，自上而下）
 
 ```
-4d62d33 fix(M6-SITL): 消除起飞期 A/B 碰撞 — B 先垂直爬升→等A到位→再横移
-72134b1 M6-SITL: 5m起飞→对正→A正上方释放→B温和下潜→刚性漏斗捕获(STACK CAPTURED)
+8743617 feat(M6): 相对定位细化(抖动/丢包/慢变偏置/种子) + 载荷闭环跟踪 + EMA滤波 + 参数化launch + SITL扫描脚本
+f1628b6 feat(M6): 两机落地点分开（各飞 land_xy 再降落，相距~8.5m）
+8b44b1e feat(M6): 捕获后保持6s → A/B 各自 AUTO_LAND 落地收尾（PX4 Landing detected+Disarmed）
+fbfb181 docs: 记录 M6 起飞避碰策略 + min_relA 监测 + GUI 脚本
+4d62d33 fix(M6-SITL): 消除起飞期 A/B 碰撞 — B 先垂直爬升→等A到位→再横移；min_ab_gap 安全层 + 捕获后锁定悬停点防漂移
+f74f495 docs(MEMORY): 记录 M6-SITL 提交哈希
+72134b1 M6-SITL: 5m起飞→对正→A正上方释放→B温和下潜→刚性漏斗捕获(STACK CAPTURED) + 自定义x500_funnel模型/相对定位/状态机
+39adbd2 docs(MEMORY): 记录 M6 提交哈希
 9e36729 M6: 垂直堆叠投放离线层(解析规划+刚性漏斗判据+200/200) + 修 sim_core MPC 解包
 bf467d1 docs: 新增 MEMORY.md 项目记忆(给下一个 AI 直接接续) + README 指针
 16fcdf8 M5 step3: SITL 难度扫描 + 结果记录
 4fb558d M5 step1+2: 降负载(载荷 odom) + acados MPC 指纹缓存 -> B 无 failsafe, MPC 捕获成功
-f382a0a M5 step2: b_node 接入 acados 终端 MPC
+f382a0a M5 step2: b_node 接入 acados 终端 MPC (controller:=mpc), 预测速度作 setpoint
 118cce3 M5 step1: 温和场景 SITL 干净捕获(Gazebo 载荷)
-dc003f8 M5-1: 载荷放进 Gazebo（真实物理下落）
-d1109db M1: PX4 SITL 端到端跑通
-9b39c0a M4: 载荷状态估计(KF) + 延迟/丢包 + 蒙特卡洛
-dcc15cd ref: 参考轨迹改进尝试 + 效率-鲁棒性权衡
-f10dedb M3+: B 的 acados 终端 MPC + 与 PD 对照
-587e845 M2+M3: 带速抛投 + 闭环重规划
-60b0847 B(续): nolockstep 重建（缺 gz）+ 系统 gz 仍 STALE + 根因=PX4 检出被本地大改
-b78bf5c B: 环境打通（px4_msgs 修正 + DDS 通）
-cb7c1f0 M0: 项目骨架 + 载荷模型 + 会合规划 + 离线闭环
 ```
 
 > 注：`b78bf5c`/`60b0847` 记录的是"在错误的 PX4 main 树上排查"，**结论已被 §2 取代**——
