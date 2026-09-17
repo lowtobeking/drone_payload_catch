@@ -84,13 +84,15 @@ drone_payload_catch/
 │   ├── stack_run.py           ← M6 垂直堆叠投放 CLI（--sweep-dive/--sweep-gap/--mc）
 │   ├── prebuild_mpc.py        ← 预热 acados MPC（消除 SITL 启动期编译尖峰）
 │   ├── sweep_sitl_difficulty.sh ← SITL 难度扫描
-│   └── sweep_m6_sitl.sh       ← M6 SITL 难度扫描（10 档，输出 report/m6_sitl_results.md）
+│   ├── sweep_m6_sitl.sh       ← M6 SITL 难度扫描（10 档，输出 report/m6_sitl_results.md）
+│   └── mc_m6_sitl.sh          ← M6 SITL 蒙特卡洛（每档 N 次换种子，输出 report/m6_sitl_mc.md）
 ├── run_m1_sitl.sh             ← M1 一键 SITL（gz + 2×PX4 + agent + 节点；可传 CTRL/A_HOVER/...）
 ├── run_m6_sitl.sh            ← M6 一键 SITL（B 带漏斗模型、5m 起飞、A 正上方释放）
 └── report/
     ├── env_bringup.md         ← 环境排查全记录（含我在 PX4 上做的改动与回滚清单）
     ├── m5_sitl_results.md     ← M5 难度扫描结果
     └── m6_sitl_results.md     ← M6 SITL 难度扫描结果（2026-09-17）
+    └── m6_sitl_mc.md          ← M6 SITL 蒙特卡洛结果（2026-09-17）
 ```
 
 训练/编译产物：acados 缓存在 `~/.cache/payload_catch/acados_terminal_mpc/`（**非 /tmp**）。
@@ -164,6 +166,7 @@ colcon build --packages-select payload_catch
 | M6 | 垂直堆叠投放（A 正上方释放 + B 温和下潜 + 刚性漏斗） | ✅ 离线 200/200；**SITL 捕获成功** |
 | M6-SITL | 5m 起飞→对正→释放→下潜→漏斗捕获→**两机分开落地** | ✅ `STACK CAPTURED`；两机落点相距~8.5m，均 `Landing detected`+`Disarmed by landing`；全程 min|A−B|≈0.9m（无碰撞） |
 | M6 sweep | SITL 难度扫描（10 档，`report/m6_sitl_results.md`） | ✅ 9/10：重噪声+不滤波 ❌、其余 ✅。载荷闭环在 σ=0.20 时落点误差 3.7× 改善 |
+| M6 MC | SITL 蒙特卡洛（N=5/档，`report/m6_sitl_mc.md`） | ✅ 标称 5/5；重噪声 滤波4/5 vs 不滤波1/5；释放误差0.20 跟踪5/5 vs 不跟踪1/5；σ=0.30 跟踪5/5 |
 | 真机 | — | ❌ 未做 |
 
 **SITL 难度扫描结果**（`report/m5_sitl_results.md`，MPC 控制器）：
