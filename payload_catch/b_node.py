@@ -16,6 +16,7 @@ from std_msgs.msg import Bool, Float64, Float64MultiArray
 
 from .px4_iface import Px4Drone
 from .rendezvous import RendezvousPlanner
+from .stack_drop import plan_stack_drop, _stack_ref
 
 
 class BNode(Px4Drone):
@@ -35,6 +36,29 @@ class BNode(Px4Drone):
         self.declare_parameter('a_release_world', [0.0, 0.0, -3.0])   # A 的悬停/释放点(世界系)
         self.declare_parameter('start_delay', 18.0)                   # 起飞稳定后开始规划(s)
         self.declare_parameter('plan_tr_max', 3.0)
+        # ── M6 垂直堆叠模块 ──
+        self.declare_parameter('mode', 'rendezvous')      # rendezvous | stack
+        self.declare_parameter('a_state_topic', '/drone_a/state')
+        self.declare_parameter('rel_pos_sigma', 0.0)      # mesh 相对定位噪声 (m)
+        self.declare_parameter('rel_latency', 0.0)        # mesh 相对定位延迟 (s)
+        self.declare_parameter('align_xy_tol', 0.12)      # 水平对正阈值 (m)
+        self.declare_parameter('align_vel_tol', 0.12)     # 水平速度阈值 (m/s)
+        self.declare_parameter('align_alt_tol', 0.20)     # 高度到位阈值 (m)
+        self.declare_parameter('align_hold_s', 1.0)       # 稳定保持多久才释放
+        self.declare_parameter('release_lead', 0.20)      # 提前广播释放时刻
+        self.declare_parameter('a_dive', 3.0)             # B 下潜加速度 m/s²
+        self.declare_parameter('a_brake', 6.0)            # B 刹车加速度 m/s²
+        self.declare_parameter('funnel_mouth_radius', 0.20)
+        self.declare_parameter('funnel_eff_radius', 0.15)  # mouth − object_radius
+        self.declare_parameter('funnel_mount_height', 0.10)
+        self.declare_parameter('payload_release_offset', 0.15)  # 载荷释放点相对 A 向下偏移 (m)
+        self.declare_parameter('px4_z_bias', 0.24)   # PX4 pos_world.z 比模型绝对高度低的量(x500 base_link 在模型 z=0.24)
+        self.declare_parameter('catch_z_tol', 0.12)  # 捕获时载荷可高出漏斗口平面的容差 (m)
+        self.declare_parameter('funnel_depth', 0.30)
+        self.declare_parameter('funnel_restitution', 0.60)
+        self.declare_parameter('v_retain', 4.04)          # 刚性漏斗保持速度 m/s
+        self.declare_parameter('stack_kp_xy', 1.5)
+        self.declare_parameter('stack_kp_z', 1.5)
 
         self.standby = np.asarray(self.get_parameter('standby_world').value, float).reshape(3)
         self.r_c = float(self.get_parameter('capture_radius').value)
@@ -50,6 +74,35 @@ class BNode(Px4Drone):
                                     float).reshape(3)
         self.start_delay = float(self.get_parameter('start_delay').value)
         self.plan_tr_max = float(self.get_parameter('plan_tr_max').value)
+        # M6
+        self.mode = str(self.get_parameter('mode').value).lower()
+        self.a_state_topic = str(self.get_parameter('a_state_topic').value)
+        self.rel_pos_sigma = float(self.get_parameter('rel_pos_sigma').value)
+        self.rel_latency = float(self.get_parameter('rel_latency').value)
+        self.align_xy_tol = float(self.get_parameter('align_xy_tol').value)
+        self.align_vel_tol = float(self.get_parameter('align_vel_tol').value)
+        self.align_alt_tol = float(self.get_parameter('align_alt_tol').value)
+        self.align_hold_s = float(self.get_parameter('align_hold_s').value)
+        self.release_lead = float(self.get_parameter('release_lead').value)
+        self.a_dive = float(self.get_parameter('a_dive').value)
+        self.a_brake = float(self.get_parameter('a_brake').value)
+        self.funnel_mouth_radius = float(self.get_parameter('funnel_mouth_radius').value)
+        self.funnel_eff_radius = float(self.get_parameter('funnel_eff_radius').value)
+        self.funnel_mount_height = float(self.get_parameter('funnel_mount_height').value)
+        self.payload_release_offset = float(self.get_parameter('payload_release_offset').value)
+        self.px4_z_bias = float(self.get_parameter('px4_z_bias').value)
+        self.catch_z_tol = float(self.get_parameter('catch_z_tol').value)
+        self.funnel_depth = float(self.get_parameter('funnel_depth').value)
+        self.funnel_restitution = float(self.get_parameter('funnel_restitution').value)
+        self.v_retain = float(self.get_parameter('v_retain').value)
+        self.stack_kp_xy = float(self.get_parameter('stack_kp_xy').value)
+        self.stack_kp_z = float(self.get_parameter('stack_kp_z').value)
+        self.a_state_hist = []          # [(t, pos_world_NED, vel_NED)]
+        self.a_est = None
+        self.a_vel_est = None
+        self.stack_plan = None
+        self.release_ref_t0 = None
+        self.align_t0 = None
         self._t_node0 = None
         self.planned = False
         self.plan = None
@@ -85,6 +138,10 @@ class BNode(Px4Drone):
         self.create_subscription(Float64MultiArray, '/payload/state', self._on_payload, 10)
         self.create_subscription(Bool, '/payload/released', self._on_released, 10)
         self.pub_caught = self.create_publisher(Bool, '/payload/caught', 10)
+        if self.mode == 'stack':
+            self.create_subscription(Float64MultiArray, self.a_state_topic, self._on_a_state, 10)
+            self.phase = 'CLIMB'
+            self.get_logger().warn('b_node: MODE=stack（垂直堆叠投放：对正→释放→温和下潜）')
         self.get_logger().info(f'b_node: standby={self.standby} offset={self.world_offset}')
 
     def _on_payload(self, msg):
@@ -96,8 +153,31 @@ class BNode(Px4Drone):
     def _on_released(self, msg):
         if msg.data and not self.released:
             self.released = True
-            self.phase = 'RENDEZ'
+            if self.mode != 'stack':
+                self.phase = 'RENDEZ'
             self.get_logger().warn('B: payload released → rendezvous')
+
+    def _on_a_state(self, msg):
+        if len(msg.data) >= 7:
+            self.a_state_hist.append((float(msg.data[0]),
+                                      np.array(msg.data[1:4], float),
+                                      np.array(msg.data[4:7], float)))
+            if len(self.a_state_hist) > 4000:
+                self.a_state_hist.pop(0)
+
+    def _relnav_a(self, now):
+        """相对定位（mesh 替身）：A 的广播位姿 + 延迟 + 噪声。"""
+        if not self.a_state_hist:
+            return None, None
+        j = len(self.a_state_hist) - 1
+        if self.rel_latency > 0:
+            tgt = now - self.rel_latency
+            while j > 0 and self.a_state_hist[j][0] > tgt:
+                j -= 1
+        _t, p, v = self.a_state_hist[j]
+        if self.rel_pos_sigma > 0:
+            p = p + np.random.normal(0.0, self.rel_pos_sigma, 3)
+        return p.copy(), v.copy()
 
     def _capture_check(self):
         if self.p_pay is None or self.caught:
@@ -119,6 +199,9 @@ class BNode(Px4Drone):
             self.get_logger().info(
                 f'B phase={self.phase} pos_w={self.pos_world.round(2)} vel={self.vel.round(2)} '
                 f'pay={pp} caught={self.caught}')
+        if self.mode == 'stack':
+            self.control_stack(now)
+            return
         # ⚠️ 早退只能看 DONE；不能因 p_pay is None 早退——否则 HOLD 阶段的规划永远执行不到
         if self.phase == 'DONE':
             v = self.hover_velocity(self.standby[:2], -self.standby[2],
@@ -197,6 +280,110 @@ class BNode(Px4Drone):
         v_sp[2] = float(np.clip(v_sp[2], -self.v_max, self.v_max))
         self.publish_velocity(v_sp, yaw=self.yaw)
         self._capture_check()
+
+
+    # ---------------------------------------------------------------- M6 stack
+    def _stack_capture_check(self):
+        if self.caught or self.p_pay is None:
+            return
+        pos = self.pos_world
+        # 漏斗口平面的 NED z（px4_z_bias 把 PX4 世界系换算回模型绝对高度）
+        z_mouth = pos[2] - self.px4_z_bias - self.funnel_mount_height
+        horiz = float(np.linalg.norm(pos[:2] - self.p_pay[:2]))
+        rv = float(np.linalg.norm(self.vel - self.v_pay))
+        if (self.p_pay[2] >= z_mouth - self.catch_z_tol and horiz <= self.funnel_eff_radius
+                and rv <= self.v_retain):
+            self.caught = True
+            self.phase = 'DONE'
+            self.pub_caught.publish(Bool(data=True))
+            self.get_logger().warn(
+                f'*** STACK CAPTURED *** horiz={horiz:.3f}m rel_v={rv:.3f}m/s '
+                f'z_mouth={z_mouth:.2f} p_B={pos.round(2)} p_p={self.p_pay.round(2)}')
+
+    def control_stack(self, now):
+        pos = self.pos_world
+        p_est, v_est = self._relnav_a(now)
+        if p_est is not None:
+            self.a_est, self.a_vel_est = p_est, v_est
+        standby = self.standby
+
+        if self.phase == 'CLIMB':
+            v = self.hover_velocity(standby[:2], -standby[2], kp_xy=1.2, max_speed=1.5,
+                                    kp_z=1.2, max_climb=1.2)
+            if float(np.linalg.norm(pos - standby)) < self.align_alt_tol:
+                self.phase = 'ALIGN'
+                self.align_t0 = now
+                self.get_logger().warn('B: CLIMB done → ALIGN')
+            self.publish_velocity(v, yaw=self.yaw)
+            return
+
+        if self.phase == 'ALIGN':
+            v = self.hover_velocity(standby[:2], -standby[2], kp_xy=1.2, max_speed=1.5,
+                                    kp_z=1.2, max_climb=1.2)
+            self.publish_velocity(v, yaw=self.yaw)
+            if self.a_est is None:
+                self.align_t0 = now
+                return
+            rel_xy = float(np.linalg.norm(self.a_est[:2] - pos[:2]))
+            spd_xy = float(np.linalg.norm(self.vel[:2]))
+            alt_ok = abs(-pos[2] - (-standby[2])) < self.align_alt_tol
+            a_slow = (self.a_vel_est is None
+                      or float(np.linalg.norm(self.a_vel_est)) < self.align_vel_tol)
+            aligned = (rel_xy < self.align_xy_tol and spd_xy < self.align_vel_tol
+                       and alt_ok and a_slow)
+            if aligned:
+                if self.align_t0 is None:
+                    self.align_t0 = now
+                elif (now - self.align_t0) >= self.align_hold_s:
+                    rel_t = now + self.release_lead
+                    self.pub_release_at.publish(Float64(data=rel_t))
+                    self.release_ref_t0 = rel_t
+                    self.phase = 'DIVE'
+                    self.get_logger().warn(
+                        f'B: ALIGNED rel_xy={rel_xy:.3f}m spd_xy={spd_xy:.3f} → release@{rel_t:.2f}')
+            else:
+                self.align_t0 = now
+            return
+
+        if self.phase == 'DIVE':
+            if self.release_ref_t0 is None:
+                self.publish_velocity(np.zeros(3), yaw=self.yaw)
+                return
+            tl = now - self.release_ref_t0
+            if tl < 0.0:
+                v = self.hover_velocity(standby[:2], -standby[2], kp_xy=1.5,
+                                        max_speed=self.v_max, kp_z=1.5, max_climb=1.5)
+                self.publish_velocity(v, yaw=self.yaw)
+                return
+            if self.stack_plan is None:
+                a_h = -self.a_est[2] if self.a_est is not None else -standby[2]
+                # 载荷实际从 A 下方 offset 处释放；漏斗口在 B 机体上方 mount 处。
+                # 让 plan 的有效 gap = 载荷→漏斗口的距离（_stack_ref 仍从 B 机体起步）。
+                a_h = a_h - self.payload_release_offset - self.funnel_mount_height
+                self.stack_plan = plan_stack_drop(
+                    a_height=a_h, b_height=-pos[2], a_dive=self.a_dive, g=9.81,
+                    a_brake=self.a_brake, funnel_depth=self.funnel_depth,
+                    restitution=self.funnel_restitution)
+                self.get_logger().warn(
+                    f'B: DIVE plan t_c={self.stack_plan.t_c:.3f}s v_rel={self.stack_plan.v_rel:.3f} '
+                    f'v_retain={self.stack_plan.v_retain:.3f} feasible={self.stack_plan.feasible}')
+            xy_tgt = self.a_est[:2] if self.a_est is not None else pos[:2]
+            pr, vr, _ar = _stack_ref(tl, self.stack_plan, (xy_tgt[0], xy_tgt[1]), 9.81)
+            v_sp = np.zeros(3)
+            v_sp[:2] = self.stack_kp_xy * (xy_tgt - pos[:2])
+            v_sp[2] = vr[2] + self.stack_kp_z * (pr[2] - pos[2])
+            n = float(np.linalg.norm(v_sp[:2]))
+            if n > self.v_max:
+                v_sp[:2] *= self.v_max / n
+            v_sp[2] = float(np.clip(v_sp[2], -self.v_max, self.v_max))
+            self.publish_velocity(v_sp, yaw=self.yaw)
+            self._stack_capture_check()
+            return
+
+        # DONE：在当前位置悬停
+        v = self.hover_velocity(pos[:2], -pos[2], kp_xy=1.5, max_speed=self.v_max,
+                                kp_z=1.5, max_climb=1.5)
+        self.publish_velocity(v, yaw=self.yaw)
 
 
 def main(args=None):

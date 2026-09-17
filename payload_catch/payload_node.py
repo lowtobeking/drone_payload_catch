@@ -58,6 +58,9 @@ class PayloadNode(Node):
         self.declare_parameter('model_path',
                                os.path.expanduser('~/drone_payload_catch/models/payload/model.sdf'))
         self.declare_parameter('odom_topic', '/payload/odom')
+        self.declare_parameter('release_offset', [0.0, 0.0, 0.0])   # 相对 A 的释放点偏移(NED)
+        self.declare_parameter('use_a_state', False)                # 用 A 实际位姿作释放点
+        self.declare_parameter('a_state_topic', '/drone_a/state')
 
         self.p_r = np.asarray(self.get_parameter('release_pos').value, float).reshape(3)
         self.v_r = np.asarray(self.get_parameter('release_vel').value, float).reshape(3)
@@ -67,6 +70,10 @@ class PayloadNode(Node):
         self.world = str(self.get_parameter('world').value)
         self.model_path = str(self.get_parameter('model_path').value)
         self.use_gz = bool(self.get_parameter('use_gazebo').value) and _HAS_GZ
+        self.release_offset = np.asarray(
+            self.get_parameter('release_offset').value, float).reshape(3)
+        self.use_a_state = bool(self.get_parameter('use_a_state').value)
+        self._a_world = None
 
         # 解析兜底
         self.model = PayloadModel(PayloadParams(gravity=float(self.get_parameter('gravity').value)))
@@ -95,6 +102,10 @@ class PayloadNode(Node):
         self.pub_released = self.create_publisher(Bool, '/payload/released', 10)
         self.create_subscription(Bool, '/payload/caught', self._on_caught, 10)
         self.create_subscription(Float64, '/payload/release_at', self._on_release_at, 10)
+        if self.use_a_state:
+            self.create_subscription(Float64MultiArray,
+                                     str(self.get_parameter('a_state_topic').value),
+                                     self._on_a_state, 10)
         self.active = not self.use_gz          # use_gz 时：释放并瞬移后才发布状态
         self.timer = self.create_timer(self.dt, self._tick)
         self.get_logger().info(f'payload_node: release at t={self.t_r:.1f}s from {self.p_r}')
@@ -110,6 +121,10 @@ class PayloadNode(Node):
         if self.abs_release_at is None:
             self.abs_release_at = float(msg.data)
             self.get_logger().warn(f'payload_node: 收到释放时刻 {self.abs_release_at:.3f}')
+
+    def _on_a_state(self, msg):
+        if len(msg.data) >= 4:
+            self._a_world = np.array([msg.data[1], msg.data[2], msg.data[3]])
 
     def _on_odom(self, msg):
         p = msg.pose.position
@@ -166,9 +181,13 @@ class PayloadNode(Node):
         due = (now_s >= self.abs_release_at) if self.abs_release_at is not None else (self.t >= self.t_r)
 
         if (not self.model.released) and due:
-            self.model.release(self.p_r, self.v_r)      # 标记已释放
+            p_rel = self.p_r.copy()
+            if self.use_a_state and self._a_world is not None:
+                p_rel = self._a_world + self.release_offset
+                self.p_r = p_rel.copy()
+            self.model.release(p_rel, self.v_r)         # 标记已释放
             self.pub_released.publish(Bool(data=True))
-            self.get_logger().warn(f'PAYLOAD RELEASED at t={self.t:.3f}s pos={self.p_r}')
+            self.get_logger().warn(f'PAYLOAD RELEASED at t={self.t:.3f}s pos={p_rel}')
             if self.use_gz:
                 self._teleport_to_release()
                 self.active = True

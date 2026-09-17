@@ -11,9 +11,9 @@
 **离线算法层已完整**（M0/M2/M3/M3+/M4，含多组对照与负结果）；
 **SITL 层已打通并能在温和条件下真实捕获**（M1 + M5-1 + M5-2：PX4-1.16 双机 + Gazebo 真实载荷 + acados MPC）；
 **边界已量化**：横向偏移 0.8m 内可靠，载荷下落速度 ~2m/s 可靠、~4.9m/s 会触发 B 的飞控 failsafe；
-**新增 M6「垂直堆叠投放」**（A 严格在 B 正上方 1m 释放、B 温和下潜软着陆、刚性漏斗捕获）：
-离线层已完成并验证（200/200 捕获），**SITL/漏斗硬件未做**；
-**未做**：真实吸附机构、真机。
+**新增 M6「垂直堆叠投放」**（A 严格在 B 正上方释放、B 温和下潜软着陆、刚性漏斗捕获）：
+**离线层（200/200）+ SITL 端到端均已完成**（`*** STACK CAPTURED ***`，载荷骑在漏斗上被带走）；
+**未做**：真漏斗（当前是实心圆锥盘）、真机。
 
 ---
 
@@ -71,17 +71,20 @@ drone_payload_catch/
 │   ├── payload_filter.py      ← 载荷状态估计（KF / 朴素）
 │   ├── stack_drop.py          ← M6 垂直堆叠投放：解析规划 + 漏斗保持判据 + 离线仿真（纯 Python）
 │   ├── px4_iface.py           ← PX4 接口基类（话题/QoS/ARM+OFFBOARD/setpoint/世界系偏移）
-│   ├── a_node.py              ← A：起飞→悬停在释放点
-│   ├── b_node.py              ← B：规划+预位→释放后闭环会合→捕获（pd|mpc）
+│   ├── a_node.py              ← A：起飞→悬停释放点（M6 额外广播 /drone_a/state 供相对定位）
+│   ├── b_node.py              ← B：会合捕获 或 M6 垂直堆叠状态机（对正→释放→下潜）
 │   └── payload_node.py        ← 载荷：Gazebo 生成/瞬移/状态发布（含解析兜底）
 ├── launch/catch_launch.py     ← M1 SITL 启动
+├── launch/catch_stack_launch.py ← M6 垂直堆叠 SITL 启动
 ├── models/payload/            ← Gazebo 载荷模型（0.3kg 小方盒 + odometry 插件）
+├── models/x500_funnel/        ← M6：x500 + 顶部刚性捕获圆锥（PX4_GZ_MODEL_NAME 附着）
 ├── tools/
 │   ├── offline_run.py         ← 离线体检 CLI（--all/--plot/--sweep-noise/--compare/--controller-compare/--mc）
 │   ├── stack_run.py           ← M6 垂直堆叠投放 CLI（--sweep-dive/--sweep-gap/--mc）
 │   ├── prebuild_mpc.py        ← 预热 acados MPC（消除 SITL 启动期编译尖峰）
 │   └── sweep_sitl_difficulty.sh ← SITL 难度扫描
 ├── run_m1_sitl.sh             ← M1 一键 SITL（gz + 2×PX4 + agent + 节点；可传 CTRL/A_HOVER/...）
+├── run_m6_sitl.sh            ← M6 一键 SITL（B 带漏斗模型、5m 起飞、A 正上方释放）
 └── report/
     ├── env_bringup.md         ← 环境排查全记录（含我在 PX4 上做的改动与回滚清单）
     └── m5_sitl_results.md     ← M5 难度扫描结果
@@ -121,6 +124,15 @@ A_HOVER="0.0,0.0,-3.0" B_STANDBY="0.2,0.0,-2.8" B_OFFSET="0.2,0.0,0.0" \
 结果看 `~/payload_catch_sitl/launch.log` 里的 `*** CAPTURED ***` 与 `B phase=...`。
 ⚠️ launch 向量参数**必须全 float**（`[0.2,0.0,-2.8]`，不能 `[0.2,0,-2.8]`，否则 launch 报类型不一致）。
 
+### 4.2b M6 垂直堆叠投放（A 正上方释放 + B 温和下潜 + 刚性漏斗）
+```bash
+source ~/drone_payload_catch/env.sh
+bash ~/drone_payload_catch/run_m6_sitl.sh 70
+```
+默认：A 悬停 4.5m、B 待命 3.5m、B 从水平 5m 外起飞对正。结果看
+`~/payload_catch_m6/launch.log` 里的 `*** STACK CAPTURED ***` 与 `B phase=DONE`。
+可调：`A_HOVER` / `B_STANDBY` / `B_POSE_ENU` / `B_OFFSET` / `RELEASE_OFFSET`。
+
 ### 4.3 构建本项目（改代码后）
 ```bash
 cd ~/payload_catch_ws && source ~/drone_payload_catch/env.sh
@@ -146,7 +158,8 @@ colcon build --packages-select payload_catch
 | M5-2 | b_node 接入 acados MPC | ✅ |
 | M5 step3 | 难度扫描找边界 | ✅ 见下 |
 | M5-3 | 真实吸附机构（接住→带走） | ❌ 未做 |
-| M6 | 垂直堆叠投放（A 正上方释放 + B 温和下潜 + 刚性漏斗） | ✅ 离线层 200/200；SITL 未做 |
+| M6 | 垂直堆叠投放（A 正上方释放 + B 温和下潜 + 刚性漏斗） | ✅ 离线 200/200；**SITL 捕获成功** |
+| M6-SITL | 5m 起飞→对正→释放→下潜→漏斗捕获 | ✅ `STACK CAPTURED` horiz 0.02m rel_v 2.0m/s |
 | 真机 | — | ❌ 未做 |
 
 **SITL 难度扫描结果**（`report/m5_sitl_results.md`，MPC 控制器）：
@@ -203,6 +216,14 @@ colcon build --packages-select payload_catch
 11. **`mpc_terminal.solve` 返回三元组 `(u0, status, v_next)`，`sim_core` 曾按二元组解包** →
     `--all` 跑到 MPC 工况会 `ValueError: too many values to unpack`。已修为 `_out[0], _out[1]`。
     （`v_next` 供 PX4 速度接口当前馈设定点，离线仿真忽略。）
+12. **PX4 `pos_world.z` 比模型绝对高度低 0.24m**（x500 `base_link` 在模型 z=0.24）。
+    载荷 odom 是绝对高度，所以漏斗口判据必须带 `px4_z_bias=0.24`，否则永远不触发捕获。
+13. **给单台载机加自定义模型不改 PX4 树**：先 `gz service create` 成 `x500_funnel_1`，
+    再以 `PX4_GZ_MODEL_NAME=x500_funnel_1` 启动（占 `px4-rc.gzsim` 的 `elif` attach 分支，不 spawn）。
+    模型用 `<include merge='true'><uri>model://x500</uri></include>` 复用标准 x500（含 IMU/mag/螺旋桨插件）。
+14. **gz `<cone>` 默认尖朝上**（载荷会滑落）；要口朝上（漏斗形）必须 `roll=π`。
+    且**实心圆锥宽口朝上 = 平顶盘**，并不是空心漏斗（想要真漏斗得用内壁网格）。
+15. **M6 载荷释放点要在 A 下方 `offset=0.15m`**，否则在 A 机体/桨内生成会被瞬间弹飞。
 
 ---
 
@@ -216,15 +237,13 @@ colcon build --packages-select payload_catch
 
 ## 9. 下一步候选（按价值）
 
-1. **M6 SITL**：把已验证的垂直堆叠方案接到 PX4：起飞阶段 5m 横向接近 → A 到 B 正上方 4.5m、
-   B 待命 3.5m → 水平速度归零、投影重合后释放 → B 温和下潜（a_dive=3）软捕获。
-   需要：相对定位模块（mesh/UWB 的相对位姿，先用 Gazebo 真值+噪声建模）、Gazebo 给 B 加**刚性漏斗**、
-   释放时序同步。**推荐先做**。
-2. **M5-3 真实吸附**：接住后把载荷刚性绑到 B（detachable joint 或软件 attach），让“接住→带走”闭环。
-   —— 可与 M6 合并（漏斗 + 吸附）。
-3. **推高速度边界**：修 B 的传感器/EKF 鲁棒性（mag 优先级、EKF 参数、无 mag 的 yaw 源），
-   或把末端俯冲做得更平滑（把离线验证过的 `staged` 参考用到 SITL，降低对姿态冲击）。
-4. **真机化**：把已验证的 SITL 配置搬到真机（`report/env_bringup.md` 有 PX4 改动与回滚清单）。
+1. **真正的空心漏斗 + 保持机构**：当前 `models/x500_funnel` 是**实心圆锥宽口朝上 = 平顶盘**，靠低恢复系数
+   把载荷“砸住”，能接能带但无导向/夹持。下一步做一个**空心锥（内壁）**加低回弹底板，或加夹爪/磁吸。
+2. **推高速度边界**：修 B 的传感器/EKF 鲁棒性（mag 优先级、EKF 参数、无 mag 的 yaw 源），
+   或把末端俯冲做得更平滑，把已验证的边界（~2m/s 可靠）往 ~4m/s 推。
+3. **真机化**：把已验证的 SITL 配置搬到真机（`report/env_bringup.md` 有 PX4 改动与回滚清单）。
+4. **相对定位真实化**：现在 mesh 只是“A 广播真值 + 噪声/延迟”。接真 UWB/mesh 硬件时，
+   只需替换 b_node 的 `_relnav_a`。
 
 ---
 

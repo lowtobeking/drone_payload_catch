@@ -160,6 +160,37 @@ python3 tools/stack_run.py --mc 200
 > ⚠️ 现有 3D `RendezvousPlanner` **不适合**本场景：它求最小代价时会让 B 爬到 A 正下方 ~0.1m 处，
 > 或要求峰值加速度 15–600 m/s² 来匹配末端速度。故 M6 用独立的解析规划器（`stack_drop.py`）。
 
+### M6 SITL（已跑通 ✅）
+
+```bash
+source ~/drone_payload_catch/env.sh
+bash ~/drone_payload_catch/run_m6_sitl.sh 70      # 默认 A 4.5m / B 3.5m / 水平 5m 外起飞
+```
+
+实测结果（`~/payload_catch_m6/launch.log`）：
+
+```
+B: CLIMB done → ALIGN
+B: ALIGNED rel_xy=0.028m spd_xy=0.037 → release
+PAYLOAD RELEASED pos=[0.001,-0.029,-4.351]
+B: DIVE plan t_c=0.426s v_rel=2.903 v_retain=4.044 feasible=True
+*** STACK CAPTURED *** horiz=0.022m rel_v=1.996m/s
+B phase=DONE  （载荷骑在漏斗上跟着 B 悬停 → “接住→带走”）
+```
+
+关键实现：
+- **B 用带刚性漏斗的自定义模型** `models/x500_funnel`（`<include merge> model://x500` + 顶部圆锥）；
+  先 `gz service create` 成 `x500_funnel_1`，再以 `PX4_GZ_MODEL_NAME` 让 PX4 attach——**不改 PX4 树**。
+  启动文件 `launch/catch_stack_launch.py`，一键 `run_m6_sitl.sh`。
+- **相对定位（mesh 替身）**：A 广播 `/drone_a/state`（世界系 NED），B 订阅后加噪声/延迟（`rel_pos_sigma`/`rel_latency`）。
+- **释放时序**：B 飞到 A 正下方、水平速度归零且 A 也稳定后，广播 `/payload/release_at`；
+  载荷由 `payload_node` 瞬移到 **A 实际位置下方 0.15m**（避免在 A 机体内生成被弹飞）。
+- **捕获判据**：载荷落到漏斗口平面（注意 PX4 `pos_world.z` 比模型绝对高度低 0.24m，需 `px4_z_bias`）、
+  水平偏差 < 0.14m、相对速度 ≤ `v_retain`。
+
+> 局限：当前漏斗是**实心圆锥宽口朝上 = 平顶盘**（靠低恢复系数接触面“砸住”），不是空心导向漏斗；
+> B 开机即有固有健康告警（`Preflight Fail: Attitude failure (roll)`），不影响任务。
+
 ## SITL 环境（B 阶段，见 `report/env_bringup.md`）
 
 ```bash
@@ -195,6 +226,8 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `payload_catch/mpc_terminal.py` | B 的 acados 终端（会合）MPC |
 | `payload_catch/payload_filter.py` | 载荷状态估计（卡尔曼滤波 / 朴素对照） |
 | `payload_catch/stack_drop.py` | M6 垂直堆叠投放（解析规划 + 漏斗保持判据 + 离线仿真） |
+| `models/x500_funnel/` | M6：x500 + 顶部刚性捕获圆锥（PX4_GZ_MODEL_NAME 附着） |
+| `launch/catch_stack_launch.py` / `run_m6_sitl.sh` | M6 SITL 启动 / 一键脚本 |
 | `tools/stack_run.py` | M6 体检 CLI（`--sweep-dive` / `--sweep-gap` / `--mc`） |
 | `tools/offline_run.py` | 体检报告 CLI（`--plot` / `--sweep-noise` / `--compare`） |
 | `config/catch_scenarios.yaml` | 单一真值源 |
@@ -215,8 +248,8 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 - [ ] **M1** ROS 2 节点：载荷状态源 / 规划器 / B 控制器 / 捕获监控 / A 悬停释放
 - [x] **M4** 更完整鲁棒性（延迟、丢包、估计滤波）+ 指标统计
 - [x] **M6** 垂直堆叠投放（离线层：解析规划 + 漏斗判据 + 200/200 验证）
-- [ ] **M6-SITL** 5m 接近 + 相对定位（mesh）+ Gazebo 刚性漏斗 + 温和下潜软捕获
-- [ ] **M5** Gazebo 高保真捕获机构 + 安全层 + 真机化
+- [x] **M6-SITL** 5m 接近 + 相对定位（mesh 替身）+ Gazebo 刚性漏斗 + 温和下潜软捕获（`STACK CAPTURED`）
+- [ ] **M5** 真空心漏斗 + 保持机构 + 安全层 + 真机化
 
 ## 开发约定
 
