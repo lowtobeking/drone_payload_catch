@@ -63,7 +63,7 @@ sleep "$RUN_S"
 
 echo "### 结果"
 echo "--- 关键事件 ---"
-grep -aE "MODE=stack|CLIMB done|ALIGNED|DIVE plan|PAYLOAD RELEASED|STACK CAPTURED" "$D/launch.log" | tail -10
+grep -aE "MODE=stack|CLIMB done|WAIT_A done|TRANSLATE done|ALIGNED|DIVE plan|PAYLOAD RELEASED|STACK CAPTURED|LAND：" "$D/launch.log" | tail -10
 echo "--- B/载荷 末尾 ---"; grep -aE "B phase=" "$D/launch.log" | tail -4
 echo "--- px4 events ---"; for i in 0 1; do echo "px4_$i:"; grep -aE "Ready for takeoff|Armed by|Takeoff detected|Failsafe" "$HOME/px4_logs/px4_$i.log" | tail -3; done
 

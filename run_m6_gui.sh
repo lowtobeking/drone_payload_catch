@@ -64,14 +64,14 @@ timeout $((KEEP + 40)) ros2 launch payload_catch catch_stack_launch.py \
 for t in 10 20 25 30 40 60 80 100; do
   [ "$t" -ge "$KEEP" ] && break
   sleep 10
-  ev=$(grep -aoE 'CLIMB done|ALIGNED[^ ]*|PAYLOAD RELEASED|STACK CAPTURED' "$D/launch.log" 2>/dev/null | tail -1)
+  ev=$(grep -aoE 'CLIMB done|WAIT_A done|TRANSLATE done|ALIGNED|PAYLOAD RELEASED|STACK CAPTURED|LAND：发出着陆指令' "$D/launch.log" 2>/dev/null | tail -1)
   ph=$(grep -aoE 'B phase=[A-Z]+' "$D/launch.log" 2>/dev/null | tail -1)
   echo "  --- t+${t}s: $ph  $ev"
 done
 sleep 8
 
 echo "### [5] 结果"
-grep -aE "MODE=stack|CLIMB done|ALIGNED|DIVE plan|PAYLOAD RELEASED|STACK CAPTURED" "$D/launch.log" | tail -8
+grep -aE "MODE=stack|CLIMB done|WAIT_A done|TRANSLATE done|ALIGNED|DIVE plan|PAYLOAD RELEASED|STACK CAPTURED|LAND：" "$D/launch.log" | tail -8
 echo "  px4_0: $(grep -aE 'Armed by|Takeoff detected' "$HOME/px4_logs/px4_0.log" | tail -2 | tr '\n' ' ')"
 echo "  px4_1: $(grep -aE 'Armed by|Takeoff detected' "$HOME/px4_logs/px4_1.log" | tail -2 | tr '\n' ' ')"
 

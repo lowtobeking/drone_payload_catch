@@ -56,6 +56,8 @@ class BNode(Px4Drone):
         self.declare_parameter('payload_release_offset', 0.15)  # 载荷释放点相对 A 向下偏移 (m)
         self.declare_parameter('px4_z_bias', 0.24)   # PX4 pos_world.z 比模型绝对高度低的量(x500 base_link 在模型 z=0.24)
         self.declare_parameter('catch_z_tol', 0.12)  # 捕获时载荷可高出漏斗口平面的容差 (m)
+        self.declare_parameter('auto_land', False)          # 捕获后自动降落
+        self.declare_parameter('land_after_catch_s', 6.0)   # 捕获后再悬停多久降落
         self.declare_parameter('funnel_depth', 0.30)
         self.declare_parameter('funnel_restitution', 0.60)
         self.declare_parameter('v_retain', 4.04)          # 刚性漏斗保持速度 m/s
@@ -96,6 +98,9 @@ class BNode(Px4Drone):
         self.payload_release_offset = float(self.get_parameter('payload_release_offset').value)
         self.px4_z_bias = float(self.get_parameter('px4_z_bias').value)
         self.catch_z_tol = float(self.get_parameter('catch_z_tol').value)
+        self.auto_land = bool(self.get_parameter('auto_land').value)
+        self.land_after_catch_s = float(self.get_parameter('land_after_catch_s').value)
+        self._caught_t = None
         self.funnel_depth = float(self.get_parameter('funnel_depth').value)
         self.funnel_restitution = float(self.get_parameter('funnel_restitution').value)
         self.v_retain = float(self.get_parameter('v_retain').value)
@@ -304,6 +309,7 @@ class BNode(Px4Drone):
             self.caught = True
             self.phase = 'DONE'
             self.stack_hover = pos.copy()   # 锁定此刻位置为悬停点
+            self._caught_t = self.get_clock().now().nanoseconds * 1e-9
             self.pub_caught.publish(Bool(data=True))
             self.get_logger().warn(
                 f'*** STACK CAPTURED *** horiz={horiz:.3f}m rel_v={rv:.3f}m/s '
@@ -429,6 +435,11 @@ class BNode(Px4Drone):
             return
 
         # DONE：捕获后在**固定点**悬停（不能每拍把目标重锚到当前位置，否则带载会漂移靠近 A）
+        if self.auto_land and self._caught_t is not None and not self._landing:
+            if now - self._caught_t >= self.land_after_catch_s:
+                self.phase = 'LAND'
+                self.land()
+                return
         if self.stack_hover is None:
             self.stack_hover = pos.copy()
         tgt = self.stack_hover.copy()

@@ -84,6 +84,8 @@ class Px4Drone(Node):
         self._att_ok = False
         self._offboard_confirmed = False
         self._last_pos_t = 0.0
+        self._landing = False          # 已发出着陆指令：停止 offboard，交回 PX4
+        self._land_cmd_count = 0
 
         self.create_subscription(VehicleStatus, topic_for(self.drone_id, self._vs_topic),
                                  self._on_status, qi)
@@ -178,7 +180,21 @@ class Px4Drone(Node):
                 self.get_logger().info(f'[{self.drone_id}] OFFBOARD + ARMED confirmed')
 
     # ------------------------------------------------------------------ 循环
+    def land(self):
+        """发出 AUTO_LAND（VEHICLE_CMD_NAV_LAND）并停发 offboard setpoint。"""
+        if self._landing:
+            return
+        self._landing = True
+        self._land_cmd_count = 0
+        self.get_logger().warn(f'[{self.drone_id}] LAND：发出着陆指令，停止 offboard')
+
     def _tick(self):
+        if self._landing:
+            # 重复发几次确保 commander 收到；之后只保持节点存活
+            if self._land_cmd_count < 5:
+                self.send_command(VehicleCommand.VEHICLE_CMD_NAV_LAND)
+                self._land_cmd_count += 1
+            return
         self.broadcast_offboard_mode()
         self._tick_count += 1
         # 每 1s 重试一次 ARM/OFFBOARD

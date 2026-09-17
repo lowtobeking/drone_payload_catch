@@ -24,7 +24,8 @@ def generate_launch_description():
     model_path = LaunchConfiguration('model_path')
 
     a = Node(package='payload_catch', executable='a_node', name='a_node', output='screen',
-             parameters=[{'drone_id': 0, 'hover_world': a_hover, 'publish_state': True}])
+             parameters=[{'drone_id': 0, 'hover_world': a_hover, 'publish_state': True,
+                          'auto_land': True, 'land_after_catch_s': 6.0}])
     b = Node(package='payload_catch', executable='b_node', name='b_node', output='screen',
              parameters=[{'drone_id': 1, 'mode': 'stack',
                           'standby_world': b_standby, 'world_offset': b_offset,
@@ -40,7 +41,8 @@ def generate_launch_description():
                           'funnel_depth': 0.30,
                           'funnel_restitution': 0.60, 'v_retain': 4.04,
                           'b_max_speed': 5.0, 'b_max_accel': 6.0,
-                          'stack_kp_xy': 1.5, 'stack_kp_z': 1.5}])
+                          'stack_kp_xy': 1.5, 'stack_kp_z': 1.5,
+                          'auto_land': True, 'land_after_catch_s': 6.0}])
     payload = Node(package='payload_catch', executable='payload_node', name='payload_node',
                    output='screen',
                    parameters=[{'release_pos': a_hover, 'release_vel': [0.0, 0.0, 0.0],
