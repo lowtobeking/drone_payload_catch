@@ -267,6 +267,8 @@ colcon build --packages-select payload_catch
 ## 10. 提交历史（git log，自上而下）
 
 ```
+fd22613 test(M6): SITL 蒙特卡洛(N=5/档) — 滤波与载荷闭环的必要性(1/5 vs 4-5/5) + 报告
+0c86405 docs(M6): SITL 难度扫描报告 + 相对定位/滤波/闭环发现记录
 8743617 feat(M6): 相对定位细化(抖动/丢包/慢变偏置/种子) + 载荷闭环跟踪 + EMA滤波 + 参数化launch + SITL扫描脚本
 f1628b6 feat(M6): 两机落地点分开（各飞 land_xy 再降落，相距~8.5m）
 8b44b1e feat(M6): 捕获后保持6s → A/B 各自 AUTO_LAND 落地收尾（PX4 Landing detected+Disarmed）
