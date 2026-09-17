@@ -170,13 +170,19 @@ bash ~/drone_payload_catch/run_m6_sitl.sh 70      # 默认 A 4.5m / B 3.5m / 水
 实测结果（`~/payload_catch_m6/launch.log`）：
 
 ```
-B: CLIMB done → ALIGN
-B: ALIGNED rel_xy=0.028m spd_xy=0.037 → release
-PAYLOAD RELEASED pos=[0.001,-0.029,-4.351]
-B: DIVE plan t_c=0.426s v_rel=2.903 v_retain=4.044 feasible=True
-*** STACK CAPTURED *** horiz=0.022m rel_v=1.996m/s
+B: CLIMB done → WAIT_A（先垂直爬升，绝不平移，避免斜插进 A 的爬升通道）
+B: WAIT_A done (A_alt=4.40, clear=0.90) → TRANSLATE
+B: TRANSLATE done → ALIGN
+B: ALIGNED rel_xy=0.045m spd_xy=0.032 → release
+B: DIVE plan t_c=0.449s v_rel=3.059 v_retain=4.044 feasible=True
+*** STACK CAPTURED *** horiz=0.013m rel_v=1.748m/s
 B phase=DONE  （载荷骑在漏斗上跟着 B 悬停 → “接住→带走”）
+    全程 min|A−B| ≈ 0.89m（无碰撞）
 ```
+
+**起飞避碰**：B 必须 `先垂直爬升 → 等 A 爬到悬停高度且垂直速度归零 → 再定高横移到 A 正下方`；
+若 B 直接斜插到 A 正下方，斜插路径会穿过 A 的垂直爬升通道→相撞。横移/悬停时全程保证
+B 高度 ≤ A 高度 − `min_ab_gap`（默认 0.8m），`b_node` 打印 `min_relA` 作碰撞监测。
 
 关键实现：
 - **B 用带刚性漏斗的自定义模型** `models/x500_funnel`（`<include merge> model://x500` + 顶部圆锥）；

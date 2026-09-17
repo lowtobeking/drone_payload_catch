@@ -159,7 +159,7 @@ colcon build --packages-select payload_catch
 | M5 step3 | 难度扫描找边界 | ✅ 见下 |
 | M5-3 | 真实吸附机构（接住→带走） | ❌ 未做 |
 | M6 | 垂直堆叠投放（A 正上方释放 + B 温和下潜 + 刚性漏斗） | ✅ 离线 200/200；**SITL 捕获成功** |
-| M6-SITL | 5m 起飞→对正→释放→下潜→漏斗捕获 | ✅ `STACK CAPTURED` horiz 0.02m rel_v 2.0m/s |
+| M6-SITL | 5m 起飞→对正→释放→下潜→漏斗捕获 | ✅ `STACK CAPTURED` horiz 0.01–0.05m rel_v ~2m/s；全程 min|A−B|≈0.89m（无碰撞）|
 | 真机 | — | ❌ 未做 |
 
 **SITL 难度扫描结果**（`report/m5_sitl_results.md`，MPC 控制器）：
@@ -224,6 +224,11 @@ colcon build --packages-select payload_catch
 14. **gz `<cone>` 默认尖朝上**（载荷会滑落）；要口朝上（漏斗形）必须 `roll=π`。
     且**实心圆锥宽口朝上 = 平顶盘**，并不是空心漏斗（想要真漏斗得用内壁网格）。
 15. **M6 载荷释放点要在 A 下方 `offset=0.15m`**，否则在 A 机体/桨内生成会被瞬间弹飞。
+16. **M6 起飞阶段必须“先垂直爬升 → 等 A 到位 → 再横移”**。若 B 从 5m 外直接斜插到 A 正下方，
+    斜插路径会穿过 A 的垂直爬升通道，两机在 (0,0) 附近高度交叉时**相撞**（实测 B 被撞出 0.8 m/s 横向速度）。
+    现相位：`CLIMB`(垂直爬升) → `WAIT_A`(等 A 到悬停高度且 clear≥`min_ab_gap`) → `TRANSLATE`(定高横移) → `ALIGN`。
+    另：`DONE` 阶段**不能每拍把悬停目标重锚到当前位置**（带载会缓慢漂移靠近 A），改成捕获瞬间锁定悬停点。
+    `b_node` 全程跟踪 `min_relA`（最小 A-B 间距）作碰撞监测，安全层保证 B 高度 ≤ A−`min_ab_gap`。
 
 ---
 
@@ -250,6 +255,7 @@ colcon build --packages-select payload_catch
 ## 10. 提交历史（git log，自上而下）
 
 ```
+4d62d33 fix(M6-SITL): 消除起飞期 A/B 碰撞 — B 先垂直爬升→等A到位→再横移
 72134b1 M6-SITL: 5m起飞→对正→A正上方释放→B温和下潜→刚性漏斗捕获(STACK CAPTURED)
 9e36729 M6: 垂直堆叠投放离线层(解析规划+刚性漏斗判据+200/200) + 修 sim_core MPC 解包
 bf467d1 docs: 新增 MEMORY.md 项目记忆(给下一个 AI 直接接续) + README 指针
