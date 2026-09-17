@@ -13,7 +13,7 @@
 **边界已量化**：横向偏移 0.8m 内可靠，载荷下落速度 ~2m/s 可靠、~4.9m/s 会触发 B 的飞控 failsafe；
 **新增 M6「垂直堆叠投放」**（A 严格在 B 正上方释放、B 温和下潜软着陆、刚性漏斗捕获）：
 **离线层（200/200）+ SITL 端到端均已完成**（`*** STACK CAPTURED ***`，载荷骑在漏斗上被带走，
-保持 6s 后 A/B 各自自动降落落地，任务以“两机落地”结束）；
+保持 6s 后 A/B **各自飞到分开的着陆点**（A≈[-4,0]、B≈[5,0]，相距~8.5m）自动降落，任务以“两机落地”结束）；
 **未做**：真漏斗（当前是实心圆锥盘）、真机。
 
 ---
@@ -160,7 +160,7 @@ colcon build --packages-select payload_catch
 | M5 step3 | 难度扫描找边界 | ✅ 见下 |
 | M5-3 | 真实吸附机构（接住→带走） | ❌ 未做 |
 | M6 | 垂直堆叠投放（A 正上方释放 + B 温和下潜 + 刚性漏斗） | ✅ 离线 200/200；**SITL 捕获成功** |
-| M6-SITL | 5m 起飞→对正→释放→下潜→漏斗捕获→双机落地 | ✅ `STACK CAPTURED` horiz 0.01–0.05m；两机 `Landing detected`+`Disarmed by landing`；全程 min|A−B|≈0.86m（无碰撞） |
+| M6-SITL | 5m 起飞→对正→释放→下潜→漏斗捕获→**两机分开落地** | ✅ `STACK CAPTURED`；两机落点相距~8.5m，均 `Landing detected`+`Disarmed by landing`；全程 min|A−B|≈0.9m（无碰撞） |
 | 真机 | — | ❌ 未做 |
 
 **SITL 难度扫描结果**（`report/m5_sitl_results.md`，MPC 控制器）：

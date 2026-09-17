@@ -184,9 +184,9 @@ B phase=DONE  （载荷骑在漏斗上跟着 B 悬停 → “接住→带走”�
 若 B 直接斜插到 A 正下方，斜插路径会穿过 A 的垂直爬升通道→相撞。横移/悬停时全程保证
 B 高度 ≤ A 高度 − `min_ab_gap`（默认 0.8m），`b_node` 打印 `min_relA` 作碰撞监测。
 
-**任务收尾（落地）**：捕获后保持 `land_after_catch_s`（默认 6s），A、B **各自发
-`VEHICLE_CMD_NAV_LAND`（自动降落）并停发 offboard**；PX4 日志会看到两机 `Landing detected → Disarmed by landing`。
-载荷跟随漏斗一起落到地面。
+**任务收尾（落地）**：捕获后保持 `land_after_catch_s`（默认 6s），A、B **各自先飞到分开的着陆点
+`land_xy`（A≈[-4,0]、B≈[5,0]，相距~8.5m，避免落一起），再发 `VEHICLE_CMD_NAV_LAND` 自动降落并停发 offboard**；
+PX4 日志会看到两机 `Landing detected → Disarmed by landing`。载荷跟随漏斗一起落到地面。
 
 关键实现：
 - **B 用带刚性漏斗的自定义模型** `models/x500_funnel`（`<include merge> model://x500` + 顶部圆锥）；

@@ -186,7 +186,8 @@ class Px4Drone(Node):
             return
         self._landing = True
         self._land_cmd_count = 0
-        self.get_logger().warn(f'[{self.drone_id}] LAND：发出着陆指令，停止 offboard')
+        self.get_logger().warn(
+            f'[{self.drone_id}] LAND：发出着陆指令 @世界={self.pos_world.round(2)}，停止 offboard')
 
     def _tick(self):
         if self._landing:

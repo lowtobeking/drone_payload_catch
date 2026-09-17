@@ -57,7 +57,9 @@ class BNode(Px4Drone):
         self.declare_parameter('px4_z_bias', 0.24)   # PX4 pos_world.z 比模型绝对高度低的量(x500 base_link 在模型 z=0.24)
         self.declare_parameter('catch_z_tol', 0.12)  # 捕获时载荷可高出漏斗口平面的容差 (m)
         self.declare_parameter('auto_land', False)          # 捕获后自动降落
-        self.declare_parameter('land_after_catch_s', 6.0)   # 捕获后再悬停多久降落
+        self.declare_parameter('land_after_catch_s', 6.0)   # 捕获后再悬停多久开始着陆流程
+        self.declare_parameter('land_xy', [5.0, 0.0])       # 世界系 NED 着陆点 x,y（与 A 分开）
+        self.declare_parameter('land_xy_tol', 0.25)         # 到达着陆点的水平容差
         self.declare_parameter('funnel_depth', 0.30)
         self.declare_parameter('funnel_restitution', 0.60)
         self.declare_parameter('v_retain', 4.04)          # 刚性漏斗保持速度 m/s
@@ -100,6 +102,8 @@ class BNode(Px4Drone):
         self.catch_z_tol = float(self.get_parameter('catch_z_tol').value)
         self.auto_land = bool(self.get_parameter('auto_land').value)
         self.land_after_catch_s = float(self.get_parameter('land_after_catch_s').value)
+        self.land_xy = np.asarray(self.get_parameter('land_xy').value, float).reshape(2)
+        self.land_xy_tol = float(self.get_parameter('land_xy_tol').value)
         self._caught_t = None
         self.funnel_depth = float(self.get_parameter('funnel_depth').value)
         self.funnel_restitution = float(self.get_parameter('funnel_restitution').value)
@@ -438,7 +442,13 @@ class BNode(Px4Drone):
         if self.auto_land and self._caught_t is not None and not self._landing:
             if now - self._caught_t >= self.land_after_catch_s:
                 self.phase = 'LAND'
-                self.land()
+                # 先飞到自己的着陆点（保持高度），到位后再落地
+                if float(np.linalg.norm(pos[:2] - self.land_xy)) < self.land_xy_tol:
+                    self.land()
+                else:
+                    v = self.hover_velocity(self.land_xy, -pos[2], kp_xy=1.0,
+                                            max_speed=1.0, kp_z=1.4, max_climb=1.0)
+                    self.publish_velocity(v, yaw=self.yaw)
                 return
         if self.stack_hover is None:
             self.stack_hover = pos.copy()
