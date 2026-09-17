@@ -9,6 +9,7 @@ B_STANDBY="${B_STANDBY:-0.0,0.0,-3.5}"      # B 待命点（世界 NED，A 正�
 B_OFFSET="${B_OFFSET:-5.0,0.0,0.0}"         # B 的 PX4 原点在世界 NED（= 地面 5m 间距）
 B_POSE_ENU="${B_POSE_ENU:-0,5.0,0,0,0,0}"   # B 的 Gazebo 出生 ENU（y=5 → NED north=5）
 RELEASE_OFFSET="${RELEASE_OFFSET:-0.0,0.0,0.15}"   # 载荷相对 A 的释放偏移（NED，向下 0.15m）
+LAUNCH_EXTRA="${LAUNCH_EXTRA:-}"                    # 额外 launch 参数（供扫描/试验覆盖）
 BASE="$HOME/payload_catch_ws"
 D="$HOME/payload_catch_m6"; mkdir -p "$D"; rm -f "$D"/*.log
 source "$HOME/drone_payload_catch/env.sh"
@@ -58,7 +59,7 @@ echo "  就绪后再等 8s 让 EKF 稳定"; sleep 8
 echo "### launch payload_catch M6（A/B/payload）"
 timeout $((RUN_S + 40)) ros2 launch payload_catch catch_stack_launch.py \
   a_hover:="[$A_HOVER]" b_standby:="[$B_STANDBY]" b_offset:="[$B_OFFSET]" \
-  release_offset:="[$RELEASE_OFFSET]" > "$D/launch.log" 2>&1 &
+  release_offset:="[$RELEASE_OFFSET]" $LAUNCH_EXTRA > "$D/launch.log" 2>&1 &
 sleep "$RUN_S"
 
 echo "### 结果"

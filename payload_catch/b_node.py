@@ -41,6 +41,15 @@ class BNode(Px4Drone):
         self.declare_parameter('a_state_topic', '/drone_a/state')
         self.declare_parameter('rel_pos_sigma', 0.0)      # mesh 相对定位噪声 (m)
         self.declare_parameter('rel_latency', 0.0)        # mesh 相对定位延迟 (s)
+        self.declare_parameter('rel_jitter', 0.0)         # 额外延迟抖动 (s，均匀)
+        self.declare_parameter('rel_dropout', 0.0)        # 相对定位丢包率 [0,1]
+        self.declare_parameter('rel_bias', 0.0)           # 慢变偏置（随机游走幅度, m）
+        self.declare_parameter('rel_seed', 0)             # 噪声种子（可复现）
+        self.declare_parameter('est_lpf_alpha', 0.30)     # 相对/载荷估计 EMA 系数(0~1, 1=不滤波)
+        self.declare_parameter('payload_meas_sigma', 0.0) # 载荷测量噪声 (m)
+        self.declare_parameter('payload_meas_latency', 0.0)
+        self.declare_parameter('payload_dropout', 0.0)
+        self.declare_parameter('track_payload', True)     # DIVE 时跟踪载荷(闭环)而非 A
         self.declare_parameter('align_xy_tol', 0.12)      # 水平对正阈值 (m)
         self.declare_parameter('align_vel_tol', 0.12)     # 水平速度阈值 (m/s)
         self.declare_parameter('align_alt_tol', 0.20)     # 高度到位阈值 (m)
@@ -85,6 +94,21 @@ class BNode(Px4Drone):
         self.a_state_topic = str(self.get_parameter('a_state_topic').value)
         self.rel_pos_sigma = float(self.get_parameter('rel_pos_sigma').value)
         self.rel_latency = float(self.get_parameter('rel_latency').value)
+        self.rel_jitter = float(self.get_parameter('rel_jitter').value)
+        self.rel_dropout = float(self.get_parameter('rel_dropout').value)
+        self.rel_bias = float(self.get_parameter('rel_bias').value)
+        self.payload_meas_sigma = float(self.get_parameter('payload_meas_sigma').value)
+        self.payload_meas_latency = float(self.get_parameter('payload_meas_latency').value)
+        self.payload_dropout = float(self.get_parameter('payload_dropout').value)
+        self.track_payload = bool(self.get_parameter('track_payload').value)
+        self._rng = np.random.default_rng(int(self.get_parameter('rel_seed').value))
+        self.est_lpf_alpha = float(self.get_parameter('est_lpf_alpha').value)
+        self._rel_bias_vec = np.zeros(3)
+        self._a_est_f = None
+        self._pay_est_f = None
+        self._rel_last = None
+        self._pay_hist = []
+        self._pay_last_est = None
         self.align_xy_tol = float(self.get_parameter('align_xy_tol').value)
         self.align_vel_tol = float(self.get_parameter('align_vel_tol').value)
         self.align_alt_tol = float(self.get_parameter('align_alt_tol').value)
@@ -164,6 +188,10 @@ class BNode(Px4Drone):
             self.p_pay = np.array([msg.data[1], msg.data[2], msg.data[3]])
             self.v_pay = np.array([msg.data[4], msg.data[5], msg.data[6]])
             self.t_sim = float(msg.data[0])
+            self._pay_hist.append((self.get_clock().now().nanoseconds * 1e-9,
+                                   self.p_pay.copy(), self.v_pay.copy()))
+            if len(self._pay_hist) > 4000:
+                self._pay_hist.pop(0)
 
     def _on_released(self, msg):
         if msg.data and not self.released:
@@ -181,18 +209,59 @@ class BNode(Px4Drone):
                 self.a_state_hist.pop(0)
 
     def _relnav_a(self, now):
-        """相对定位（mesh 替身）：A 的广播位姿 + 延迟 + 噪声。"""
+        """相对定位（mesh 替身）：A 广播位姿 + 延迟(含抖动) + 丢包 + 慢变偏置 + 白噪声。"""
         if not self.a_state_hist:
             return None, None
+        if self.rel_bias > 0:      # 慢变偏置（随机游走，模拟标定漂移/多径）
+            self._rel_bias_vec = np.clip(
+                self._rel_bias_vec + self._rng.normal(0.0, self.rel_bias * 0.02, 3),
+                -3.0 * self.rel_bias, 3.0 * self.rel_bias)
         j = len(self.a_state_hist) - 1
-        if self.rel_latency > 0:
-            tgt = now - self.rel_latency
-            while j > 0 and self.a_state_hist[j][0] > tgt:
-                j -= 1
+        lat = self.rel_latency + (self._rng.uniform(0.0, self.rel_jitter)
+                                  if self.rel_jitter > 0 else 0.0)
+        tgt = now - lat
+        while j > 0 and self.a_state_hist[j][0] > tgt:
+            j -= 1
         _t, p, v = self.a_state_hist[j]
+        if (self.rel_dropout > 0 and self._rel_last is not None
+                and self._rng.random() < self.rel_dropout):
+            return self._rel_last          # 丢包：沿用上一帧
+        p = p + self._rel_bias_vec
         if self.rel_pos_sigma > 0:
-            p = p + np.random.normal(0.0, self.rel_pos_sigma, 3)
-        return p.copy(), v.copy()
+            p = p + self._rng.normal(0.0, self.rel_pos_sigma, 3)
+        # EMA 低通：抑制白噪声/抖动，否则对正门限会被噪声卡住
+        if self._a_est_f is None or self.est_lpf_alpha >= 1.0:
+            self._a_est_f = np.asarray(p, float)
+        else:
+            a = self.est_lpf_alpha
+            self._a_est_f = (1.0 - a) * self._a_est_f + a * np.asarray(p, float)
+        self._rel_last = (self._a_est_f.copy(), v.copy())
+        return self._rel_last
+
+    def _payload_est(self, now):
+        """载荷状态估计（延迟 + 丢包 + 白噪声），供 DIVE 阶段闭环跟踪。"""
+        if not self._pay_hist:
+            return None
+        j = len(self._pay_hist) - 1
+        lat = self.payload_meas_latency + (self._rng.uniform(0.0, self.rel_jitter)
+                                           if self.rel_jitter > 0 else 0.0)
+        tgt = now - lat
+        while j > 0 and self._pay_hist[j][0] > tgt:
+            j -= 1
+        _t, p, v = self._pay_hist[j]
+        if (self.payload_dropout > 0 and self._pay_last_est is not None
+                and self._rng.random() < self.payload_dropout):
+            return self._pay_last_est
+        p = p.copy()
+        if self.payload_meas_sigma > 0:
+            p = p + self._rng.normal(0.0, self.payload_meas_sigma, 3)
+        if self._pay_est_f is None or self.est_lpf_alpha >= 1.0:
+            self._pay_est_f = p
+        else:
+            a = self.est_lpf_alpha
+            self._pay_est_f = (1.0 - a) * self._pay_est_f + a * p
+        self._pay_last_est = (self._pay_est_f.copy(), v.copy())
+        return self._pay_last_est
 
     def _capture_check(self):
         if self.p_pay is None or self.caught:
@@ -426,9 +495,15 @@ class BNode(Px4Drone):
                     f'B: DIVE plan t_c={self.stack_plan.t_c:.3f}s v_rel={self.stack_plan.v_rel:.3f} '
                     f'v_retain={self.stack_plan.v_retain:.3f} feasible={self.stack_plan.feasible}')
             xy_tgt = self.a_est[:2] if self.a_est is not None else pos[:2]
+            vxy_ff = np.zeros(2)
+            if self.track_payload:
+                pe = self._payload_est(now)     # 闭环：跟踪载荷本身（含测量噪声/延迟）
+                if pe is not None:
+                    xy_tgt = pe[0][:2]
+                    vxy_ff = pe[1][:2]
             pr, vr, _ar = _stack_ref(tl, self.stack_plan, (xy_tgt[0], xy_tgt[1]), 9.81)
             v_sp = np.zeros(3)
-            v_sp[:2] = self.stack_kp_xy * (xy_tgt - pos[:2])
+            v_sp[:2] = vxy_ff + self.stack_kp_xy * (xy_tgt - pos[:2])
             v_sp[2] = vr[2] + self.stack_kp_z * (pr[2] - pos[2])
             n = float(np.linalg.norm(v_sp[:2]))
             if n > self.v_max:

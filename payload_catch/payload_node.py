@@ -59,6 +59,8 @@ class PayloadNode(Node):
                                os.path.expanduser('~/drone_payload_catch/models/payload/model.sdf'))
         self.declare_parameter('odom_topic', '/payload/odom')
         self.declare_parameter('release_offset', [0.0, 0.0, 0.0])   # 相对 A 的释放点偏移(NED)
+        self.declare_parameter('release_xy_sigma', 0.0)             # 释放点水平误差 (m)
+        self.declare_parameter('release_seed', 0)
         self.declare_parameter('use_a_state', False)                # 用 A 实际位姿作释放点
         self.declare_parameter('a_state_topic', '/drone_a/state')
 
@@ -72,6 +74,8 @@ class PayloadNode(Node):
         self.use_gz = bool(self.get_parameter('use_gazebo').value) and _HAS_GZ
         self.release_offset = np.asarray(
             self.get_parameter('release_offset').value, float).reshape(3)
+        self.release_xy_sigma = float(self.get_parameter('release_xy_sigma').value)
+        self._rng = np.random.default_rng(int(self.get_parameter('release_seed').value))
         self.use_a_state = bool(self.get_parameter('use_a_state').value)
         self._a_world = None
 
@@ -184,7 +188,10 @@ class PayloadNode(Node):
             p_rel = self.p_r.copy()
             if self.use_a_state and self._a_world is not None:
                 p_rel = self._a_world + self.release_offset
-                self.p_r = p_rel.copy()
+            if self.release_xy_sigma > 0:      # 释放误差（水平）
+                p_rel = p_rel.copy()
+                p_rel[:2] = p_rel[:2] + self._rng.normal(0.0, self.release_xy_sigma, 2)
+            self.p_r = p_rel.copy()
             self.model.release(p_rel, self.v_r)         # 标记已释放
             self.pub_released.publish(Bool(data=True))
             self.get_logger().warn(f'PAYLOAD RELEASED at t={self.t:.3f}s pos={p_rel}')
