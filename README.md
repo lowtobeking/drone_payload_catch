@@ -11,6 +11,18 @@
 
 > 坐标：世界系 **NED**（x=北, y=东, z=下），高度(离地) = `-z`。
 
+## 当前能力速览（近期新增）
+
+> 完整现状/记忆见 [`MEMORY.md`](MEMORY.md)；逐项日志见 `report/`。
+
+- **末端能力**：大漏斗 `x500_funnel_big`（捕获余量×14）、空心导向锥杯 `x500_funnel_cup`、
+  **主动保持锁扣** `payload_lock`（接住→刚性携带→落地）。
+- **抗扰**：速度前馈 + 预测对正、增广风 KF（`BallisticDragKF`）、A 端迎风预补偿、自适应下潜。
+- **协同**：释放握手（B 报就绪→A 释放权威→ack）、意图（预测落点）、时钟同步、编队握手、及时释放 + 超时中止。
+- **安全**：不确定度 keep-out（`min_ab_gap+kσ`）、释放后清场、**飞行终止(kill)** 监督。
+- **控制/规划**：ZEM 终端导引（`zem_gain`）、释放前落点余量闸。
+- **M6-moving 支持速度 0.5/1.0 m/s（各 2/2 完美：捕获+保持+双机落地，无 failsafe）**。
+
 ## 任务与算法
 
 **A 的运动**（第一版）：恒速直线 `p_A(t)=a_init + a_vel·t`；`a_vel=0` 即悬停释放。
@@ -243,8 +255,12 @@ CLIMB → WAIT_A → TRANSLATE → ALIGN（同一投影点悬停，rel_xy<0.12�
   且 A/B 间距拉开以保证下落高度。
 - **A**：收到 `/formation/start` 后 `v = formation_vel + kp·(参考点−当前点)`（置参考+前馈）；
   捕获后等待降落期间**原地保持**（不再飞回原点）。
-- **B**：`FORMATION` 相位 `v = A速度 + kp·(A投影−自身)`（`stack_kp_xy=1.2`，太大在估计延迟下会振荡）；
-  释放需位置与相对速度双阈值且 A 达到 `formation_min_speed_ratio·|v_form|` 并稳定保持 `align_hold_s`。
+- **B**：`FORMATION` 相位用**已知 `formation_vel` 死推算参考** + 相对小幅校正（`form_kp_rel`），
+  **不再用延迟/带噪的 A 速度估计做前馈**（否则高速发散）；释放需位置与相对速度双阈值
+  （`rel_vxy` 对已知 `formation_vel`，低噪）且 A 达到 `formation_min_speed_ratio·|v_form|`。
+- **及时释放 + 超时中止**（新增）：容忍短暂抖动（`align_reset_tol`）→ 编队 **~3.5s 即捕获**（之前 10–20s）；
+  超时（`formation_timeout_s`）未释放 → `/formation/abort` **中止投放**（A 保留载荷、双机安全落地）。
+- **支持速度**：`0.5 / 1.0 m/s`（各 2/2 完美：捕获 + 保持 + 双机落地，无 failsafe）；`2.0 m/s` 保留、不再优化。
 - **DIVE 重锚**：分离有 ~0.1–0.2s 延迟，B 先**原地悬停**等物块真正下落（`vz>dive_anchor_vz`）
   再重锚下潜；编队模式跟踪 **A**（无释放误差，比跟踪物块估计更稳）。
 - **捕获判据**：物块必须在漏斗口平面上下窗口 `±catch_z_tol` 内，避免“物块落地后被误判捕获”与
@@ -321,7 +337,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `report/planning_control_opt.md` | **规划/协调 + 控制优化**：ZEM 终端导引 + 释放前落点余量闸 |
 | `report/safety_control_review.md` | **保护控制审查**：已有（限幅/keep-out/释放闸）vs 缺口（geofence/看门狗/abort/避碰） |
 | `report/safety_supervisor.md` | **安全监督 + 飞行终止(kill)**：外部 `/safety/kill_a|b` + 异常自动 kill；SITL 验证 |
-| `report/m6_moving_speed.md` | **M6-moving 加速度**：编队跟踪控制优化（死推算参考）+ 速度边界（0.5/1.0/2.0 ✅，3.0 ❌） |
+| `report/m6_moving_speed.md` | **M6-moving 加速度**：编队控制优化 + 及时释放/超时中止；**支持 0.5/1.0 m/s（各 2/2 完美）**，2.0 保留 |
 | `tools/validate_coord.py` | 协同协议 SITL 验证器（跑多组配置 + 不变量检查） |
 | `tools/drag_reject.py` | 阻力/风扰 × 估计器对比 |
 | `tools/gen_funnel_cup.py` | 生成空心导向锥杯模型（x500_funnel_cup / funnel_cup / funnel_flat） |
@@ -342,14 +358,14 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 - [x] **M2** A 带速飞行抛投（恒速直线，含斜向）
 - [x] **M3** 闭环重规划（`solve_inflight` + 载荷状态噪声），开环 vs 闭环对比
 - [x] **M3+** B 的终端 MPC（acados），与 PD 对照
-- [~] **B** 环境打通：`px4_msgs` 已修正、DDS 通；传感器桥 `Gyro STALE` 待解
-- [ ] **M1** ROS 2 节点：载荷状态源 / 规划器 / B 控制器 / 捕获监控 / A 悬停释放
+- [x] **B** 环境打通：已用 PX4-1.16 解决（见 `report/env_bringup.md`、`MEMORY.md` §2）
+- [x] **M1** ROS 2 节点：载荷状态源 / 规划器 / B 控制器 / 捕获监控 / A 悬停释放（SITL 跑通）
 - [x] **M4** 更完整鲁棒性（延迟、丢包、估计滤波）+ 指标统计
-- [x] **M6** 垂直堆叠投放（离线层：解析规划 + 漏斗判据 + 200/200 验证）
-- [x] **M6-SITL** 5m 接近 + 相对定位（mesh 替身）+ Gazebo 刚性漏斗 + 温和下潜软捕获（`STACK CAPTURED`）+ 双机分开落地
-- [x] **M6 鲁棒性** SITL 难度扫描（相对定位噪声/释放误差/时序/落差/下潜），见 `report/m6_sitl_results.md`
-- [x] **M6-moving** 编队同速投放：同一投影点 → 同向同速巡航 → 运动中释放（物块继承 A 速度）+ 漏斗捕获；无窗口 SITL 3/3，GUI 因平台负载偶发 failsafe
-- [ ] **M5** 真空心漏斗 + 保持机构 + 安全层 + 真机化
+- [x] **M6** 垂直堆叠投放（离线 200/200；SITL `STACK CAPTURED` + 双机分开落地）
+- [x] **M6 鲁棒/末端** 侧风鲁棒、KF/增广风、**大漏斗**、**空心杯**、**主动保持锁扣**、鲁棒几何优化
+- [x] **协同/安全** 释放握手 + 意图（预测落点）+ 时钟同步；不确定度 keep-out + **飞行终止(kill)** + 超时中止
+- [x] **M6-moving** 编队同速投放：**支持速度 0.5/1.0 m/s（各 2/2 完美）**；及时释放；2.0 m/s 保留（不再优化）
+- [~] **M5** 真空心漏斗（现为 primitive 杯 / 实心盘）+ 真夹爪/磁吸 + 真机化
 
 ## 开发约定
 

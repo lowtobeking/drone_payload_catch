@@ -271,6 +271,15 @@ COORD=handshake PX4_WIND=1 bash ~/drone_payload_catch/run_m6_sitl.sh 70
 # 协同协议 SITL 验证（多组配置 + 不变量检查）→ report/coordination_validation.md
 python3 tools/validate_coord.py
 
+# M6-moving（边飞边接）验证：默认测支持速度 0.5/1.0 m/s，检查捕获/保持/双机落地/无 failsafe
+python3 tools/validate_m6_moving.py                 # 默认 0.5,1.0
+python3 tools/validate_m6_moving.py --speeds 0.5,1.0,2.0 --reps 3
+
+# 控制/规划旋钮：ZEM 终端导引增益；及时释放；超时中止
+COORD=handshake ZEM=1.0 bash ~/drone_payload_catch/run_m6_sitl.sh 70
+FORMATION_VEL="1.0,0.0,0.0" LAUNCH_EXTRA="formation_timeout_s:=12.0 align_reset_tol:=0.25" \
+  bash ~/drone_payload_catch/run_m6_sitl.sh 100
+
 # 安全监督：飞行异常 kill（单机飞行终止）
 #   外部 kill：
 ros2 topic pub --once /safety/kill_b std_msgs/msg/Bool "{data: true}"     # 只杀 B
