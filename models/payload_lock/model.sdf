@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<!--
+  payload_lock —— 主动保持型载荷（B 侧锁扣）。
+
+  与 models/payload 的区别：带 gz DetachableJoint 插件，收到 /payload/lock 后
+  与 **B 的漏斗**（x500_funnel_1/funnel_link）形成固定关节 → 载荷被"锁住"，
+  随 B 一起机动（即使 B 倾斜/加速也不会滑出）；/payload/unlock 解除。
+  相比"靠摩擦砸住"，这是把"接住"升级为"夹持—带走"的最小可用机构。
+
+  坐标：Gazebo ENU；载荷 odom 发布到 /payload/odom（payload_node 转 NED）。
+  B 的模型名固定为 x500_funnel_1（PX4 instance 1），漏斗 link 名 funnel_link。
+-->
+<sdf version="1.9">
+  <model name="payload">
+    <link name="link">
+      <inertial>
+        <mass>0.3</mass>
+        <inertia><ixx>0.00018</ixx><iyy>0.00018</iyy><izz>0.00018</izz>
+                 <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry><box><size>0.06 0.06 0.06</size></box></geometry>
+      </collision>
+      <visual name="visual">
+        <geometry><box><size>0.06 0.06 0.06</size></box></geometry>
+        <material><ambient>0.95 0.55 0.1 1</ambient><diffuse>0.95 0.55 0.1 1</diffuse></material>
+      </visual>
+    </link>
+
+    <plugin filename="gz-sim-odometry-publisher-system"
+            name="gz::sim::systems::OdometryPublisher">
+      <odom_topic>/payload/odom</odom_topic>
+      <dimensions>3</dimensions>
+    </plugin>
+
+    <!-- 主动保持：parent=本载荷 link，child=B(x500_funnel_1)/funnel_link -->
+    <plugin filename="gz-sim-detachable-joint-system"
+            name="gz::sim::systems::DetachableJoint">
+      <parent_link>link</parent_link>
+      <child_model>x500_funnel_1</child_model>
+      <child_link>funnel_link</child_link>
+      <attach_topic>/payload/lock</attach_topic>
+      <detach_topic>/payload/unlock</detach_topic>
+      <output_topic>/payload/lock_state</output_topic>
+    </plugin>
+  </model>
+</sdf>

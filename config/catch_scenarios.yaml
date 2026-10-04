@@ -39,10 +39,21 @@ defaults:
       restitution:  0.60      # 恢复系数 e；v_retain = sqrt(2·g·depth)/e
       mount_height: 0.10      # m，漏斗口平面在 B 机体中心之上的高度
       object_radius: 0.05     # m，载荷等效半径（口内有效半径 = mouth_radius − object_radius）
+    arm_reach:  0.0           # m，末端机械臂 reach（扩展口内有效半径 eff_r）
+    arm_absorb: 0.0           # m/s，臂端顺载荷方向吸收（等效提高 v_retain）
 
   stack:                      # M6 垂直堆叠投放（A 正上方释放、B 温和下潜软捕获）
     a_dive:         3.0       # m/s²，B 接触前的下潜加速度（温和=给刹车留余量）
     a_brake:        6.0       # m/s²，B 接触后的刹车加速度
+    formation:               # M6-moving 编队同速投放（SITL launch/脚本默认值，仅作文档；离线层不用）
+      vel:          [0.5, 0.0, 0.0]  # m/s，两机同向同速巡航速度（世界系 NED 水平）
+      a_hover:      [0.0, 0.0, -5.0] # A 巡航高度（比标称 4.5 高，给挂载物块留净空）
+      b_standby:    [0.0, 0.0, -3.3] # B 待命高度
+      release_z:    0.45      # m，载荷挂载/释放点相对 A 的向下偏移（须大于 A 起落架 ~0.23m）
+      min_speed_ratio: 0.8    # A 速度达到 |vel| 该比例才允许释放
+      dive_anchor_vz:  0.5    # m/s，物块竖直速度超过此值视为“真正开始下落”（DIVE 重锚）
+      catch_z_tol:  0.10      # m，捕获窗口 = 漏斗口平面上下 ±该值
+      stack_kp_xy:  1.2       # 编队/DIVE 横向比例增益（太大在估计延迟下会振荡）
 
   planner:                    # 协调求解器：搜 (t_r, τ_c)
     t_r_min:        0.0       # s，释放时刻搜索下界
@@ -174,6 +185,66 @@ scenarios:
     mode: stack_drop
     stack: {a_dive: 3.0, a_brake: 6.0}
     description: A 严格在 B 正上方 1m 释放；B 温和下潜(a=3)，刚性漏斗口半径0.2m兜住
+
+  # ── M6 末端能力：大漏斗口半径(0.30m) → eff_r 0.15→0.25，捕获余量大增 ──
+  M6_stack_bigfunnel:
+    layout: stack_drop
+    mode: stack_drop
+    stack: {a_dive: 3.0, a_brake: 6.0}
+    capture:
+      funnel: {mouth_radius: 0.30, depth: 0.30, restitution: 0.60,
+               mount_height: 0.10, object_radius: 0.05}
+    description: 大漏斗(口半径0.30m, eff_r=0.25)；末端能力杠杆，配合 SITL x500_funnel_big
+
+  # ── M6 主动保持（B 侧锁扣）：捕获后把载荷锁到 B 漏斗，等效去掉 v_retain 限制 ──
+  M6_stack_lock:
+    layout: stack_drop
+    mode: stack_drop
+    vert_mode: minimal
+    stack: {a_dive: 3.0, a_brake: 6.0}
+    payload: {drag_mode: linear, drag_k: 1.0}
+    wind: [0.0, 0.0, 8.0]              # 强下击暴流 8 m/s (向下)
+    capture:
+      arm_reach: 0.10                  # 等效扩展有效半径
+      arm_absorb: 10.0                 # 锁扣：等效 v_retain 无限（只看位置）
+    description: 主动保持锁扣——下击暴流下仍可捕获（离线等效 arm_absorb 大）
+
+  # ── M6 抗阻力：A 端迎风预补偿（需已知风/阻力）──
+  M6_stack_windcomp:
+    layout: stack_drop
+    mode: stack_drop
+    vert_mode: minimal
+    stack: {a_dive: 3.0, a_brake: 6.0}
+    a_init: [0.0, 0.0, -4.2]
+    b_standby: [0.0, 0.0, -3.5]
+    payload: {drag_mode: linear, drag_k: 1.0}
+    wind: [5.0, 0.0, 0.0]               # 强侧风 5 m/s
+    a_wind_comp: true                   # 释放点向上风侧偏移预计漂移量
+    capture:
+      funnel: {mouth_radius: 0.30, depth: 0.30, restitution: 0.60,
+               mount_height: 0.10, object_radius: 0.05}
+    description: 强侧风下 A 端迎风预补偿，载荷飘到 B 正上方（w5 无补偿15/40→40/40）
+
+  # ── M6 鲁棒几何：小 gap + 最小必要下潜（免下潜）；横风下漂移更小 ──
+  M6_stack_nodive:
+    layout: stack_drop
+    mode: stack_drop
+    vert_mode: minimal                 # a_dive=max(0,g−v_retain²/2gap)，gap小则自动免下潜
+    stack: {a_dive: 3.0, a_brake: 6.0}
+    a_init: [0.0, 0.0, -4.2]           # A 悬停 4.2m
+    b_standby: [0.0, 0.0, -3.5]        # gap=0.7 ≤ v_retain²/2g=0.833 → 免下潜
+    payload: {drag_mode: linear, drag_k: 1.0}
+    wind: [2.0, 0.0, 0.0]
+    description: 小 gap(0.7m)+最小必要下潜；对比 M6_stack_drop(gap=1.0,a_dive=3)
+
+  # ── M6 干扰鲁棒：侧风 + 阻力使载荷漂移；用于验证预测式对正（lead）──
+  M6_stack_wind:
+    layout: stack_drop
+    mode: stack_drop
+    stack: {a_dive: 3.0, a_brake: 6.0}
+    payload: {drag_mode: linear, drag_k: 1.0}
+    wind: [2.0, 0.0, 0.0]            # 北向 2 m/s 侧风
+    description: 侧风干扰下的垂直堆叠投放（载荷漂移）；配合 lead 预测对正提升鲁棒性
 
   # ── M4 鲁棒性：测量噪声+延迟+丢包，估计器对照 ──
   M4_line_naive:

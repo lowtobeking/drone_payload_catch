@@ -52,6 +52,13 @@ def yaw_from_quat(q) -> float:
     return math.atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z))
 
 
+def roll_pitch_from_quat(q) -> tuple:
+    w, x, y, z = q[0], q[1], q[2], q[3]
+    roll = math.atan2(2.0 * (w * x + y * z), 1.0 - 2.0 * (x * x + y * y))
+    pitch = math.asin(max(-1.0, min(1.0, 2.0 * (w * y - z * x))))
+    return roll, pitch
+
+
 class Px4Drone(Node):
     def __init__(self, node_name: str, default_id: int = 0,
                  control_hz: float = 50.0, px4_version: str = '1.16',
@@ -62,6 +69,15 @@ class Px4Drone(Node):
         self.declare_parameter('px4_version', px4_version)
         self.declare_parameter('auto_arm', auto_arm)
         self.declare_parameter('world_offset', [0.0, 0.0, 0.0])   # 本机 PX4 原点在世界 NED 中的位置
+        # ── 安全监督（可 kill / 飞行终止）──
+        self.declare_parameter('safety_lock', True)          # 启用安全监督
+        self.declare_parameter('safety_kill_topic', '/safety/kill')   # 外部 kill（Bool）
+        self.declare_parameter('safety_auto_kill', False)    # 异常持续时自动飞行终止
+        self.declare_parameter('safety_tilt_max_deg', 60.0)  # 姿态角上限（超即异常）
+        self.declare_parameter('safety_geofence_xy', 50.0)   # 水平边界 (m)
+        self.declare_parameter('safety_geofence_alt', 30.0)  # 高度上限 (m)
+        self.declare_parameter('safety_state_timeout', 2.0)  # 位置/状态超时 (s)
+        self.declare_parameter('safety_kill_hold_s', 0.8)    # 异常持续多久才 kill
         self.drone_id = int(self.get_parameter('drone_id').value)
         self.hz = float(self.get_parameter('control_hz').value)
         self.auto_arm = bool(self.get_parameter('auto_arm').value)
@@ -86,6 +102,21 @@ class Px4Drone(Node):
         self._last_pos_t = 0.0
         self._landing = False          # 已发出着陆指令：停止 offboard，交回 PX4
         self._land_cmd_count = 0
+        # 安全监督状态
+        self._roll = 0.0
+        self._pitch = 0.0
+        self._killed = False           # 已发出飞行终止
+        self._bad_since = None
+        self.safety_lock = bool(self.get_parameter('safety_lock').value)
+        self.safety_auto_kill = bool(self.get_parameter('safety_auto_kill').value)
+        self.safety_tilt_max = math.radians(float(self.get_parameter('safety_tilt_max_deg').value))
+        self.safety_geofence_xy = float(self.get_parameter('safety_geofence_xy').value)
+        self.safety_geofence_alt = float(self.get_parameter('safety_geofence_alt').value)
+        self.safety_state_timeout = float(self.get_parameter('safety_state_timeout').value)
+        self.safety_kill_hold_s = float(self.get_parameter('safety_kill_hold_s').value)
+        from std_msgs.msg import Bool
+        self.create_subscription(Bool, str(self.get_parameter('safety_kill_topic').value),
+                                 self._on_kill, 10)
 
         self.create_subscription(VehicleStatus, topic_for(self.drone_id, self._vs_topic),
                                  self._on_status, qi)
@@ -121,7 +152,58 @@ class Px4Drone(Node):
 
     def _on_att(self, msg):
         self._yaw = yaw_from_quat(msg.q)
+        self._roll, self._pitch = roll_pitch_from_quat(msg.q)
         self._att_ok = True
+
+    # ------------------------------------------------------------ 安全监督
+    def _on_kill(self, msg):
+        """外部 kill（Bool）：真则立即飞行终止。"""
+        if bool(msg.data):
+            self.kill('external /safety/kill')
+
+    def kill(self, reason: str = '') -> None:
+        """飞行终止（切动力）：发 MAV_CMD_DO_FLIGHTTERMINATION 并停发 offboard。"""
+        if self._killed:
+            return
+        self._killed = True
+        self._landing = True           # 停止 offboard setpoint
+        cmd = getattr(VehicleCommand, 'VEHICLE_CMD_DO_FLIGHTTERMINATION', 185)
+        self.send_command(cmd, p1=1.0)
+        self.get_logger().error(
+            f'[{self.drone_id}] *** SAFETY KILL（飞行终止）*** reason={reason}')
+
+    def _safety_check(self, now: float) -> None:
+        """异常检测：姿态超限 / 越界 / 状态超时；持续 kill_hold_s 则（可）kill。"""
+        if not self.safety_lock or self._killed or self._landing:
+            return
+        if not self._armed:
+            self._bad_since = None
+            return
+        reasons = []
+        if self._att_ok and (abs(self._roll) > self.safety_tilt_max
+                             or abs(self._pitch) > self.safety_tilt_max):
+            reasons.append(f'tilt(r={math.degrees(self._roll):.0f},p={math.degrees(self._pitch):.0f})')
+        pw = self.pos_world
+        if abs(pw[0]) > self.safety_geofence_xy or abs(pw[1]) > self.safety_geofence_xy:
+            reasons.append(f'geofence_xy={pw[:2].round(1)}')
+        alt = -pw[2]
+        if alt > self.safety_geofence_alt or alt < -1.0:
+            reasons.append(f'alt={alt:.1f}')
+        if (now - self._last_pos_t) > self.safety_state_timeout:
+            reasons.append(f'pos_stale={now - self._last_pos_t:.1f}s')
+        if reasons:
+            if self._bad_since is None:
+                self._bad_since = now
+            elif (now - self._bad_since) >= self.safety_kill_hold_s:
+                msg = '; '.join(reasons)
+                if self.safety_auto_kill:
+                    self.kill(msg)
+                else:
+                    self.get_logger().error(
+                        f'[{self.drone_id}] SAFETY 异常(未自动kill): {msg}')
+                    self._bad_since = now       # 避免刷屏
+        else:
+            self._bad_since = None
 
     # ------------------------------------------------------------------ 发布
     def broadcast_offboard_mode(self):
@@ -202,6 +284,7 @@ class Px4Drone(Node):
         if not self._offboard_confirmed and (self._tick_count % int(self.hz) == 1):
             self.arm_and_offboard()
         self.control()
+        self._safety_check(self.get_clock().now().nanoseconds * 1e-9)
 
     def control(self):
         """子类实现。"""

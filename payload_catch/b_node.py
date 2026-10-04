@@ -16,7 +16,7 @@ from std_msgs.msg import Bool, Float64, Float64MultiArray
 
 from .px4_iface import Px4Drone
 from .rendezvous import RendezvousPlanner
-from .stack_drop import plan_stack_drop, _stack_ref
+from .stack_drop import plan_stack_drop, _stack_ref, minimal_dive, retain_speed
 
 
 class BNode(Px4Drone):
@@ -56,23 +56,44 @@ class BNode(Px4Drone):
         self.declare_parameter('align_hold_s', 1.0)       # 稳定保持多久才释放
         self.declare_parameter('approach_alt_tol', 0.15)  # 垂直爬升到位的容差 (m)
         self.declare_parameter('min_ab_gap', 0.80)        # 横移/对正时 B 至少比 A 低多少 (m)
+        self.declare_parameter('safety_k', 2.0)           # 安全层：keep-out 额外 kσ（估计不确定度）
+        self.declare_parameter('rel_sigma_floor', 0.0)    # σ 下限 (m)
         self.declare_parameter('release_lead', 0.20)      # 提前广播释放时刻
-        self.declare_parameter('a_dive', 3.0)             # B 下潜加速度 m/s²
+        # ── M6-moving：编队同速投放 ──
+        self.declare_parameter('formation_vel', [0.0, 0.0, 0.0])   # 同向同速巡航速度（世界系 NED 水平）
+        self.declare_parameter('formation_topic', '/formation/start')
+        # ── 协同释放握手：'direct'(B 直接决定释放) | 'handshake'(B 报就绪→等 A 释放 ack) ──
+        self.declare_parameter('coord_mode', 'direct')
+        self.declare_parameter('handshake_timeout', 1.0)   # 等 A 释放 ack 的上限 (s)
+        self.declare_parameter('clock_sync', True)         # 往返估 A/B 时钟偏移并换算释放时刻
+        self.declare_parameter('use_intent', False)        # 用 A 广播的【预测落点】做对正目标
+        self.declare_parameter('zem_gain', 0.0)            # 终端导引(ZEM) 增益：减终端 miss
+        self.declare_parameter('form_kp_rel', 0.5)         # 编队：相对测量校正增益（死推算参考为主）
+        self.declare_parameter('align_reset_tol', 0.25)    # 编队：短晩失配容忍（内不重置保持计时）
+        self.declare_parameter('formation_timeout_s', 12.0)  # 编队释放超时→中止投放
+        self.declare_parameter('formation_min_speed_ratio', 0.8)   # 编队速度达到该比例才允许释放
+        self.declare_parameter('a_dive', 3.0)             # B 下潜加速度 m/s²（auto_min_dive=False 时直接用它）
+        self.declare_parameter('auto_min_dive', True)      # 用最小必要下潜（gap≤v_retain²/2g 时免下潜）
         self.declare_parameter('a_brake', 6.0)            # B 刹车加速度 m/s²
         self.declare_parameter('funnel_mouth_radius', 0.20)
         self.declare_parameter('funnel_eff_radius', 0.15)  # mouth − object_radius
         self.declare_parameter('funnel_mount_height', 0.10)
         self.declare_parameter('payload_release_offset', 0.15)  # 载荷释放点相对 A 向下偏移 (m)
         self.declare_parameter('px4_z_bias', 0.24)   # PX4 pos_world.z 比模型绝对高度低的量(x500 base_link 在模型 z=0.24)
-        self.declare_parameter('catch_z_tol', 0.12)  # 捕获时载荷可高出漏斗口平面的容差 (m)
+        self.declare_parameter('catch_z_tol', 0.10)  # 捕获时载荷可高出漏斗口平面的容差 (m)
+        self.declare_parameter('dive_anchor_vz', 0.5)  # 载荷竖直速度超过此值视为"真正开始下落"(m/s)
+        self.declare_parameter('capture_min_vz', 1.0)  # 捕获时载荷竖直速度下限（排除仍挂载/未下落）
         self.declare_parameter('auto_land', False)          # 捕获后自动降落
         self.declare_parameter('land_after_catch_s', 6.0)   # 捕获后再悬停多久开始着陆流程
         self.declare_parameter('land_xy', [5.0, 0.0])       # 世界系 NED 着陆点 x,y（与 A 分开）
         self.declare_parameter('land_xy_tol', 0.25)         # 到达着陆点的水平容差
         self.declare_parameter('funnel_depth', 0.30)
         self.declare_parameter('funnel_restitution', 0.60)
+        # 主动保持（B 侧锁扣）：捕获后请求 payload_node 把载荷锁到 B 漏斗
+        self.declare_parameter('lock_to_b', False)
+        self.declare_parameter('lock_request_topic', '/payload/lock_request')
         self.declare_parameter('v_retain', 4.04)          # 刚性漏斗保持速度 m/s
-        self.declare_parameter('stack_kp_xy', 1.5)
+        self.declare_parameter('stack_kp_xy', 1.2)
         self.declare_parameter('stack_kp_z', 1.5)
 
         self.standby = np.asarray(self.get_parameter('standby_world').value, float).reshape(3)
@@ -115,8 +136,20 @@ class BNode(Px4Drone):
         self.align_hold_s = float(self.get_parameter('align_hold_s').value)
         self.approach_alt_tol = float(self.get_parameter('approach_alt_tol').value)
         self.min_ab_gap = float(self.get_parameter('min_ab_gap').value)
+        self.safety_k = float(self.get_parameter('safety_k').value)
+        self.rel_sigma_floor = float(self.get_parameter('rel_sigma_floor').value)
+        self._sigma_est = 0.0        # 在线估计的 A 相对位置误差 (m)
         self.release_lead = float(self.get_parameter('release_lead').value)
+        self.formation_vel = np.asarray(self.get_parameter('formation_vel').value,
+                                        float).reshape(3)
+        self.formation_vel[2] = 0.0
+        self.use_formation = float(np.linalg.norm(self.formation_vel[:2])) > 1e-6
+        self.formation_min_speed_ratio = float(
+            self.get_parameter('formation_min_speed_ratio').value)
+        self._formation_sent = False
+        self.form_t0 = None
         self.a_dive = float(self.get_parameter('a_dive').value)
+        self.auto_min_dive = bool(self.get_parameter('auto_min_dive').value)
         self.a_brake = float(self.get_parameter('a_brake').value)
         self.funnel_mouth_radius = float(self.get_parameter('funnel_mouth_radius').value)
         self.funnel_eff_radius = float(self.get_parameter('funnel_eff_radius').value)
@@ -124,6 +157,9 @@ class BNode(Px4Drone):
         self.payload_release_offset = float(self.get_parameter('payload_release_offset').value)
         self.px4_z_bias = float(self.get_parameter('px4_z_bias').value)
         self.catch_z_tol = float(self.get_parameter('catch_z_tol').value)
+        self.dive_anchor_vz = float(self.get_parameter('dive_anchor_vz').value)
+        self.capture_min_vz = float(self.get_parameter('capture_min_vz').value)
+        self._dive_anchored = False
         self.auto_land = bool(self.get_parameter('auto_land').value)
         self.land_after_catch_s = float(self.get_parameter('land_after_catch_s').value)
         self.land_xy = np.asarray(self.get_parameter('land_xy').value, float).reshape(2)
@@ -146,6 +182,38 @@ class BNode(Px4Drone):
         self.planned = False
         self.plan = None
         self.pub_release_at = self.create_publisher(Float64, '/payload/release_at', 10)
+        self.coord_mode = str(self.get_parameter('coord_mode').value)
+        self.handshake_timeout = float(self.get_parameter('handshake_timeout').value)
+        self.clock_sync = bool(self.get_parameter('clock_sync').value)
+        self.use_intent = bool(self.get_parameter('use_intent').value)
+        self.zem_gain = float(self.get_parameter('zem_gain').value)
+        self.form_kp_rel = float(self.get_parameter('form_kp_rel').value)
+        self.align_reset_tol = float(self.get_parameter('align_reset_tol').value)
+        self.formation_timeout_s = float(self.get_parameter('formation_timeout_s').value)
+        self.form_ref_p0 = None        # 编队：B 自身死推算参考起点
+        self.form_ref_t0 = None
+        self._rel0 = np.zeros(2)       # 进入编队时的 (A_est - B) 相对偏移
+        self._form_timeout_t0 = None   # 进入编队时刻（用于释放超时）
+        self._last_good_t = 0.0        # 上次对齐时刻（容忍短暂抖动）
+        self._aborted = False
+        self.pub_formation_abort = self.create_publisher(Bool, '/formation/abort', 10)
+        self.clock_offset = 0.0        # A 时钟 − B 时钟 (s)
+        self._ping_send = None
+        self._last_ping = 0.0
+        self._clock_logged = False
+        self.pub_ping = self.create_publisher(Float64MultiArray, '/coord/ping', 10)
+        self.create_subscription(Float64MultiArray, '/coord/pong', self._on_pong, 10)
+        self._a_intent = None
+        self._release_cmd = None
+        self._release_cmd_t = 0.0
+        self.pub_ready = self.create_publisher(Float64MultiArray, '/drone_b/ready', 10)
+        if self.coord_mode == 'handshake':
+            self.create_subscription(Float64MultiArray, '/drone_a/intent', self._on_a_intent, 10)
+            self.create_subscription(Float64MultiArray, '/drone_a/release_cmd',
+                                     self._on_release_cmd, 10)
+            self.get_logger().warn('B: coord_mode=handshake（报就绪 → 等 A 释放 ack）')
+        self.pub_formation = self.create_publisher(
+            Bool, str(self.get_parameter('formation_topic').value), 10)
         self.controller = str(self.get_parameter('controller').value).lower()
         self.mpc = None
         if self.controller == 'mpc':
@@ -177,10 +245,19 @@ class BNode(Px4Drone):
         self.create_subscription(Float64MultiArray, '/payload/state', self._on_payload, 10)
         self.create_subscription(Bool, '/payload/released', self._on_released, 10)
         self.pub_caught = self.create_publisher(Bool, '/payload/caught', 10)
+        self.lock_to_b = bool(self.get_parameter('lock_to_b').value)
+        self._lock_req_pub = None
+        if self.lock_to_b:
+            self._lock_req_pub = self.create_publisher(
+                Float64MultiArray, str(self.get_parameter('lock_request_topic').value), 10)
+            self.get_logger().warn('b_node: lock_to_b=True（捕获后请求在 B 漏斗处锁扣）')
         if self.mode == 'stack':
             self.create_subscription(Float64MultiArray, self.a_state_topic, self._on_a_state, 10)
             self.phase = 'CLIMB'
             self.get_logger().warn('b_node: MODE=stack（垂直堆叠投放：对正→释放→温和下潜）')
+            if self.use_formation:
+                self.get_logger().warn(
+                    f'b_node: 编队同速投放 formation_vel={self.formation_vel[:2]}')
         self.get_logger().info(f'b_node: standby={self.standby} offset={self.world_offset}')
 
     def _on_payload(self, msg):
@@ -200,13 +277,51 @@ class BNode(Px4Drone):
                 self.phase = 'RENDEZ'
             self.get_logger().warn('B: payload released → rendezvous')
 
+    def _on_a_intent(self, msg):
+        self._a_intent = list(msg.data)
+
+    def _on_release_cmd(self, msg):
+        self._release_cmd = list(msg.data)
+        self._release_cmd_t = self.get_clock().now().nanoseconds * 1e-9
+
+    def _on_pong(self, msg):
+        """时钟同步：data=[t_b_send, t_a_recv] → 估 offset=(A−B)，EMA 平滑。"""
+        if not self.clock_sync or self._ping_send is None:
+            return
+        t_b_send = float(msg.data[0])
+        t_a_recv = float(msg.data[1])
+        t_b_recv = self.get_clock().now().nanoseconds * 1e-9
+        rtt = t_b_recv - t_b_send
+        if rtt < 0.0 or rtt > 2.0:
+            return
+        off = t_a_recv + 0.5 * rtt - t_b_recv
+        self.clock_offset = 0.9 * self.clock_offset + 0.1 * off
+        if not self._clock_logged:
+            self._clock_logged = True
+            self.get_logger().warn(
+                f'B: 时钟同步 offset(A−B)={self.clock_offset:+.4f}s rtt={rtt*1000:.1f}ms')
+
+    def _pub_ready(self, now, ready, rel_xy, spd_xy):
+        m = Float64MultiArray()
+        m.data = [float(ready), float(rel_xy), float(spd_xy), float(now)]
+        self.pub_ready.publish(m)
+
+    def _gap_eff(self):
+        """安全 keep-out：min_ab_gap + kσ（随在线估计的不确定度自适应）。"""
+        sigma = max(self._sigma_est, self.rel_sigma_floor)
+        return self.min_ab_gap + self.safety_k * sigma
+
     def _on_a_state(self, msg):
         if len(msg.data) >= 7:
-            self.a_state_hist.append((float(msg.data[0]),
-                                      np.array(msg.data[1:4], float),
+            p_meas = np.array(msg.data[1:4], float)
+            self.a_state_hist.append((float(msg.data[0]), p_meas,
                                       np.array(msg.data[4:7], float)))
             if len(self.a_state_hist) > 4000:
                 self.a_state_hist.pop(0)
+            # 在线估计 A 相对位置误差 σ（测量与平滑估计的残差 EMA），供安全 keep-out 用
+            if self.a_est is not None:
+                resid = float(np.linalg.norm(p_meas - self.a_est))
+                self._sigma_est = 0.95 * self._sigma_est + 0.05 * resid
 
     def _relnav_a(self, now):
         """相对定位（mesh 替身）：A 广播位姿 + 延迟(含抖动) + 丢包 + 慢变偏置 + 白噪声。"""
@@ -278,6 +393,12 @@ class BNode(Px4Drone):
 
     def control(self):
         now = self.get_clock().now().nanoseconds * 1e-9
+        if self.clock_sync and (now - self._last_ping) > 0.2:
+            self._last_ping = now
+            self._ping_send = now
+            m = Float64MultiArray()
+            m.data = [float(now)]
+            self.pub_ping.publish(m)
         if self._tick_count % int(self.hz) == 0:
             pp = None if self.p_pay is None else self.p_pay.round(2)
             ra = None if self.a_est is None else round(float(np.linalg.norm(self.a_est - self.pos_world)), 3)
@@ -369,6 +490,18 @@ class BNode(Px4Drone):
 
 
     # ---------------------------------------------------------------- M6 stack
+    def _abort_formation(self, now):
+        """编队释放超时 → 中止投放：通知 A 停止巡航，B 安全悬停并（若开）降落。"""
+        if self._aborted:
+            return
+        self._aborted = True
+        self.pub_formation_abort.publish(Bool(data=True))
+        self.get_logger().error(
+            f'B: 编队释放超时 ({self.formation_timeout_s:.0f}s) → 中止投放，安全悬停→降落')
+        self.stack_hover = self.pos_world.copy()
+        self._caught_t = now          # 复用 DONE 的悬停+自动降落逻辑
+        self.phase = 'DONE'
+
     def _stack_capture_check(self):
         if self.caught or self.p_pay is None:
             return
@@ -377,19 +510,34 @@ class BNode(Px4Drone):
         z_mouth = pos[2] - self.px4_z_bias - self.funnel_mount_height
         horiz = float(np.linalg.norm(pos[:2] - self.p_pay[:2]))
         rv = float(np.linalg.norm(self.vel - self.v_pay))
-        if (self.p_pay[2] >= z_mouth - self.catch_z_tol and horiz <= self.funnel_eff_radius
-                and rv <= self.v_retain):
+        if (z_mouth - self.catch_z_tol <= self.p_pay[2] <= z_mouth + self.catch_z_tol
+                and horiz <= self.funnel_eff_radius and rv <= self.v_retain):
             self.caught = True
             self.phase = 'DONE'
             self.stack_hover = pos.copy()   # 锁定此刻位置为悬停点
             self._caught_t = self.get_clock().now().nanoseconds * 1e-9
             self.pub_caught.publish(Bool(data=True))
+            if self._lock_req_pub is not None:
+                lock_pose = self.pos_world + np.array([0.0, 0.0, -0.20])  # 漏斗口上方≈0.2m
+                self._lock_req_pub.publish(Float64MultiArray(data=lock_pose.tolist()))
+                self.get_logger().warn('B: 请求主动保持（在 B 漏斗处重生成并锁定）')
             self.get_logger().warn(
                 f'*** STACK CAPTURED *** horiz={horiz:.3f}m rel_v={rv:.3f}m/s '
                 f'z_mouth={z_mouth:.2f} p_B={pos.round(2)} p_p={self.p_pay.round(2)}')
 
     def control_stack(self, now):
         pos = self.pos_world
+        # 协同握手：A 的释放 ack 是【原子事件】——只要收到就切 DIVE，
+        # 不依赖当前瞬时对齐（释放/分离会让对齐短暂抖动，否则会漏掉 ack 卡在 ALIGN/FORMATION）。
+        if (self.coord_mode == 'handshake' and self.phase in ('ALIGN', 'FORMATION')
+                and self._release_cmd is not None and float(self._release_cmd[0]) >= 0.5
+                and (now - self._release_cmd_t) < self.handshake_timeout):
+            t_rel = float(self._release_cmd[1]) - self.clock_offset
+            self.release_ref_t0 = t_rel
+            self._dive_anchored = False
+            self.get_logger().warn(
+                f'B: 收到 A 释放 ack@{t_rel:.2f}s（原 phase={self.phase}）→ DIVE')
+            self.phase = 'DIVE'
         p_est, v_est = self._relnav_a(now)
         if p_est is not None:
             self.a_est, self.a_vel_est = p_est, v_est
@@ -410,8 +558,10 @@ class BNode(Px4Drone):
             return
 
         if self.phase == 'WAIT_A':
-            # 2) 原地悬停，等 A 到位且比 B 高出 min_ab_gap，才开始横移
+            # 2) 原地悬停/必要时下降，等 A 到位且比 B 高出 gap_eff=min_ab_gap+kσ，才开始横移
             tgt_alt = -standby[2]
+            if self.a_est is not None:
+                tgt_alt = min(tgt_alt, (-self.a_est[2]) - self._gap_eff())
             v = self.hover_velocity([pos[0], pos[1]], tgt_alt, kp_xy=1.0, max_speed=0.8,
                                     kp_z=1.4, max_climb=1.2)
             self.publish_velocity(v, yaw=self.yaw)
@@ -421,17 +571,17 @@ class BNode(Px4Drone):
             a_vz = abs(float(self.a_vel_est[2])) if self.a_vel_est is not None else 9.9
             clear = a_alt_now - (-pos[2])
             if (a_alt_now >= a_alt - self.approach_alt_tol and a_vz < self.align_vel_tol
-                    and clear >= self.min_ab_gap):
+                    and clear >= self._gap_eff()):
                 self.phase = 'TRANSLATE'
                 self.get_logger().warn(
                     f'B: WAIT_A done (A_alt={a_alt_now:.2f}, clear={clear:.2f}) → TRANSLATE')
             return
 
         if self.phase == 'TRANSLATE':
-            # 3) 保持高度平移到 A 正下方；全程比 A 低 min_ab_gap
+            # 3) 保持高度平移到 A 正下方；全程比 A 低 gap_eff=min_ab_gap+kσ
             tgt_alt = -standby[2]
             if self.a_est is not None:
-                tgt_alt = min(tgt_alt, (-self.a_est[2]) - self.min_ab_gap)
+                tgt_alt = min(tgt_alt, (-self.a_est[2]) - self._gap_eff())
             v = self.hover_velocity(standby[:2], tgt_alt, kp_xy=1.2, max_speed=1.5,
                                     kp_z=1.4, max_climb=1.0)
             self.publish_velocity(v, yaw=self.yaw)
@@ -444,14 +594,21 @@ class BNode(Px4Drone):
         if self.phase == 'ALIGN':
             tgt_alt = -standby[2]
             if self.a_est is not None:
-                tgt_alt = min(tgt_alt, (-self.a_est[2]) - self.min_ab_gap)
-            v = self.hover_velocity(standby[:2], tgt_alt, kp_xy=1.2, max_speed=1.5,
+                tgt_alt = min(tgt_alt, (-self.a_est[2]) - self._gap_eff())
+            # 意图升级：用 A 广播的【预测落点】作对正目标（含风漂移）；否则用 standby 并比 A 实际位置
+            use_land = (self.use_intent and self._a_intent is not None
+                        and len(self._a_intent) >= 8)
+            tgt_xy = np.array(self._a_intent[6:8], float) if use_land else standby[:2]
+            v = self.hover_velocity(tgt_xy, tgt_alt, kp_xy=1.2, max_speed=1.5,
                                     kp_z=1.4, max_climb=1.2)
             self.publish_velocity(v, yaw=self.yaw)
             if self.a_est is None:
                 self.align_t0 = now
                 return
-            rel_xy = float(np.linalg.norm(self.a_est[:2] - pos[:2]))
+            if use_land:
+                rel_xy = float(np.linalg.norm(tgt_xy - pos[:2]))
+            else:
+                rel_xy = float(np.linalg.norm(self.a_est[:2] - pos[:2]))
             spd_xy = float(np.linalg.norm(self.vel[:2]))
             alt_ok = abs(-pos[2] - (-standby[2])) < self.align_alt_tol
             a_slow = (self.a_vel_est is None
@@ -459,17 +616,134 @@ class BNode(Px4Drone):
             aligned = (rel_xy < self.align_xy_tol and spd_xy < self.align_vel_tol
                        and alt_ok and a_slow)
             if aligned:
+                if self.coord_mode == 'handshake' and not self.use_formation:
+                    # 持续报就绪（含质量指标）；一旦不再对齐会置 0，A 就不会释放。
+                    # 编队模式不发就绪：ALIGN 只负责发 /formation/start，握手在 FORMATION 阶段。
+                    self._pub_ready(now, 1.0, rel_xy, spd_xy)
                 if self.align_t0 is None:
                     self.align_t0 = now
                 elif (now - self.align_t0) >= self.align_hold_s:
-                    rel_t = now + self.release_lead
-                    self.pub_release_at.publish(Float64(data=rel_t))
-                    self.release_ref_t0 = rel_t
-                    self.phase = 'DIVE'
-                    self.get_logger().warn(
-                        f'B: ALIGNED rel_xy={rel_xy:.3f}m spd_xy={spd_xy:.3f} → release@{rel_t:.2f}')
+                    if self.use_formation:
+                        # 编队同速：广播 /formation/start，A 开始巡航、载荷挂载到 A
+                        if not self._formation_sent:
+                            self.pub_formation.publish(Bool(data=True))
+                            self._formation_sent = True
+                            self.form_t0 = None
+                            self.form_ref_p0 = None      # 重置死推算参考
+                            self._form_timeout_t0 = now  # 释放超时计时起点
+                            self._last_good_t = now
+                            self._aborted = False
+                            self._dive_anchored = False
+                            self.phase = 'FORMATION'
+                            self.get_logger().warn(
+                                f'B: ALIGNED rel_xy={rel_xy:.3f}m → /formation/start '
+                                f'（编队同速 {self.formation_vel[:2]}）')
+                    elif self.coord_mode == 'handshake':
+                        # 等 A（释放权威）的 ack；a = [release(0/1), t_rel, stamp]
+                        cmd = self._release_cmd
+                        if (cmd is not None and float(cmd[0]) >= 0.5
+                                and (now - self._release_cmd_t) < self.handshake_timeout):
+                            t_rel = float(cmd[1]) - self.clock_offset   # A 时钟 → B 时钟
+                            self.release_ref_t0 = t_rel
+                            self._dive_anchored = False
+                            self.phase = 'DIVE'
+                            self.get_logger().warn(
+                                f'B: 收到 A 释放 ack@{t_rel:.2f}s（rel_xy={rel_xy:.3f}）→ DIVE')
+                    else:
+                        rel_t = now + self.release_lead
+                        self.pub_release_at.publish(Float64(data=rel_t))
+                        self.release_ref_t0 = rel_t
+                        self._dive_anchored = False
+                        self.phase = 'DIVE'
+                        self.get_logger().warn(
+                            f'B: ALIGNED rel_xy={rel_xy:.3f}m spd_xy={spd_xy:.3f} → release@{rel_t:.2f}')
             else:
                 self.align_t0 = now
+                if self.coord_mode == 'handshake' and not self.use_formation:
+                    self._pub_ready(now, 0.0, rel_xy, spd_xy)
+            return
+
+        if self.phase == 'FORMATION':
+            # 释放超时保护：长时间对不齐 → 中止投放（不投），安全悬停→降落
+            if (self._form_timeout_t0 is not None and not self._aborted
+                    and (now - self._form_timeout_t0) > self.formation_timeout_s):
+                self._abort_formation(now)
+                return
+            # 与 A 同向同速巡航：目标= A 投影点，速度前馈= A 速度；位置+速度都对正才释放
+            tgt_alt = -standby[2]
+            if self.a_est is not None:
+                tgt_alt = min(tgt_alt, (-self.a_est[2]) - self._gap_eff())
+            if self.a_est is None:
+                v = self.hover_velocity(standby[:2], tgt_alt, kp_xy=1.2, max_speed=1.5,
+                                        kp_z=1.4, max_climb=1.0)
+                self.publish_velocity(v, yaw=self.yaw)
+                return
+            # 编队跟踪（优化）：用【已知的 formation_vel】做死推算参考，+
+            # 对目标小幅校正；不再拿延迟/带噪的 A 速度估计做前馈（那会在高速下发散）。
+            if self.form_ref_p0 is None:
+                self.form_ref_p0 = pos[:2].copy()
+                self.form_ref_t0 = now
+                self._rel0 = ((self.a_est[:2] - pos[:2]).copy()
+                              if self.a_est is not None else np.zeros(2))
+            ref_xy = self.form_ref_p0 + self.formation_vel[:2] * (now - self.form_ref_t0)
+            a_vxy = self.formation_vel[:2]          # 前馈 = 已知编队速度
+            rel_err = ((self.a_est[:2] - pos[:2] - self._rel0)
+                       if self.a_est is not None else np.zeros(2))
+            vxy = a_vxy + self.stack_kp_xy * (ref_xy - pos[:2]) + self.form_kp_rel * rel_err
+            vz = -self.stack_kp_z * (tgt_alt - (-pos[2]))
+            v_sp = np.array([vxy[0], vxy[1], vz])
+            n = float(np.linalg.norm(v_sp[:2]))
+            if n > self.v_max:
+                v_sp[:2] *= self.v_max / n
+            v_sp[2] = float(np.clip(v_sp[2], -self.v_max, self.v_max))
+            self.publish_velocity(v_sp, yaw=self.yaw)
+            rel_xy = float(np.linalg.norm(self.a_est[:2] - pos[:2]))
+            a_meas = self.a_vel_est[:2] if self.a_vel_est is not None else np.zeros(2)
+            # 相对速度用【已知 formation_vel】比 B 自身速度（低噪、稳定）；
+            # A 是否真的在动由下面的 a_spd（测量）把关。
+            rel_vxy = float(np.linalg.norm(self.vel[:2] - self.formation_vel[:2]))
+            alt_ok = abs(-pos[2] - (-standby[2])) < self.align_alt_tol
+            a_spd = float(np.linalg.norm(a_meas))
+            speed_ok = a_spd >= self.formation_min_speed_ratio * float(
+                np.linalg.norm(self.formation_vel[:2]))
+            aligned = (rel_xy < self.align_xy_tol and rel_vxy < self.align_vel_tol
+                       and alt_ok and speed_ok)
+            if aligned:
+                self._last_good_t = now
+                if self.coord_mode == 'handshake':
+                    # 持续报就绪（质量=rel_xy / rel_vxy）；不对齐即置 0
+                    self._pub_ready(now, 1.0, rel_xy, rel_vxy)
+                if self.form_t0 is None:
+                    self.form_t0 = now
+                elif (now - self.form_t0) >= self.align_hold_s:
+                    if self.coord_mode == 'handshake':
+                        cmd = self._release_cmd
+                        if (cmd is not None and float(cmd[0]) >= 0.5
+                                and (now - self._release_cmd_t) < self.handshake_timeout):
+                            t_rel = float(cmd[1]) - self.clock_offset
+                            self.release_ref_t0 = t_rel
+                            self._dive_anchored = False
+                            self.phase = 'DIVE'
+                            self.get_logger().warn(
+                                f'B: FORMATION 收到 A 释放 ack@{t_rel:.2f}'
+                                f'（rel_xy={rel_xy:.3f} rel_vxy={rel_vxy:.3f}）→ DIVE')
+                    else:
+                        rel_t = now + self.release_lead
+                        self.pub_release_at.publish(Float64(data=rel_t))
+                        self.release_ref_t0 = rel_t
+                        self._dive_anchored = False
+                        self.phase = 'DIVE'
+                        self.get_logger().warn(
+                            f'B: FORMATION aligned rel_xy={rel_xy:.3f}m rel_vxy={rel_vxy:.3f} '
+                            f'a_spd={a_spd:.2f} → release@{rel_t:.2f}')
+            else:
+                # 容忍短暂抖动：只有连续失配超过 align_reset_tol 才重置保持计时
+                # （否则噪声会不断重置 hold → 迟迟不释放、白飞很远）
+                if self.coord_mode == 'handshake':
+                    self._pub_ready(now, 0.0, rel_xy, rel_vxy)
+                if (self.form_t0 is not None
+                        and (now - self._last_good_t) > self.align_reset_tol):
+                    self.form_t0 = None
             return
 
         if self.phase == 'DIVE':
@@ -478,32 +752,71 @@ class BNode(Px4Drone):
                 return
             tl = now - self.release_ref_t0
             if tl < 0.0:
-                v = self.hover_velocity(standby[:2], -standby[2], kp_xy=1.5,
-                                        max_speed=self.v_max, kp_z=1.5, max_climb=1.5)
+                # 释放前：原地悬停等（不能用 standby，编队模式下 B 已离开原点）
+                v = self.hover_velocity(pos[:2], -pos[2], kp_xy=2.0,
+                                        max_speed=2.0, kp_z=1.5, max_climb=1.5)
                 self.publish_velocity(v, yaw=self.yaw)
                 return
+            # 分离有 ~0.1-0.2s 延迟：把 DIVE 参考起点重锚到载荷“真正开始下落”的时刻，
+            # 否则 B 会比载荷早下潜，导致擦肩/落空。
+            if not self._dive_anchored:
+                falling = (self.v_pay is not None
+                           and float(self.v_pay[2]) > self.dive_anchor_vz)
+                if falling or tl > 0.5:
+                    self.release_ref_t0 = now
+                    self.stack_plan = None
+                    self._dive_anchored = True
+                    tl = 0.0
+                    self.get_logger().warn(
+                        f'B: DIVE 重锚（载荷开始下落 falling={falling}）')
+                else:
+                    # 分离延迟：载荷尚未真正下落 → 原地悬停等（不能用 standby）
+                    v = self.hover_velocity(pos[:2], -pos[2], kp_xy=2.0,
+                                            max_speed=2.0, kp_z=1.5, max_climb=1.5)
+                    self.publish_velocity(v, yaw=self.yaw)
+                    return
             if self.stack_plan is None:
                 a_h = -self.a_est[2] if self.a_est is not None else -standby[2]
                 # 载荷实际从 A 下方 offset 处释放；漏斗口在 B 机体上方 mount 处。
                 # 让 plan 的有效 gap = 载荷→漏斗口的距离（_stack_ref 仍从 B 机体起步）。
                 a_h = a_h - self.payload_release_offset - self.funnel_mount_height
+                # 最小必要下潜：gap ≤ v_retain²/(2g) 时 a_dive=0（B 悬停接，下落时间最短、
+                # 横风漂移最小）；否则取刚好使 v_rel≤v_retain 的最小 a_dive。
+                if self.auto_min_dive:
+                    gap_eff = a_h - (-pos[2])
+                    v_ret = retain_speed(self.funnel_depth, self.funnel_restitution)
+                    a_dive_use = minimal_dive(gap_eff, v_ret, 9.81,
+                                              float(self.get_parameter('b_max_accel').value))
+                else:
+                    a_dive_use = self.a_dive
                 self.stack_plan = plan_stack_drop(
-                    a_height=a_h, b_height=-pos[2], a_dive=self.a_dive, g=9.81,
+                    a_height=a_h, b_height=-pos[2], a_dive=a_dive_use, g=9.81,
                     a_brake=self.a_brake, funnel_depth=self.funnel_depth,
                     restitution=self.funnel_restitution)
                 self.get_logger().warn(
-                    f'B: DIVE plan t_c={self.stack_plan.t_c:.3f}s v_rel={self.stack_plan.v_rel:.3f} '
+                    f'B: DIVE plan a_dive={a_dive_use:.2f}(auto={self.auto_min_dive}) '
+                    f't_c={self.stack_plan.t_c:.3f}s v_rel={self.stack_plan.v_rel:.3f} '
                     f'v_retain={self.stack_plan.v_retain:.3f} feasible={self.stack_plan.feasible}')
             xy_tgt = self.a_est[:2] if self.a_est is not None else pos[:2]
             vxy_ff = np.zeros(2)
-            if self.track_payload:
+            # 编队模式：物块就是从 A 释放的（无释放误差），直接跟踪 A 更稳
+            # （避免跟踪带噪的物块估计引起横摆）；否则跟踪物块形成闭环纠正释放误差。
+            if self.track_payload and not self.use_formation:
                 pe = self._payload_est(now)     # 闭环：跟踪载荷本身（含测量噪声/延迟）
                 if pe is not None:
                     xy_tgt = pe[0][:2]
                     vxy_ff = pe[1][:2]
+            elif self.use_formation and self.a_vel_est is not None:
+                vxy_ff = self.a_vel_est[:2]
             pr, vr, _ar = _stack_ref(tl, self.stack_plan, (xy_tgt[0], xy_tgt[1]), 9.81)
             v_sp = np.zeros(3)
             v_sp[:2] = vxy_ff + self.stack_kp_xy * (xy_tgt - pos[:2])
+            # 终端导引(ZEM)：把水平目标投影到接触时刻，用零控脱靶修正（减终端 miss）
+            if self.zem_gain > 0.0 and self.p_pay is not None and self.stack_plan is not None:
+                t_rem = max(0.05, self.stack_plan.t_c - tl)
+                p_c = (self.p_pay + self.v_pay * t_rem
+                       + 0.5 * np.array([0.0, 0.0, 9.81]) * t_rem * t_rem)
+                v_sp[:2] += self.zem_gain * (p_c[:2] - (pos[:2] + self.vel[:2] * t_rem)) / t_rem
             v_sp[2] = vr[2] + self.stack_kp_z * (pr[2] - pos[2])
             n = float(np.linalg.norm(v_sp[:2]))
             if n > self.v_max:
@@ -529,9 +842,9 @@ class BNode(Px4Drone):
             self.stack_hover = pos.copy()
         tgt = self.stack_hover.copy()
         tgt_alt = -tgt[2]
-        # 安全层：悬停高度不得高于 A−min_ab_gap，保证绝不靠近 A
+        # 安全层：悬停高度不得高于 A−(min_ab_gap+kσ)，保证绝不靠近 A
         if self.a_est is not None:
-            tgt_alt = min(tgt_alt, (-self.a_est[2]) - self.min_ab_gap)
+            tgt_alt = min(tgt_alt, (-self.a_est[2]) - self._gap_eff())
         v = self.hover_velocity(tgt[:2], tgt_alt, kp_xy=1.5, max_speed=self.v_max,
                                 kp_z=1.5, max_climb=1.5)
         self.publish_velocity(v, yaw=self.yaw)

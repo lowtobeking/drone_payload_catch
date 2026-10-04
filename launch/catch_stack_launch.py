@@ -44,23 +44,55 @@ def generate_launch_description():
         'rel_dropout': '0.0', 'rel_bias': '0.0', 'rel_seed': '0', 'est_lpf_alpha': '0.30',
         'payload_meas_sigma': '0.0', 'payload_meas_latency': '0.0', 'payload_dropout': '0.0',
         'release_xy_sigma': '0.0', 'release_seed': '0',
-        'align_xy_tol': '0.12', 'align_vel_tol': '0.12', 'align_alt_tol': '0.20',
-        'align_hold_s': '1.0', 'release_lead': '0.20',
-        'a_dive': '3.0', 'a_brake': '6.0',
+        'align_xy_tol': '0.12', 'align_vel_tol': '0.20', 'align_alt_tol': '0.20',
+        'align_hold_s': '0.6', 'release_lead': '0.20',
+        'a_dive': '3.0', 'auto_min_dive': 'true', 'a_brake': '6.0',
         'funnel_mouth_radius': '0.20', 'funnel_eff_radius': '0.14',
         'funnel_mount_height': '0.21', 'funnel_depth': '0.30',
         'funnel_restitution': '0.60', 'v_retain': '4.04',
         'b_max_speed': '5.0', 'b_max_accel': '6.0',
-        'stack_kp_xy': '1.5', 'stack_kp_z': '1.5',
-        'px4_z_bias': '0.24', 'catch_z_tol': '0.12',
+        'stack_kp_xy': '1.2', 'stack_kp_z': '1.5',
+        'px4_z_bias': '0.24', 'catch_z_tol': '0.10',
         'min_ab_gap': '0.80', 'approach_alt_tol': '0.15', 'payload_release_offset': '0.15',
+        'safety_k': '2.0', 'rel_sigma_floor': '0.0',
         'land_after_catch_s': '6.0', 'land_xy_tol': '0.25',
         'track_payload': 'true',
+        # ── 编队同速投放（M6-moving）：formation_vel 非零即启用 ──
+        'formation_vel': '[0.0, 0.0, 0.0]',
+        'formation_topic': '/formation/start',
+        'formation_min_speed_ratio': '0.8',
+        'dive_anchor_vz': '0.5',
+        'capture_min_vz': '1.0',
+        'attach_to_a': 'false',
+        'attach_topic': '/payload/attach',
+        'detach_topic': '/payload/detach',
+        'lock_to_b': 'false',
+        'lock_request_topic': '/payload/lock_request',
+        'lock_model_path': '',
+        'coord_mode': 'direct',        # direct | handshake（协同释放握手）
+        'use_intent': 'false',         # B 用 A 广播的预测落点做对正
+        'wind_est': '[0.0, 0.0, 0.0]', # A 的风估计 (NED)，用于预测落点漂移
+        'use_px4_wind': 'false',       # A 用 PX4 EKF 风估计（/fmu/out/wind）
+        'zem_gain': '0.0',             # B 终端导引(ZEM) 增益
+        'safety_auto_kill': 'false',   # 异常持续时自动飞行终止
+        'safety_tilt_max_deg': '60.0', # 姿态角上限
+        'safety_kill_hold_s': '0.8',   # 异常持续多久才 kill
+        'align_reset_tol': '0.25',     # 编队：短晩失配容忍
+        'formation_timeout_s': '12.0', # 编队释放超时→中止投放
     }
     decls = [DeclareLaunchArgument(k, default_value=v) for k, v in args.items()]
 
     a = Node(package='payload_catch', executable='a_node', name='a_node', output='screen',
              parameters=[{'drone_id': 0, 'hover_world': a_hover, 'publish_state': True,
+                          'formation_vel': LaunchConfiguration('formation_vel'),
+                          'formation_topic': LaunchConfiguration('formation_topic'),
+                          'coord_mode': LaunchConfiguration('coord_mode'),
+                          'wind_est': LaunchConfiguration('wind_est'),
+                          'use_px4_wind': _b('use_px4_wind'),
+                          'safety_kill_topic': '/safety/kill_a',
+                          'safety_auto_kill': _b('safety_auto_kill'),
+                          'safety_tilt_max_deg': _f('safety_tilt_max_deg'),
+                          'safety_kill_hold_s': _f('safety_kill_hold_s'),
                           'auto_land': True, 'land_after_catch_s': _f('land_after_catch_s'),
                           'land_xy': [-4.0, 0.0], 'land_xy_tol': _f('land_xy_tol')}])
     b = Node(package='payload_catch', executable='b_node', name='b_node', output='screen',
@@ -79,7 +111,20 @@ def generate_launch_description():
                  'align_xy_tol': _f('align_xy_tol'), 'align_vel_tol': _f('align_vel_tol'),
                  'align_alt_tol': _f('align_alt_tol'), 'align_hold_s': _f('align_hold_s'),
                  'release_lead': _f('release_lead'),
-                 'a_dive': _f('a_dive'), 'a_brake': _f('a_brake'),
+                 'formation_vel': LaunchConfiguration('formation_vel'),
+                 'formation_topic': LaunchConfiguration('formation_topic'),
+                 'formation_min_speed_ratio': _f('formation_min_speed_ratio'),
+                 'coord_mode': LaunchConfiguration('coord_mode'),
+                 'use_intent': _b('use_intent'),
+                 'zem_gain': _f('zem_gain'),
+                 'align_reset_tol': _f('align_reset_tol'),
+                 'formation_timeout_s': _f('formation_timeout_s'),
+                 'safety_kill_topic': '/safety/kill_b',
+                 'safety_auto_kill': _b('safety_auto_kill'),
+                 'safety_tilt_max_deg': _f('safety_tilt_max_deg'),
+                 'safety_kill_hold_s': _f('safety_kill_hold_s'),
+                 'a_dive': _f('a_dive'), 'auto_min_dive': _b('auto_min_dive'),
+                 'a_brake': _f('a_brake'),
                  'funnel_mouth_radius': _f('funnel_mouth_radius'),
                  'funnel_eff_radius': _f('funnel_eff_radius'),
                  'funnel_mount_height': _f('funnel_mount_height'),
@@ -88,8 +133,13 @@ def generate_launch_description():
                  'b_max_speed': _f('b_max_speed'), 'b_max_accel': _f('b_max_accel'),
                  'stack_kp_xy': _f('stack_kp_xy'), 'stack_kp_z': _f('stack_kp_z'),
                  'px4_z_bias': _f('px4_z_bias'), 'catch_z_tol': _f('catch_z_tol'),
+                 'dive_anchor_vz': _f('dive_anchor_vz'),
+                 'capture_min_vz': _f('capture_min_vz'),
                  'min_ab_gap': _f('min_ab_gap'), 'approach_alt_tol': _f('approach_alt_tol'),
+                 'safety_k': _f('safety_k'), 'rel_sigma_floor': _f('rel_sigma_floor'),
                  'payload_release_offset': _f('payload_release_offset'),
+                 'lock_to_b': _b('lock_to_b'),
+                 'lock_request_topic': LaunchConfiguration('lock_request_topic'),
                  'auto_land': True, 'land_after_catch_s': _f('land_after_catch_s'),
                  'land_xy': [5.0, 0.0], 'land_xy_tol': _f('land_xy_tol'),
              }])
@@ -100,8 +150,15 @@ def generate_launch_description():
                                 'use_gazebo': True, 'use_a_state': True,
                                 'a_state_topic': '/drone_a/state',
                                 'release_offset': release_offset,
+                                'attach_to_a': _b('attach_to_a'),
+                                'attach_topic': LaunchConfiguration('attach_topic'),
+                                'detach_topic': LaunchConfiguration('detach_topic'),
+                                'formation_topic': LaunchConfiguration('formation_topic'),
                                 'release_xy_sigma': _f('release_xy_sigma'),
                                 'release_seed': _i('release_seed'),
+                                'lock_to_b': _b('lock_to_b'),
+                                'lock_request_topic': LaunchConfiguration('lock_request_topic'),
+                                'lock_model_path': LaunchConfiguration('lock_model_path'),
                                 'model_path': model_path}])
     return LaunchDescription([
         DeclareLaunchArgument('a_hover', default_value='[0.0, 0.0, -4.5]'),

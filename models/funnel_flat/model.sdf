@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- funnel_flat —— 自动生成（tools/gen_funnel_cup.py）。独立实心平顶盘（静止），供物理测试。 -->
+<sdf version='1.9'>
+  <model name='funnel_flat'>
+    <static>true</static>
+    <link name="disk">
+      <pose>0 0 0 0 0 0</pose>
+      <inertial><mass>0.08</mass><inertia><ixx>4e-4</ixx><iyy>4e-4</iyy><izz>4e-4</izz>
+        <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia></inertial>
+      <collision name="disk"><pose>0 0 0 0 0 0</pose>
+        <geometry><cylinder><radius>0.30</radius><length>0.02</length></cylinder></geometry>
+        <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction>
+        <bounce><restitution_coefficient>0.05</restitution_coefficient></bounce></surface></collision>
+      <visual name="disk_v"><pose>0 0 0 0 0 0</pose>
+        <geometry><cylinder><radius>0.30</radius><length>0.02</length></cylinder></geometry>
+        <material><ambient>0.15 0.55 0.85 1</ambient><diffuse>0.15 0.55 0.85 1</diffuse></material></visual>
+    </link>
+  </model>
+</sdf>

@@ -158,6 +158,7 @@ class PlanResult:
     overshoot: float = 0.0    # B 轨迹高度超出 [起始,会合] 包络的量
     cost: float = math.inf
     reason: str = ''
+    a_offset: Vec3 = field(default_factory=lambda: np.zeros(3))  # 协同规划：A 的释放点水平偏移
     traj_t: Optional[np.ndarray] = None
     traj_p: Optional[np.ndarray] = None
     traj_v: Optional[np.ndarray] = None
@@ -377,6 +378,49 @@ class RendezvousPlanner:
             return PlanResult(feasible=False, reason='in-flight no feasible tau')
         return best
 
+    # ---------------------------------------------- cooperative rendezvous
+    def solve_cooperative(self, a_init: Sequence[float], b_p0: Sequence[float],
+                          a_vel: Sequence[float] = (0.0, 0.0, 0.0),
+                          b_v0: Sequence[float] = (0.0, 0.0, 0.0),
+                          t_r_range: Tuple[float, float] = (0.0, 8.0),
+                          tau_range: Tuple[float, float] = (0.05, 1.2),
+                          t_r_step: float = 0.1, tau_step: float = 0.02,
+                          catch_alt_range: Tuple[float, float] = (0.8, 2.8),
+                          a_offset_max: float = 1.0, a_offset_step: float = 0.25,
+                          w_a_off: float = 1.0) -> PlanResult:
+        """**协同**会合：A 不再被动，而是可在标称位置附近【小幅水平偏移】释放，
+        与 B 的会合（t_r, τ_c）**联合优化**。
+
+        A 的额外决策：水平释放偏移 δ（|δ|≤a_offset_max，如“A 可微调航线/悬停点”）。
+        目标：J = w_a_off·|δ| + 标称会合代价（时间/加速度/速度失配）
+              —— 权衡“A 改道的代价”与“B 机动的代价”。
+        返回最优 PlanResult（p_r 已含 A 的偏移，a_offset 记录 δ）。
+        """
+        a_init = np.asarray(a_init, float).reshape(3)
+        n = int(math.floor(a_offset_max / a_offset_step + 1e-9))
+        deltas = [(0.0, 0.0)]
+        for i in range(-n, n + 1):
+            for j in range(-n, n + 1):
+                d = (i * a_offset_step, j * a_offset_step)
+                if math.hypot(*d) <= a_offset_max + 1e-9:
+                    deltas.append(d)
+        best: Optional[PlanResult] = None
+        for dx, dy in deltas:
+            a2 = a_init + np.array([dx, dy, 0.0])
+            r = self.solve(a2, b_p0, a_vel=a_vel, b_v0=b_v0,
+                           t_r_range=t_r_range, tau_range=tau_range,
+                           t_r_step=t_r_step, tau_step=tau_step,
+                           catch_alt_range=catch_alt_range)
+            if not r.feasible:
+                continue
+            r.a_offset = np.array([dx, dy, 0.0])
+            r.cost = r.cost + w_a_off * math.hypot(dx, dy)
+            if best is None or r.cost < best.cost:
+                best = r
+        if best is None:
+            return PlanResult(feasible=False, reason='no cooperative solution')
+        return best
+
     # -------------------------------------------------- reference resampling
     @staticmethod
     def reference(res: PlanResult, n: int = 401, mode: str = 'cubic',
@@ -433,3 +477,11 @@ if __name__ == '__main__':
     print(f'[line ] feasible={plan2.feasible} t_r={plan2.t_r:.2f} t_c={plan2.t_c:.3f} '
           f'p_r={plan2.p_r.round(2)} h_c={plan2.h_c:.2f} v_p={plan2.v_p.round(2)} '
           f'dv={plan2.delta_v:.3f} reason={plan2.reason}')
+    # 自测 5：协同会合（A 也可小幅水平偏移；本例中与 t_r 优化冗余，A 偏移取 0）
+    pc = pl.solve_cooperative([-4, 0, -3], [2, 0, -2.5], a_vel=(1, 0, 0),
+                              t_r_range=(0, 8), tau_range=(0.05, 1.2),
+                              t_r_step=0.2, tau_step=0.05,
+                              catch_alt_range=(0.8, 2.8), a_offset_max=1.0,
+                              a_offset_step=0.5)
+    print(f'[coop ] feasible={pc.feasible} cost={pc.cost:.3f} '
+          f'A偏移={pc.a_offset.round(2)}')

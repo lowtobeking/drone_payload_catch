@@ -4,14 +4,14 @@
     <link name="link">
       <inertial>
         <mass>0.3</mass>
-        <inertia><ixx>0.001</ixx><iyy>0.001</iyy><izz>0.001</izz>
+        <inertia><ixx>0.00018</ixx><iyy>0.00018</iyy><izz>0.00018</izz>
                  <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
       </inertial>
       <collision name="collision">
-        <geometry><box><size>0.12 0.12 0.12</size></box></geometry>
+        <geometry><box><size>0.06 0.06 0.06</size></box></geometry>
       </collision>
       <visual name="visual">
-        <geometry><box><size>0.12 0.12 0.12</size></box></geometry>
+        <geometry><box><size>0.06 0.06 0.06</size></box></geometry>
         <material><ambient>0.9 0.3 0.1 1</ambient><diffuse>0.9 0.3 0.1 1</diffuse></material>
       </visual>
     </link>

@@ -243,6 +243,10 @@ def main():
     for n in names:
         if n not in cfg['scenarios']:
             sys.exit(f'未知工况 "{n}"，可选: {list(cfg["scenarios"])}')
+        # 垂直堆叠(mode=stack_drop)不适用 3D 通用规划器，--all 时跳过并提示用 stack_run.py
+        if args.all and cfg['scenarios'][n].get('mode') == 'stack_drop':
+            print(f'== 工况 {n} ==\n  (垂直堆叠场景，已跳过；请用 tools/stack_run.py 跑)\n')
+            continue
         if args.mc:
             run_mc(cfg, n)
         elif args.controller_compare:

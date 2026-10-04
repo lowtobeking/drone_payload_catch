@@ -14,6 +14,8 @@
 **新增 M6「垂直堆叠投放」**（A 严格在 B 正上方释放、B 温和下潜软着陆、刚性漏斗捕获）：
 **离线层（200/200）+ SITL 端到端均已完成**（`*** STACK CAPTURED ***`，载荷骑在漏斗上被带走，
 保持 6s 后 A/B **各自飞到分开的着陆点**（A≈[-4,0]、B≈[5,0]，相距~8.5m）自动降落，任务以“两机落地”结束）；
+**新增 M6-moving「编队同速投放」**（两机先到同一投影点 → 同向同速 0.5m/s 巡航 → 运动中释放，
+物块经 DetachableJoint 继承 A 速度）：**无窗口 SITL 3/3 稳定捕获**（GUI 因渲染负载偶发 A 端 failsafe）；
 **未做**：真漏斗（当前是实心圆锥盘）、真机。
 
 ---
@@ -78,10 +80,16 @@ drone_payload_catch/
 ├── launch/catch_launch.py     ← M1 SITL 启动
 ├── launch/catch_stack_launch.py ← M6 垂直堆叠 SITL 启动
 ├── models/payload/            ← Gazebo 载荷模型（0.3kg 小方盒 + odometry 插件）
+├── models/payload_attached/   ← M6-moving：带 DetachableJoint 的挂载型载荷（随 A 飞、分离继承速度）
 ├── models/x500_funnel/        ← M6：x500 + 顶部刚性捕获圆锥（PX4_GZ_MODEL_NAME 附着）
 ├── tools/
 │   ├── offline_run.py         ← 离线体检 CLI（--all/--plot/--sweep-noise/--compare/--controller-compare/--mc）
-│   ├── stack_run.py           ← M6 垂直堆叠投放 CLI（--sweep-dive/--sweep-gap/--mc）
+│   ├── stack_run.py           ← M6 垂直堆叠投放 CLI（--sweep-dive/--sweep-gap/--sweep-wind/--mc/--lead）
+│   ├── handoff_explore.py     ← 交接场景公式推导的数值验证 CLI（静态/动态/机械臂/增速度）
+│   ├── geom_opt.py            ← 鲁棒几何网格搜索（干扰下最大化最坏情况余量）
+│   ├── funnel_model.py        ← 末端机构解析对比（平顶盘/空心锥/主动保持）
+│   ├── drag_reject.py         ← 抗阻力/风扰（二次阻力、阵风）× 估计器对比
+│   ├── gen_funnel_cup.py      ← 生成空心导向锥杯模型（x500_funnel_cup/funnel_cup/funnel_flat）
 │   ├── prebuild_mpc.py        ← 预热 acados MPC（消除 SITL 启动期编译尖峰）
 │   ├── sweep_sitl_difficulty.sh ← SITL 难度扫描
 │   ├── sweep_m6_sitl.sh       ← M6 SITL 难度扫描（10 档，输出 report/m6_sitl_results.md）
@@ -90,6 +98,25 @@ drone_payload_catch/
 ├── run_m6_sitl.sh            ← M6 一键 SITL（B 带漏斗模型、5m 起飞、A 正上方释放）
 └── report/
     ├── env_bringup.md         ← 环境排查全记录（含我在 PX4 上做的改动与回滚清单）
+    ├── survey_and_sim_report.md ← **方向综述 + 完整仿真报告**（新读者先看这个）
+    ├── mission_overview.md    ← **方向总述：被控对象/控制算法/仿真图表**
+    ├── handoff_exploration.md ← **交接深度探索**：静态/动态/机械臂/增速度的公式推导与边界
+    ├── robustness_wind.md     ← **侧风干扰鲁棒性**：速度前馈+预测对正，侧风容忍 1→3.5 m/s
+    ├── m6_robustness_opt.md   ← **鲁棒性优化 II**：KF 估计/自适应下潜/漏斗几何（几何主杠杆）
+    ├── end_effector_bigfunnel.md ← **末端能力**：大漏斗0.30(离线余量×14 + SITL STACK CAPTURED)
+    ├── robust_geometry_and_retention.md ← **鲁棒几何+末端机构**：风下免下潜规则/空心锥/主动保持
+    ├── hover_first_control.md ← **悬停优先控制**：minimal_dive 落到 b_node，SITL a_dive=0 捕获
+    ├── drag_rejection.md      ← **抗阻力/风扰**：二次阻力+阵风；A 端迎风预补偿(w8: 0→40/40)
+    ├── hollow_funnel_cup.md   ← **空心导向锥杯**：建模+SITL（含负结果：敞口杯倾斜不如平盘）
+    ├── active_retention.md    ← **主动保持锁扣**：离线成立(下击暴流100/100)；SITL 落地受阻(负结果)
+    ├── coordination.md        ← **双机协调**：现状/缺口/改进清单(握手/意图/时钟/安全)；含负结果
+    ├── coordination_handshake.md ← **协同释放握手**：B 报就绪→A 释放权威→ack；SITL 验证
+    ├── coordination_validation.md ← **协同协议 SITL 验证**：不变量+安全间隔+无 failsafe（全部通过）
+    ├── optimization_backlog.md ← **后续可优化项总表**（分层+优先级+负结果+Top3）
+    ├── planning_control_opt.md ← **规划/协调+控制优化**：ZEM 终端导引 + 释放前落点余量闸
+    ├── safety_control_review.md ← **保护控制审查**：已有(限幅/keep-out/释放闸) vs 缺口(geofence/看门狗/abort/避碰)
+    ├── safety_supervisor.md    ← **安全监督+飞行终止(kill)**：/safety/kill_a|b + 异常自动 kill；SITL 验证
+    ├── m6_moving_speed.md      ← **M6-moving 加速度**：编队控制优化(死推算参考)+速度边界(2.0✅/3.0❌)
     ├── m5_sitl_results.md     ← M5 难度扫描结果
     └── m6_sitl_results.md     ← M6 SITL 难度扫描结果（2026-09-17）
     └── m6_sitl_mc.md          ← M6 SITL 蒙特卡洛结果（2026-09-17）
@@ -167,6 +194,24 @@ colcon build --packages-select payload_catch
 | M6-SITL | 5m 起飞→对正→释放→下潜→漏斗捕获→**两机分开落地** | ✅ `STACK CAPTURED`；两机落点相距~8.5m，均 `Landing detected`+`Disarmed by landing`；全程 min|A−B|≈0.9m（无碰撞） |
 | M6 sweep | SITL 难度扫描（10 档，`report/m6_sitl_results.md`） | ✅ 9/10：重噪声+不滤波 ❌、其余 ✅。载荷闭环在 σ=0.20 时落点误差 3.7× 改善 |
 | M6 MC | SITL 蒙特卡洛（N=5/档，`report/m6_sitl_mc.md`） | ✅ 标称 5/5；重噪声 滤波4/5 vs 不滤波1/5；释放误差0.20 跟踪5/5 vs 不跟踪1/5；σ=0.30 跟踪5/5 |
+| 交接探索 | 静态/动态/机械臂/增速度公式推导（`report/handoff_exploration.md`） | ✅ 含 apex-catch ≥2g 负结果、反向抛投消速、臂 reach/吸收 |
+| M6 干扰 | 侧风鲁棒：速度前馈 + 预测式对正（`report/robustness_wind.md`） | ✅ 侧风容忍 ~1→~3.5 m/s；噪声下降回 ~1.5 m/s（瓶颈=估计器） |
+| M6 鲁棒 II | KF/增广风KF + 自适应下潜 + 漏斗/机械臂几何（`report/m6_robustness_opt.md`） | ✅ 末端能力主杠杆：臂reach0.10(eff_r.15→.25)侧风11→19/20，臂absorb2修下击暴流0→20/20；自适应修wz6 0→20/20；新增`BallisticDragKF`(估常值风)为最佳估计模式 |
+| M6 末端能力 | 大漏斗 0.20→0.30m：新模型`x500_funnel_big` + `FUNNEL_MOUTH` 参数化（`report/end_effector_bigfunnel.md`） | ✅ 离线捕获余量 min 0.0076→0.1076m(×14)；SITL 标称与加噪声均 `STACK CAPTURED`(horiz 0.028/0.030m)、无 failsafe |
+| 鲁棒几何+末端机构 | `geom_opt.py`/`funnel_model.py`（`report/robust_geometry_and_retention.md`） | ✅ 风下**免下潜规则 `gap≤v_retain²/(2g)`**；wind3 gap0.6/a_dive0 95% vs 标称78%；空心锥提水平/倾角容差，主动保持绕过 v_retain |
+| 悬停优先控制 | `minimal_dive` 落到 `b_node`（`auto_min_dive`，默认 true）（`report/hover_first_control.md`） | ✅ 离线强横风 w=4: 4/30→27/30；SITL 标称 `a_dive=0.00(auto=True)` → `STACK CAPTURED horiz=0.061m`、无 failsafe |
+| 抗阻力/风扰 | 二次阻力+阵风；A 端迎风预补偿 `a_wind_comp`（`report/drag_rejection.md`） | ✅ 估计器二阶(阵风良性/载荷低通)；**迎风预补偿(w8:0→40/40, 二次k.5:1→40/40)**，方向必须准、大小±30%宽容 |
+| 空心导向锥杯 | `x500_funnel_cup` + `FUNNEL_TYPE=cup`（`report/hollow_funnel_cup.md`） | ✅ SITL 捕获；⚠️**负结果：敞口杯倾斜 25° 即滚出 vs 平盘摩擦 45°**；杯价值在导向/侧向兜接，保持/倾角需主动锁扣 |
+| 主动保持锁扣 | 离线 `M6_stack_lock`(arm_absorb) + SITL `PAYLOAD_LOCK=1`（`report/active_retention.md`） | ✅ 离线：锁扣=去掉 v_retain，下击暴流 wz=8 仍 100/100；✅ **SITL：捕获时就地重生成载荷到 B 漏斗，锁定→随 B 携带→落地**（根因：`DetachableJoint` configure 即建关节，不可远处 spawn） |
+| 双机协调 | `rendezvous.solve_cooperative` + 协议分析（`report/coordination.md`） | ✅ 现状=单向/A被动；改进=握手/意图/时钟/安全；⚠️**负结果：A 小幅释放偏移与 t_r 冗余（δ*=0）**，协同价值在协议与 A 的速度/高度配合 |
+| 协同释放握手 | `coord_mode=handshake`（`a_node`/`b_node` + `/drone_b/ready` + `/drone_a/release_cmd` + `/drone_a/intent` + 时钟同步 `/coord/ping|pong` + 释放门限）（`report/coordination_handshake.md`） | ✅ **SITL：B 报就绪→A 作释放权威（精确自身状态）→ack→B 下潜→`STACK CAPTURED`**；含往返**时钟同步**(offset≈0/rtt0.5ms 换算 t_rel) 与释放前一致性门限；默认 direct 保留 |
+| 编队握手+意图 | M6-moving FORMATION 握手 + `/drone_a/intent` 升级为**预测落点**（`use_intent`/`WIND_EST`）（`report/coordination_handshake.md`） | ✅ SITL：`/formation/start`→FORMATION→**A 释放权威**→DIVE→`STACK CAPTURED horiz=0.040m`；意图落点(风漂移) SITL no-op 验证；**ack 改为原子事件**（不再依赖瞬时对齐） |
+| 安全层 + PX4风 | keep-out=`min_ab_gap+kσ`（在线估 σ）+ 释放后 A 定向清场；`use_px4_wind`（订阅 `/fmu/out/wind`）（`report/coordination_handshake.md` §4d） | ✅ SITL：`SAFETY_FLOOR=0.2` 时 `WAIT_A clear=1.37≥gap_eff=1.2`、B 保持更低、`A: 开始定向清场`、`STACK CAPTURED horiz=0.010m`；PX4 风 hookup 不报错（x500 无空速，风估计可能恒 0，`wind_est` 作兼底） |
+| 协同协议验证 | `tools/validate_coord.py`（`report/coordination_validation.md`） | ✅ 3 组配置（标称/噪声+安全/编队）**全部通过**：捕获、就绪→释放→ack 顺序、单次释放、min\|A−B\|≥1.0m、无 failsafe |
+| 规划/协调+控制优化 | ZEM 终端导引(`zem_gain`) + 释放前落点余量闸（`report/planning_control_opt.md`） | ✅ 离线：ZEM 临界风 w4 28→36/40、w5 13→22/40（`zem≈1`）；SITL `COORD=handshake ZEM=0.8` → `STACK CAPTURED horiz=0.055m`、无 failsafe |
+| 安全监督(kill) | `px4_iface` 安全监督：`/safety/kill_a|b` 外部 kill + 异常(姿态/越界/状态超时)持续自动 kill（`MAV_CMD_DO_FLIGHTTERMINATION`）（`report/safety_supervisor.md`） | ✅ SITL：发 `/safety/kill_b` → B `Flight termination active`（动力切），**A 不受影响**（计数 0） |
+| M6-moving 加速度 | 编队控制优化（死推算参考+稳释放门限）+ 空心杯保持 + **及时释放/超时保护** + 多重复验证（`report/m6_moving_speed.md`） | ✅ **支持速度 0.5/1.0 m/s 各 2/2 完美**（捕获+保持+双机落地、无 failsafe）；✅ **及时释放**（编队 ~3.5s 即捕获，之前 10–20s）+ **超时中止**（不投、A 保留载荷、双机安全落地）；**2.0 m/s 保留、不再优化** |
+| M6-moving | 编队同速投放（同一投影点→同向同速巡航→运动中释放，物块继承 A 速度） | ✅ 无窗口 SITL 3/3（`STACK CAPTURED horiz 0.108–0.128m`，物块随漏斗落地）；GUI 偶发平台 failsafe |
 | 真机 | — | ❌ 未做 |
 
 **SITL 难度扫描结果**（`report/m5_sitl_results.md`，MPC 控制器）：
@@ -241,6 +286,24 @@ colcon build --packages-select payload_catch
     另：`min_relA` 由**估计值**算出，重噪声下会虚低（T3n 显示 0.481，实际 ~1m），别当碰撞。
 18. **M6 参数已全部参数化到 launch**（可 `ros2 launch payload_catch catch_stack_launch.py rel_pos_sigma:=0.1` 覆盖）；
     扫描脚本 `tools/sweep_m6_sitl.sh` 每档重启 gz+PX4；首轮 `pkill` 竞态会令“双机未 READY”，脚本已自动重试。
+19. **M6-moving（编队同速投放，`FORMATION_VEL`≠0）的两个专用坑**：
+    - 挂载型载荷 `models/payload_attached` 的 `DetachableJoint` **在模型 configure 时就建关节**；
+      载荷必须在 **A 正下方生成**（`_spawn_attached`），且**不可再发 attach**，否则叠加第二个
+      固定关节 → 过约束 → 分离瞬间物块被甩飞（实测 ~6.8 m/s）。只需在释放时发 detach。
+    - B 的 `FORMATION` 高度控制符号：`vz = -kp*(alt_target - (-pos_z))`（与 `hover_velocity` 一致）。
+      写反会变成正反馈 → B 一路爬升撞上 A 下方挂的载荷。仿写控制律时务必对 NED 符号。
+    - 挂载后 A 下方物块与 B 漏斗顶部只有 ~0.5m 间隙，B 必须严格 ≤ A−`min_ab_gap`。
+20. **M6-moving “接不住”的四个真因（已修，记下来）**：
+    1) **捕获误触发**：物块还在 A 上/刚分离就满足漏斗口窗口 → B 切 DONE 停止跟踪，物块真下落后漏接。
+       修：DIVE “重锚”——未检测到物块下落（`vz>dive_anchor_vz`）就**原地悬停等**，不早下潜；
+       捕获窗口改为漏斗口上下 `±catch_z_tol`。
+    2) **DIVE 等待期用 `standby` 悬停**：编队模式下 B 已在 x≈几米处，控制器把它拉回**原点**，
+       导致与物块擦肩。修：改为**在原地（当前 pos）悬停**。
+    3) **物块与 A 起落架干涉**：A 起落架下伸 ~0.23m，`RELEASE_Z=0.30` 时物块与腿只剩 ~0.04m，
+       挂载期间接触力积累 → 分离瞬间被弹飞。修：`RELEASE_Z=0.45` + A/B 间距拉到 1.7m（A 5.0/B 3.3）。
+    4) **横向 P 增益过大**：相对定位 EMA/延迟下 `stack_kp_xy=2.5` 产生速度振荡（0.02↔0.83），
+       对正/跟踪都不稳。修：降到 **1.2**，且编队/DIVE **跟踪 A**（无释放误差）而非带噪的物块估计。
+    另：独立物理试验确认 gz 漏斗（cone roll=π）确实是**平顶盘**、能接住垂直下落的物块。
 
 ---
 

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  x500_funnel_big —— 与 x500_funnel 相同的“标准 x500 + 顶部刚性捕获圆锥”，
+  但**口半径从 0.20m 加大到 0.30m**（有效捕获半径 0.15 → 0.25m）。
+
+  动机（见 report/m6_robustness_opt.md）：M6 捕获余量极小（min ~0.0036m），
+  而“末端能力 eff_r”是压倒性的第一杠杆（口半径 0.16→0.36 使侧风 w=2 从 3/20→20/20）。
+  本模型把物理口半径加大，用于 SITL 验证该杠杆。
+
+  几何（相对 model frame；x500_base 的 base_link 在 z=0.24）：
+    · funnel_link 在 z=0.38；宽口朝上的圆锥（roll=π），半径 0.30、长 0.14
+      → 口平面 z≈0.45（≈ base_link 上方 0.21m），锥底(尖) z≈0.31，正好在桨盘之上。
+    · 低恢复系数接触面 → 载荷落上去不弹飞。
+-->
+<sdf version='1.9'>
+  <model name='x500_funnel_big'>
+    <include merge='true'>
+      <uri>model://x500</uri>
+    </include>
+
+    <link name="funnel_link">
+      <pose>0 0 0.38 0 0 0</pose>
+      <inertial>
+        <mass>0.05</mass>
+        <inertia>
+          <ixx>2.0e-4</ixx><iyy>2.0e-4</iyy><izz>2.0e-4</izz>
+          <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+        </inertia>
+      </inertial>
+      <collision name="funnel_collision">
+        <pose>0 0 0 3.14159265 0 0</pose>
+        <geometry>
+          <cone><radius>0.30</radius><length>0.14</length></cone>
+        </geometry>
+        <surface>
+          <friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction>
+          <bounce><restitution_coefficient>0.05</restitution_coefficient></bounce>
+        </surface>
+      </collision>
+      <visual name="funnel_visual">
+        <pose>0 0 0 3.14159265 0 0</pose>
+        <geometry>
+          <cone><radius>0.30</radius><length>0.14</length></cone>
+        </geometry>
+        <material>
+          <ambient>0.85 0.55 0.15 1</ambient>
+          <diffuse>0.85 0.55 0.15 1</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="funnel_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>funnel_link</child>
+    </joint>
+  </model>
+</sdf>

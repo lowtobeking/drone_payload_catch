@@ -4,12 +4,74 @@
 # 用法: bash ~/drone_payload_catch/run_m6_sitl.sh [运行秒数, 默认 70]
 set +u
 RUN_S="${1:-70}"
-A_HOVER="${A_HOVER:-0.0,0.0,-4.5}"          # A 悬停/释放点（世界 NED）
-B_STANDBY="${B_STANDBY:-0.0,0.0,-3.5}"      # B 待命点（世界 NED，A 正下方）
 B_OFFSET="${B_OFFSET:-5.0,0.0,0.0}"         # B 的 PX4 原点在世界 NED（= 地面 5m 间距）
 B_POSE_ENU="${B_POSE_ENU:-0,5.0,0,0,0,0}"   # B 的 Gazebo 出生 ENU（y=5 → NED north=5）
-RELEASE_OFFSET="${RELEASE_OFFSET:-0.0,0.0,0.15}"   # 载荷相对 A 的释放偏移（NED，向下 0.15m）
+
+# 编队同速投放（M6-moving）：FORMATION_VEL 非零即启用
+FORMATION_VEL="${FORMATION_VEL:-0.0,0.0,0.0}"
+if [ "$FORMATION_VEL" = "0.0,0.0,0.0" ] || [ "$FORMATION_VEL" = "0,0,0" ]; then
+  ATTACH=false
+  PAYLOAD_MODEL="$HOME/drone_payload_catch/models/payload/model.sdf"
+  RELEASE_Z="${RELEASE_Z:-0.15}"
+  A_HOVER="${A_HOVER:-0.0,0.0,-4.5}"
+  B_STANDBY="${B_STANDBY:-0.0,0.0,-3.5}"
+else
+  ATTACH=true
+  PAYLOAD_MODEL="$HOME/drone_payload_catch/models/payload_attached/model.sdf"
+  RELEASE_Z="${RELEASE_Z:-0.45}"
+  A_HOVER="${A_HOVER:-0.0,0.0,-5.0}"
+  B_STANDBY="${B_STANDBY:-0.0,0.0,-3.3}"
+fi
+RELEASE_OFFSET="0.0,0.0,$RELEASE_Z"                # 载荷相对 A 的释放偏移（NED，向下）
 LAUNCH_EXTRA="${LAUNCH_EXTRA:-}"                    # 额外 launch 参数（供扫描/试验覆盖）
+
+# 协同释放握手：COORD=handshake 时 B 报就绪、A 作释放权威并 ack。
+COORD="${COORD:-direct}"
+[ "$COORD" = "handshake" ] && LAUNCH_EXTRA="coord_mode:=handshake $LAUNCH_EXTRA"
+# 意图升级：WIND_EST="wx,wy,wz" 时 A 广播预测落点（含风漂移），B 对齐落点。
+WIND_EST="${WIND_EST:-}"
+[ -n "$WIND_EST" ] && LAUNCH_EXTRA="use_intent:=true wind_est:=[$WIND_EST] $LAUNCH_EXTRA"
+# 安全层：SAFETY_FLOOR 给定 σ 下限 (m)，keep-out = min_ab_gap + 2σ。
+SAFETY_FLOOR="${SAFETY_FLOOR:-}"
+[ -n "$SAFETY_FLOOR" ] && LAUNCH_EXTRA="rel_sigma_floor:=$SAFETY_FLOOR $LAUNCH_EXTRA"
+# PX4 风估计：PX4_WIND=1 时 A 订阅 /fmu/out/wind，并用其预测落点（同时开 use_intent）。
+PX4_WIND="${PX4_WIND:-0}"
+[ "$PX4_WIND" = "1" ] && LAUNCH_EXTRA="use_px4_wind:=true use_intent:=true $LAUNCH_EXTRA"
+# 控制：ZEM 终端导引增益。
+ZEM="${ZEM:-}"
+[ -n "$ZEM" ] && LAUNCH_EXTRA="zem_gain:=$ZEM $LAUNCH_EXTRA"
+
+# 主动保持（B 侧锁扣）：PAYLOAD_LOCK=1 时用带 DetachableJoint 的载荷模型，
+# 捕获后 b_node 请求把载荷锁到 B 的漏斗 link。
+PAYLOAD_LOCK="${PAYLOAD_LOCK:-0}"
+LOCK_EXTRA=""
+if [ "$PAYLOAD_LOCK" = "1" ]; then
+  # 初始仍用普通载荷（自由落体）；捕获时 payload_node 在 B 漏斗处重生成带关节的载荷
+  LOCK_EXTRA="lock_to_b:=true lock_model_path:=$HOME/drone_payload_catch/models/payload_lock/model.sdf"
+fi
+
+# 末端能力：FUNNEL_TYPE=flat(默认)/cup(空心导向锥杯)；FUNNEL_MOUTH 指定口半径。
+#   flat + 0.20   → x500_funnel（实心平顶盘）
+#   flat + >0.20  → x500_funnel_big（大平顶盘）
+#   cup           → x500_funnel_cup（空心锥杯：导向+保持）
+#   例：FUNNEL_TYPE=cup bash run_m6_sitl.sh 70
+FUNNEL_TYPE="${FUNNEL_TYPE:-flat}"
+if [ "$FUNNEL_TYPE" = "cup" ]; then
+  FUNNEL_MOUTH="${FUNNEL_MOUTH:-0.30}"
+  FUNNEL_SDF="${FUNNEL_SDF:-$HOME/drone_payload_catch/models/x500_funnel_cup/model.sdf}"
+elif [ "${FUNNEL_MOUTH:-0.20}" = "0.20" ]; then
+  FUNNEL_MOUTH="0.20"
+  FUNNEL_SDF="${FUNNEL_SDF:-$HOME/drone_payload_catch/models/x500_funnel/model.sdf}"
+else
+  FUNNEL_SDF="${FUNNEL_SDF:-$HOME/drone_payload_catch/models/x500_funnel_big/model.sdf}"
+fi
+if [ "$FUNNEL_MOUTH" = "0.20" ]; then
+  FUNNEL_EFF="0.14"
+  FUNNEL_EXTRA=""
+else
+  FUNNEL_EFF=$(python3 -c "print(round(float('$FUNNEL_MOUTH')-0.05,3))")
+  FUNNEL_EXTRA="funnel_mouth_radius:=$FUNNEL_MOUTH funnel_eff_radius:=$FUNNEL_EFF"
+fi
 BASE="$HOME/payload_catch_ws"
 D="$HOME/payload_catch_m6"; mkdir -p "$D"; rm -f "$D"/*.log
 source "$HOME/drone_payload_catch/env.sh"
@@ -33,9 +95,9 @@ IFS=',' read -r BPX BPY BPZ _ <<< "$B_POSE_ENU"
 for i in "${!POSES[@]}"; do
   if [ "$i" -eq 1 ]; then
     # B：先手动 create 带刚性漏斗的 x500_funnel（实体名 x500_funnel_1），再让 PX4 attach
-    echo "  create B 模型 x500_funnel_1 @ENU ($BPX,$BPY,$BPZ)"
+    echo "  create B 模型 x500_funnel_1 @ENU ($BPX,$BPY,$BPZ)  sdf=$FUNNEL_SDF"
     gz service -s /world/default/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean --timeout 5000 \
-      --req "sdf_filename: \"$HOME/drone_payload_catch/models/x500_funnel/model.sdf\", name: \"x500_funnel_1\", allow_renaming: false, pose: { position: { x: ${BPX:-0}, y: ${BPY:-0}, z: ${BPZ:-0} } }" >/dev/null 2>&1
+      --req "sdf_filename: \"$FUNNEL_SDF\", name: \"x500_funnel_1\", allow_renaming: false, pose: { position: { x: ${BPX:-0}, y: ${BPY:-0}, z: ${BPZ:-0} } }" >/dev/null 2>&1
     sleep 2
     PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL=x500 PX4_GZ_MODEL_NAME=x500_funnel_1 \
       ./build/px4_sitl_default/bin/px4 -d -i "$i" < /dev/null > "$HOME/px4_logs/px4_$i.log" 2>&1 &
@@ -59,12 +121,15 @@ echo "  就绪后再等 8s 让 EKF 稳定"; sleep 8
 echo "### launch payload_catch M6（A/B/payload）"
 timeout $((RUN_S + 40)) ros2 launch payload_catch catch_stack_launch.py \
   a_hover:="[$A_HOVER]" b_standby:="[$B_STANDBY]" b_offset:="[$B_OFFSET]" \
-  release_offset:="[$RELEASE_OFFSET]" $LAUNCH_EXTRA > "$D/launch.log" 2>&1 &
+  release_offset:="[$RELEASE_OFFSET]" payload_release_offset:=$RELEASE_Z \
+  formation_vel:="[$FORMATION_VEL]" attach_to_a:=$ATTACH model_path:=$PAYLOAD_MODEL \
+  $FUNNEL_EXTRA $LOCK_EXTRA $LAUNCH_EXTRA > "$D/launch.log" 2>&1 &
+echo "  funnel: mouth=$FUNNEL_MOUTH eff=$FUNNEL_EFF" >&2
 sleep "$RUN_S"
 
 echo "### 结果"
 echo "--- 关键事件 ---"
-grep -aE "MODE=stack|CLIMB done|WAIT_A done|TRANSLATE done|ALIGNED|DIVE plan|PAYLOAD RELEASED|STACK CAPTURED|LAND：" "$D/launch.log" | tail -10
+grep -aE "MODE=stack|formation_vel|CLIMB done|WAIT_A done|TRANSLATE done|ALIGNED|/formation/start|FORMATION aligned|已与 A 分离|DIVE plan|PAYLOAD RELEASED|STACK CAPTURED|LAND：" "$D/launch.log" | tail -12
 echo "--- B/载荷 末尾 ---"; grep -aE "B phase=" "$D/launch.log" | tail -4
 echo "--- px4 events ---"; for i in 0 1; do echo "px4_$i:"; grep -aE "Ready for takeoff|Armed by|Takeoff detected|Failsafe" "$HOME/px4_logs/px4_$i.log" | tail -3; done
 
