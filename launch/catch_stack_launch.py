@@ -53,6 +53,11 @@ def generate_launch_description():
         'sensor_eph_max': '0.50', 'sensor_epv_max': '0.50',
         'sensor_reset_hold_s': '1.0',
         'sensor_watchdog_heading': 'false',
+        # 姿态/角速率约束
+        'attitude_constraint_enable': 'true',
+        'tilt_soft_deg': '25.0', 'tilt_hard_deg': '40.0',
+        'rate_soft_dps': '150.0', 'rate_hard_dps': '300.0',
+        'accel_h_max': '5.0',
         'align_xy_tol': '0.12', 'align_vel_tol': '0.20', 'align_alt_tol': '0.20',
         'align_hold_s': '0.6', 'release_lead': '0.20',
         'commit_hold_s': '0.20',      # A 就绪门限需持续多久才提交释放
@@ -139,6 +144,10 @@ def generate_launch_description():
                           'sensor_epv_max': _f('sensor_epv_max'),
                           'sensor_reset_hold_s': _f('sensor_reset_hold_s'),
                           'sensor_watchdog_heading': _b('sensor_watchdog_heading'),
+                          'attitude_constraint_enable': _b('attitude_constraint_enable'),
+                          'tilt_soft_deg': _f('tilt_soft_deg'), 'tilt_hard_deg': _f('tilt_hard_deg'),
+                          'rate_soft_dps': _f('rate_soft_dps'), 'rate_hard_dps': _f('rate_hard_dps'),
+                          'accel_h_max': _f('accel_h_max'),
                           'commit_hold_s': _f('commit_hold_s'),
                           'auto_land': True, 'land_after_catch_s': _f('land_after_catch_s'),
                           'land_xy': [-4.0, 0.0], 'land_xy_tol': _f('land_xy_tol')}])
@@ -198,6 +207,10 @@ def generate_launch_description():
                  'sensor_epv_max': _f('sensor_epv_max'),
                  'sensor_reset_hold_s': _f('sensor_reset_hold_s'),
                  'sensor_watchdog_heading': _b('sensor_watchdog_heading'),
+                 'attitude_constraint_enable': _b('attitude_constraint_enable'),
+                 'tilt_soft_deg': _f('tilt_soft_deg'), 'tilt_hard_deg': _f('tilt_hard_deg'),
+                 'rate_soft_dps': _f('rate_soft_dps'), 'rate_hard_dps': _f('rate_hard_dps'),
+                 'accel_h_max': _f('accel_h_max'),
                  'adaptive_dive': _b('adaptive_dive'),
                  'adaptive_alt_floor': _f('adaptive_alt_floor'),
                  'px4_z_bias': _f('px4_z_bias'), 'catch_z_tol': _f('catch_z_tol'),

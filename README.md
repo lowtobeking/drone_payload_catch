@@ -341,6 +341,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `report/opt_round2.md` | **优化第二轮**：分级安全状态机(HOLD/PULLBACK/LAND/KILL) + 加速度前馈/速率限幅 + σ共享 + 释放提交/取消窗口 + 3D keep-out + 在线自适应下潜 |
 | `report/opt_round3.md` | **优化第三轮（安全硬化）**：安全指令绕过速率限幅 + 围栏软限幅 + 安全状态进日志 |
 | `report/opt_round4.md` | **优化第四轮（传感器约束）**：用 PX4 EKF 已有 `eph/epv` 作 σ + 健康/一致性看门狗 + 估计器限值 |
+| `report/opt_round5.md` | **优化第五轮（姿态约束）**：IMU 倾角/角速率 → 安全滤波（水平指令衰减 + 加速度限额），对标姿态 failsafe 边界 |
 | `report/planning_control_opt.md` | **规划/协调 + 控制优化**：ZEM 终端导引 + 释放前落点余量闸 |
 | `report/safety_control_review.md` | **保护控制审查**：已有（限幅/keep-out/释放闸）vs 缺口（geofence/看门狗/abort/避碰） |
 | `report/safety_supervisor.md` | **安全监督 + 飞行终止(kill)**：外部 `/safety/kill_a|b` + 异常自动 kill；SITL 验证 |

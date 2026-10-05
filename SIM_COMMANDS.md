@@ -309,6 +309,10 @@ bash ~/drone_payload_catch/run_m1_sitl.sh      # M1 水平会合
 | `sensor_use_est_limits` | true | 用估计器限值 `vxy_max/vz_max/hagl_min` |
 | `sensor_eph_max` / `sensor_epv_max` / `sensor_reset_hold_s` | 0.50 / 0.50 / 1.0 | σ 上限 / 跳变保持 |
 | `sensor_watchdog_heading` | false | 航向可用性也当硬约束（本仿真常 false） |
+| `attitude_constraint_enable` | true | 姿态/角速率安全滤波 |
+| `tilt_soft_deg` / `tilt_hard_deg` | 25 / 40 | 倾角软/硬限（度） |
+| `rate_soft_dps` / `rate_hard_dps` | 150 / 300 | 角速率软/硬限（deg/s） |
+| `accel_h_max` | 5.0 | 水平指令加速度上限 (m/s²) |
 
 ```bash
 # 示例：自适应下潜 + 释放提交窗口（handshake）

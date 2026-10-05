@@ -96,6 +96,13 @@ class Px4Drone(Node):
         self.declare_parameter('sensor_epv_max', 0.50)             # 垂直位置 σ 上限 (m)
         self.declare_parameter('sensor_reset_hold_s', 1.0)         # 估计器跳变后保持多久 (s)
         self.declare_parameter('sensor_watchdog_heading', False)   # 航向可用性也当硬约束（本仿真常 false，默认关）
+        # ── 姿态/角速率约束（IMU→安全滤波，全部来自已订阅的 attitude/local_position）──
+        self.declare_parameter('attitude_constraint_enable', True)
+        self.declare_parameter('tilt_soft_deg', 25.0)     # 倾角软限：超过则衰减水平指令
+        self.declare_parameter('tilt_hard_deg', 40.0)     # 倾角硬限：达到则水平指令=0
+        self.declare_parameter('rate_soft_dps', 150.0)    # 角速率软限 (deg/s)
+        self.declare_parameter('rate_hard_dps', 300.0)    # 角速率硬限 (deg/s)
+        self.declare_parameter('accel_h_max', 5.0)        # 水平指令加速度上限 (m/s²)
         self.drone_id = int(self.get_parameter('drone_id').value)
         self.hz = float(self.get_parameter('control_hz').value)
         self.auto_arm = bool(self.get_parameter('auto_arm').value)
@@ -150,6 +157,15 @@ class Px4Drone(Node):
         self.sensor_epv_max = float(self.get_parameter('sensor_epv_max').value)
         self.sensor_reset_hold_s = float(self.get_parameter('sensor_reset_hold_s').value)
         self.sensor_watchdog_heading = bool(self.get_parameter('sensor_watchdog_heading').value)
+        self.attitude_constraint_enable = bool(self.get_parameter('attitude_constraint_enable').value)
+        self.tilt_soft = math.radians(float(self.get_parameter('tilt_soft_deg').value))
+        self.tilt_hard = math.radians(float(self.get_parameter('tilt_hard_deg').value))
+        self.rate_soft = math.radians(float(self.get_parameter('rate_soft_dps').value))
+        self.rate_hard = math.radians(float(self.get_parameter('rate_hard_dps').value))
+        self.accel_h_max = float(self.get_parameter('accel_h_max').value)
+        self._last_att = None          # (roll, pitch, yaw, t) 供角速率差分
+        self._ang_rate = 0.0           # 角速率（最大分量，rad/s）
+        self._att_gov = 1.0            # 上一次姿态约束缩放因子（1=未限制）
         self._lpos_valid = False
         self._eph = 0.0
         self._epv = 0.0
@@ -225,8 +241,19 @@ class Px4Drone(Node):
         self._reset_counters = counters
 
     def _on_att(self, msg):
-        self._yaw = yaw_from_quat(msg.q)
-        self._roll, self._pitch = roll_pitch_from_quat(msg.q)
+        yaw = yaw_from_quat(msg.q)
+        roll, pitch = roll_pitch_from_quat(msg.q)
+        # 角速率：对角姿态时间序列做有限差分（vehicle_angular_velocity 在本 RMW 未发布）
+        now = self.get_clock().now().nanoseconds * 1e-9
+        if self._last_att is not None:
+            dt = max(now - self._last_att[3], 1e-3)
+            d = np.array([roll - self._last_att[0], pitch - self._last_att[1],
+                          yaw - self._last_att[2]])
+            d = (d + np.pi) % (2.0 * np.pi) - np.pi      # 角度回绕
+            self._ang_rate = float(np.max(np.abs(d)) / dt)
+        self._last_att = (roll, pitch, yaw, now)
+        self._yaw = yaw
+        self._roll, self._pitch = roll, pitch
         self._att_ok = True
 
     # ------------------------------------------------------------ 安全监督
@@ -299,6 +326,39 @@ class Px4Drone(Node):
             v[:2] *= vmax / n
         v[2] = float(np.clip(v[2], -vmax, vmax))
         return v
+
+    @staticmethod
+    def _scale01(x: float, soft: float, hard: float) -> float:
+        """软/硬限之间的线性缩放：x≤soft→1，x≥hard→0。"""
+        if hard <= soft:
+            return 1.0 if x <= soft else 0.0
+        return float(np.clip((hard - x) / (hard - soft), 0.0, 1.0))
+
+    def _attitude_govern(self, v: np.ndarray):
+        """姿态/角速率约束（安全滤波）：用当前倾角/角速率衰减水平速度指令。
+
+        - 倾角越接近硬限，水平指令衰减越多（到硬限=0，让姿态控制器回正）；
+        - 角速率高时同样衰减；
+        - 水平指令的**变化率**（即指令加速度）限额，且姿态越差额度越小。
+        仅作用于水平方向，不改垂直；返回 (v, scale)。
+        """
+        v = v.copy()
+        if (not self.attitude_constraint_enable) or (not self._att_ok):
+            return v, 1.0
+        tilt = max(abs(self._roll), abs(self._pitch))
+        s_tilt = self._scale01(tilt, self.tilt_soft, self.tilt_hard)
+        s_rate = self._scale01(self._ang_rate, self.rate_soft, self.rate_hard)
+        s = min(s_tilt, s_rate)
+        if s < 1.0:
+            v[:2] *= s
+        # 水平指令加速度限额（姿态越差额度越小）
+        if self.accel_h_max > 0.0 and self._last_vsp is not None:
+            dv = v[:2] - np.asarray(self._last_vsp, float)[:2]
+            n = float(np.linalg.norm(dv))
+            max_dv = self.accel_h_max / max(self.hz, 1e-6) * max(s_tilt, 0.15)
+            if n > max_dv and n > 1e-9:
+                v[:2] = np.asarray(self._last_vsp, float)[:2] + dv * (max_dv / n)
+        return v, s
 
     def _sensor_health_reasons(self, now: float) -> list:
         """基于 PX4 已有 EKF 字段的健康/一致性约束（返回异常原因）。
@@ -469,6 +529,11 @@ class Px4Drone(Node):
             if math.isfinite(self._est_vz_max):
                 v[2] = float(np.clip(v[2], -self._est_vz_max, self._est_vz_max))
             vel_ned = v
+        # 姿态/角速率约束（安全滤波）：只在正常态生效，不改安全指令
+        if self._safety_state == 'OK':
+            vel_ned, self._att_gov = self._attitude_govern(np.asarray(vel_ned, float))
+        else:
+            self._att_gov = 1.0
         self._last_vsp = np.asarray(vel_ned, float).copy()
         m = TrajectorySetpoint()
         m.position = [float('nan')] * 3

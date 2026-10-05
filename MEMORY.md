@@ -120,6 +120,7 @@ drone_payload_catch/
     ├── opt_round2.md          ← **优化第二轮**：安全状态机/加速度前馈/σ共享/释放提交取消/3Dkeepout/自适应下潜
     ├── opt_round3.md          ← **优化第三轮（安全硬化）**：安全指令绕过限幅/围栏软限幅/安全状态进日志
     ├── opt_round4.md          ← **优化第四轮（传感器约束）**：EKF σ(eph/epv)/健康看门狗/估计器限值
+    ├── opt_round5.md          ← **优化第五轮（姿态约束）**：倾角/角速率→安全滤波(水平衰减+加速度限额)
     ├── planning_control_opt.md ← **规划/协调+控制优化**：ZEM 终端导引 + 释放前落点余量闸
     ├── safety_control_review.md ← **保护控制审查**：已有(限幅/keep-out/释放闸) vs 缺口(geofence/看门狗/abort/避碰)
     ├── safety_supervisor.md    ← **安全监督+飞行终止(kill)**：/safety/kill_a|b + 异常自动 kill；SITL 验证
@@ -220,6 +221,7 @@ colcon build --packages-select payload_catch
 | 优化第二轮 | 安全分级状态机(OK/HOLD/PULLBACK/LAND/KILL) + 越界回拉；DIVE 加速度前馈(PX4 `trajectory_setpoint.acceleration`)；B 在线 σ 共享给 A 释放闸；释放提交窗口+lead 窗口取消；3D 反应式 keep-out；在线自适应下潜（`report/opt_round2.md`） | ✅ 单元+多轮 SITL：标称 `STACK CAPTURED horiz 0.008–0.080m`、双机落地、无 failsafe；越界 `PULLBACK`、丢状态 `HOLD`（自愈） |
 | 优化第三轮 | 安全硬化：安全指令绕过 `sp_rate_limit`；围栏改 `_fence_velocity` 软限幅（保留切向、消除与任务互顶）；`safe=` 进周期日志（`report/opt_round3.md`） | ✅ 单元 5 项 + SITL（围栏 3m 稳定、标称 `horiz=0.018m` 无 failsafe） |
 | 优化第四轮 | 传感器/估计器约束（零新硬件）：用 `vehicle_local_position` 未用字段 — `eph/epv` 作 σ、健康/一致性看门狗(`dead_reckoning`/valid/`reset_counter`)、估计器限值(`vxy_max/vz_max/hagl_min`)（`report/opt_round4.md`） | ✅ 单元 5 项 + SITL（启动期 `estimator_reset`→1s HOLD 自愈、标称 `horiz=0.034m` 无 failsafe） |
+| 优化第五轮 | 姿态/角速率约束（IMU→安全滤波）：倾角/角速率衰减水平指令 + 水平指令加速度限额；对标 `v_p≈4.9` 姿态 failsafe（`report/opt_round5.md`） | ✅ 单元 5 项 + SITL（标称 `att=1.00` 全程不误触发、`horiz=0.032m` 无 failsafe） |
 | M6-moving 加速度 | 编队控制优化（死推算参考+稳释放门限）+ 空心杯保持 + **及时释放/超时保护** + 多重复验证（`report/m6_moving_speed.md`） | ✅ **支持速度 0.5/1.0 m/s 各 2/2 完美**（捕获+保持+双机落地、无 failsafe）；✅ **及时释放**（编队 ~3.5s 即捕获，之前 10–20s）+ **超时中止**（不投、A 保留载荷、双机安全落地）；**2.0 m/s 保留、不再优化** |
 | M6-moving | 编队同速投放（同一投影点→同向同速巡航→运动中释放，物块继承 A 速度） | ✅ 无窗口 SITL 3/3（`STACK CAPTURED horiz 0.108–0.128m`，物块随漏斗落地）；GUI 偶发平台 failsafe |
 | 真机 | — | ❌ 未做 |

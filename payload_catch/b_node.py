@@ -451,7 +451,8 @@ class BNode(Px4Drone):
             ra = None if self.a_est is None else round(float(np.linalg.norm(self.a_est - self.pos_world)), 3)
             mr = None if self._min_relA == float('inf') else round(self._min_relA, 3)
             self.get_logger().info(
-                f'B phase={self.phase} safe={self._safety_state} pos_w={self.pos_world.round(2)} '
+                f'B phase={self.phase} safe={self._safety_state} att={self._att_gov:.2f} '
+                f'pos_w={self.pos_world.round(2)} '
                 f'vel={self.vel.round(2)} '
                 f'relA={ra} min_relA={mr} pay={pp} caught={self.caught}')
         if self.mode == 'stack':
