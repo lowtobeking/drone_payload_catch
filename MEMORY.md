@@ -344,6 +344,8 @@ colcon build --packages-select payload_catch
 ## 10. 提交历史（git log，自上而下）
 
 ```
+e574d32 feat: 姿态/角速率约束第五轮——IMU 安全滤波
+        （_attitude_govern 倾角/角速率衰减水平指令 + 加速度限额；report/opt_round5.md）
 6ba14bf feat: 传感器/估计器约束第四轮——用 PX4 已有字段（零新硬件）
         （eph/epv 作 σ / 健康看门狗 / 估计器限值；report/opt_round4.md）
 b9bafaf feat: 安全硬化第三轮——软围栏/安全指令绕过限幅/安全状态进日志
