@@ -320,12 +320,16 @@ class BNode(Px4Drone):
         m = Float64MultiArray()
         # [ready, rel_xy, spd_xy, stamp, sigma]：sigma=在线估计的相对定位不确定度(σ)
         sigma = float(max(self._sigma_est, self.rel_sigma_floor))
+        if self.sensor_constraints_enable and self.sensor_use_ekf_sigma:
+            sigma = float(np.sqrt(sigma * sigma + self.pos_sigma_h ** 2))
         m.data = [float(ready), float(rel_xy), float(spd_xy), float(now), sigma]
         self.pub_ready.publish(m)
 
     def _gap_eff(self):
-        """安全 keep-out：min_ab_gap + kσ（随在线估计的不确定度自适应）。"""
+        """安全 keep-out：min_ab_gap + kσ（合并在线残差与 EKF 垂直 σ）。"""
         sigma = max(self._sigma_est, self.rel_sigma_floor)
+        if self.sensor_constraints_enable and self.sensor_use_ekf_sigma:
+            sigma = max(sigma, self.pos_sigma_v)
         return self.min_ab_gap + self.safety_k * sigma
 
     def _keepout_velocity(self, v_sp):

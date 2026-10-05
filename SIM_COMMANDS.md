@@ -303,6 +303,12 @@ bash ~/drone_payload_catch/run_m1_sitl.sh      # M1 水平会合
 | `adaptive_dive` / `adaptive_alt_floor` | false / 0.35 | 在线自适应下潜 |
 | `commit_hold_s` | 0.20 | A 释放提交窗口 |
 | `use_b_sigma` / `release_sigma_max` | true / 0.15 | A 余量闸用 B 在线 σ |
+| `sensor_constraints_enable` | true | 传感器/估计器约束总开关 |
+| `sensor_use_ekf_sigma` | true | 用 PX4 `eph/epv` 作位置 σ |
+| `sensor_watchdog_enable` | true | 健康/一致性看门狗（valid/dead_reckoning/reset） |
+| `sensor_use_est_limits` | true | 用估计器限值 `vxy_max/vz_max/hagl_min` |
+| `sensor_eph_max` / `sensor_epv_max` / `sensor_reset_hold_s` | 0.50 / 0.50 / 1.0 | σ 上限 / 跳变保持 |
+| `sensor_watchdog_heading` | false | 航向可用性也当硬约束（本仿真常 false） |
 
 ```bash
 # 示例：自适应下潜 + 释放提交窗口（handshake）

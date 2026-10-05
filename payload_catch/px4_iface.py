@@ -87,6 +87,15 @@ class Px4Drone(Node):
         self.declare_parameter('safety_alt_min', -1.0)          # 高度下界 (m，离地)
         self.declare_parameter('safety_hold_escalate', 'none')  # 持续 HOLD/临界后升级：none|land
         self.declare_parameter('safety_hold_timeout', 8.0)      # HOLD 多久后升级 (s)
+        # ── 传感器/估计器约束（读 PX4 EKF 已有字段，不加新硬件）──
+        self.declare_parameter('sensor_constraints_enable', True)  # 总开关
+        self.declare_parameter('sensor_use_ekf_sigma', True)       # 用 eph/epv 作 σ
+        self.declare_parameter('sensor_watchdog_enable', True)     # 有效性/健康/跳变看门狗
+        self.declare_parameter('sensor_use_est_limits', True)      # 用估计器限值 vxy/vz/hagl
+        self.declare_parameter('sensor_eph_max', 0.50)             # 水平位置 σ 上限 (m)
+        self.declare_parameter('sensor_epv_max', 0.50)             # 垂直位置 σ 上限 (m)
+        self.declare_parameter('sensor_reset_hold_s', 1.0)         # 估计器跳变后保持多久 (s)
+        self.declare_parameter('sensor_watchdog_heading', False)   # 航向可用性也当硬约束（本仿真常 false，默认关）
         self.drone_id = int(self.get_parameter('drone_id').value)
         self.hz = float(self.get_parameter('control_hz').value)
         self.auto_arm = bool(self.get_parameter('auto_arm').value)
@@ -132,6 +141,27 @@ class Px4Drone(Node):
         self.safety_alt_min = float(self.get_parameter('safety_alt_min').value)
         self.safety_hold_escalate = str(self.get_parameter('safety_hold_escalate').value).lower()
         self.safety_hold_timeout = float(self.get_parameter('safety_hold_timeout').value)
+        # 传感器/估计器约束状态
+        self.sensor_constraints_enable = bool(self.get_parameter('sensor_constraints_enable').value)
+        self.sensor_use_ekf_sigma = bool(self.get_parameter('sensor_use_ekf_sigma').value)
+        self.sensor_watchdog_enable = bool(self.get_parameter('sensor_watchdog_enable').value)
+        self.sensor_use_est_limits = bool(self.get_parameter('sensor_use_est_limits').value)
+        self.sensor_eph_max = float(self.get_parameter('sensor_eph_max').value)
+        self.sensor_epv_max = float(self.get_parameter('sensor_epv_max').value)
+        self.sensor_reset_hold_s = float(self.get_parameter('sensor_reset_hold_s').value)
+        self.sensor_watchdog_heading = bool(self.get_parameter('sensor_watchdog_heading').value)
+        self._lpos_valid = False
+        self._eph = 0.0
+        self._epv = 0.0
+        self._evh = 0.0
+        self._evv = 0.0
+        self._dead_reckoning = False
+        self._heading_good = True
+        self._reset_counters = None
+        self._reset_seen_t = None
+        self._est_vxy_max = float('inf')
+        self._est_vz_max = float('inf')
+        self._est_hagl_min = float('inf')
         # 分级安全状态机：OK | HOLD | PULLBACK | LAND | KILL
         self._safety_state = 'OK'
         self._safety_reason = ''
@@ -172,6 +202,27 @@ class Px4Drone(Node):
             self._vel = np.array([msg.vx, msg.vy, msg.vz])
             self._pos_ok = bool(msg.xy_valid and msg.z_valid)
             self._last_pos_t = self.get_clock().now().nanoseconds * 1e-9
+        # ── 传感器/估计器派生量（约束用，全部来自已有 EKF 输出）──
+        self._lpos_valid = bool(msg.xy_valid and msg.z_valid
+                                and msg.v_xy_valid and msg.v_z_valid)
+        self._eph = float(msg.eph) if math.isfinite(msg.eph) else 0.0
+        self._epv = float(msg.epv) if math.isfinite(msg.epv) else 0.0
+        self._evh = float(msg.evh) if math.isfinite(msg.evh) else 0.0
+        self._evv = float(msg.evv) if math.isfinite(msg.evv) else 0.0
+        self._dead_reckoning = bool(msg.dead_reckoning)
+        self._heading_good = bool(msg.heading_good_for_control)
+        # 估计器限值（PX4 用 INFINITY 表示“不限制”）
+        self._est_vxy_max = float(msg.vxy_max) if math.isfinite(msg.vxy_max) else float('inf')
+        self._est_vz_max = float(msg.vz_max) if math.isfinite(msg.vz_max) else float('inf')
+        self._est_hagl_min = (float(msg.hagl_min) if math.isfinite(msg.hagl_min)
+                              else float('inf'))
+        # 估计器跳变检测（reset counter 变化）
+        counters = (int(msg.xy_reset_counter), int(msg.z_reset_counter),
+                    int(msg.vxy_reset_counter), int(msg.vz_reset_counter),
+                    int(msg.heading_reset_counter))
+        if self._reset_counters is not None and counters != self._reset_counters:
+            self._reset_seen_t = self.get_clock().now().nanoseconds * 1e-9
+        self._reset_counters = counters
 
     def _on_att(self, msg):
         self._yaw = yaw_from_quat(msg.q)
@@ -235,15 +286,42 @@ class Px4Drone(Node):
             elif p < 0.0:
                 v[i] = max(v[i], 0.0)
         alt = -float(pw[2])
+        alt_floor = self.safety_alt_min
+        if (self.sensor_constraints_enable and self.sensor_use_est_limits
+                and math.isfinite(self._est_hagl_min)):
+            alt_floor = max(alt_floor, self._est_hagl_min)   # 估计器最小离地约束
         if alt > self.safety_geofence_alt:
             v[2] = max(v[2], k * (alt - self.safety_geofence_alt))    # 下压
-        elif alt < self.safety_alt_min:
-            v[2] = min(v[2], -k * (self.safety_alt_min - alt))        # 上拉
+        elif alt < alt_floor:
+            v[2] = min(v[2], -k * (alt_floor - alt))                  # 上拉
         n = float(np.linalg.norm(v[:2]))
         if n > vmax and n > 1e-9:
             v[:2] *= vmax / n
         v[2] = float(np.clip(v[2], -vmax, vmax))
         return v
+
+    def _sensor_health_reasons(self, now: float) -> list:
+        """基于 PX4 已有 EKF 字段的健康/一致性约束（返回异常原因）。
+
+        只用已订阅的 `vehicle_local_position`，不需新硬件。
+        """
+        if (not self.sensor_watchdog_enable) or self._reset_counters is None:
+            return []
+        out = []
+        if not self._lpos_valid:
+            out.append('lpos_invalid')
+        if self._dead_reckoning:
+            out.append('dead_reckoning')
+        if not self._heading_good and self.sensor_watchdog_heading:
+            out.append('heading_good_for_control=false')
+        if self._eph > self.sensor_eph_max:
+            out.append(f'eph={self._eph:.2f}>{self.sensor_eph_max:.2f}')
+        if self._epv > self.sensor_epv_max:
+            out.append(f'epv={self._epv:.2f}>{self.sensor_epv_max:.2f}')
+        if (self._reset_seen_t is not None
+                and (now - self._reset_seen_t) < self.sensor_reset_hold_s):
+            out.append('estimator_reset')
+        return out
 
     def _safety_update(self, now: float) -> None:
         """分级安全响应：OK → (HOLD | PULLBACK) → LAND → KILL。
@@ -278,13 +356,24 @@ class Px4Drone(Node):
         out_xy = (abs(float(pw[0])) > self.safety_geofence_xy - _clr
                   or abs(float(pw[1])) > self.safety_geofence_xy - _clr)
         alt = -float(pw[2])
+        alt_floor = self.safety_alt_min
+        if (self.sensor_constraints_enable and self.sensor_use_est_limits
+                and math.isfinite(self._est_hagl_min)):
+            alt_floor = max(alt_floor, self._est_hagl_min)
         out_hi = alt > self.safety_geofence_alt - _clr
-        out_lo = alt < self.safety_alt_min + _clr
+        out_lo = alt < alt_floor + _clr
         if out_xy or out_hi or out_lo:
             reasons.append(f'geofence(xy={pw[:2].round(1)},alt={alt:.1f})')
         stale = (now - self._last_pos_t) > self.safety_state_timeout
         if stale:
             reasons.append(f'pos_stale={now - self._last_pos_t:.1f}s')
+        # 传感器/估计器健康约束
+        health_bad = False
+        if self.sensor_constraints_enable:
+            hr = self._sensor_health_reasons(now)
+            if hr:
+                reasons.extend(hr)
+                health_bad = True
 
         if not reasons:
             self._bad_since = None
@@ -320,7 +409,8 @@ class Px4Drone(Node):
 
         # 可恢复异常：越界 → 回拉；仅状态超时 → 悬停
         self._bad_since = None
-        if (out_xy or out_hi or out_lo) and self.safety_pullback_enable and not stale:
+        if ((out_xy or out_hi or out_lo) and self.safety_pullback_enable
+                and not stale and not health_bad):
             if self._safety_state != 'PULLBACK':
                 self.get_logger().warn(f'[{self.drone_id}] SAFETY PULLBACK: {msg}')
             self._safety_state = 'PULLBACK'
@@ -368,6 +458,16 @@ class Px4Drone(Node):
                 n = float(np.linalg.norm(dv))
                 if n > max_dv and n > 1e-9:
                     v = self._last_vsp + dv * (max_dv / n)
+            vel_ned = v
+        # 估计器限值约束：水平/垂直速度不超过 PX4 EKF 给出的限值
+        if self.sensor_constraints_enable and self.sensor_use_est_limits:
+            v = np.asarray(vel_ned, float)
+            if math.isfinite(self._est_vxy_max):
+                vh = float(np.linalg.norm(v[:2]))
+                if vh > self._est_vxy_max and vh > 1e-9:
+                    v[:2] *= self._est_vxy_max / vh
+            if math.isfinite(self._est_vz_max):
+                v[2] = float(np.clip(v[2], -self._est_vz_max, self._est_vz_max))
             vel_ned = v
         self._last_vsp = np.asarray(vel_ned, float).copy()
         m = TrajectorySetpoint()
@@ -474,6 +574,16 @@ class Px4Drone(Node):
     @property
     def alt(self):
         return float(-self._pos[2])
+
+    @property
+    def pos_sigma_h(self) -> float:
+        """水平位置估计 σ（来自 EKF 的 eph；未启用时返回 0）。"""
+        return self._eph if self.sensor_use_ekf_sigma else 0.0
+
+    @property
+    def pos_sigma_v(self) -> float:
+        """垂直位置估计 σ（来自 EKF 的 epv；未启用时返回 0）。"""
+        return self._epv if self.sensor_use_ekf_sigma else 0.0
 
     def hover_velocity(self, target_pos_world, target_alt_world, kp_xy=1.0, max_speed=1.0,
                        kp_z=1.0, max_climb=0.8):

@@ -210,9 +210,11 @@ class ANode(Px4Drone):
                                         or float(self._ready[2]) > self.release_spd_tol):
             gate_ok, reason = False, 'B 对正质量超门限'
         else:
-            # σ：取 A 静态先验与 B 上报在线估计的较大者，再封顶
+            # σ：取 A 静态先验、B 上报在线估计、A 自身 EKF σ 的较大者，再封顶
             if self.use_b_sigma and self._b_sigma is not None:
                 sigma = max(sigma, self._b_sigma)
+            if self.sensor_constraints_enable and self.sensor_use_ekf_sigma:
+                sigma = max(sigma, self.pos_sigma_h)
             sigma = min(sigma, self.release_sigma_max)
             pred_miss = float(self._ready[1]) + drift_mag + self.release_sigma_k * sigma
             if pred_miss > self.funnel_eff_radius - self.min_release_margin:
