@@ -340,6 +340,8 @@ colcon build --packages-select payload_catch
 ## 10. 提交历史（git log，自上而下）
 
 ```
+b9bafaf feat: 安全硬化第三轮——软围栏/安全指令绕过限幅/安全状态进日志
+        （_fence_velocity 软限幅 / sp_rate_limit 仅 OK 态 / safe= 周期日志；report/opt_round3.md）
 e13483d feat: 优化第二轮——分级安全/加速度前馈/σ共享/释放提交取消/3D keepout/自适应下潜
         （px4_iface 分级安全状态机 OK→HOLD→PULLBACK→LAND→KILL + 越界回拉 / DIVE 加速度前馈 /
          B 在线 σ 共享给 A 释放闸 / 释放提交窗口 + lead 窗口取消 / 3D 反应式 keepout /
