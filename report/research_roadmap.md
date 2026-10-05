@@ -51,8 +51,10 @@ capture ⇔  ‖p_B(t_c) − p_p(t_c)‖ ≤ r_eff  ∧  ‖v_B − v_p‖ ≤ v
 ```
 
 - 现状：`a_node` 的余量闸 `pred_miss = rel_xy + |drift| + k·σ ≤ eff_r − margin` 是**启发式**，σ=常数/在线残差。
+- **实证动机（已观测）**：协同基准（阶段 0）显示 gate 的 `σ_used=0.150`，被 **A 自身 `eph`（≈0.15m）** 主导——
+  “用**绝对位置 σ** 当**相对交接 σ**”过度保守（A/B 误差部分抵消）。⇒ 需要正确的**相对脱靶分布**。
 - 论文：给出 **`P(capture)` 下界**与 `k(ε)` 的推导（把 σ 与 delay 映射到脱靶分布），并证明在何种条件下该释放策略最优。
-- 已有素材：`_b_sigma` 上传、`eph/epv`（round4）、`release_sigma_max`。
+- 已有素材：`_b_sigma` 上传、`eph/epv`（round4）、`release_sigma_max`；基准数据 `report/coordination_benchmark.md`。
 
 ### C2. 通信鲁棒的交接协议（Communication-robust handover protocol）
 - 现状：`handshake_timeout`、`commit_hold_s`、`release_lead`、`ready_timeout` 都是**经验常数**。
@@ -115,6 +117,19 @@ capture ⇔  ‖p_B(t_c) − p_p(t_c)‖ ≤ r_eff  ∧  ‖v_B − v_p‖ ≤ v
 - **已实现**：`tools/bench_coord.py`（网格 + Wilson 置信区间 → `report/coordination_benchmark.md`）。
 - 命令：`python3 tools/bench_coord.py --quick` / `--full --reps 3`；也可 `COORD=handshake use_intent:=... `。
 
+**阶段 0 基线（5 配置×1，2026-10-05，大漏斗 eff_r=0.25）**：
+
+| 配置 | 捕获 | horiz | rel_v | min\|A-B\| | 协调异常 | failsafe | σ_used |
+|---|---|---|---|---|---|---|---|
+| direct_clean | 100% | 0.036 | 2.84 | 1.104 | 0 | 0 | – |
+| auth_clean | 100% | 0.009 | 2.64 | 1.064 | 0 | 0 | 0.150 |
+| auth_noise (σ.05,d.1) | 100% | 0.036 | 2.84 | 1.093 | 0 | 0 | 0.150 |
+| auth_noise_intent | 100% | 0.018 | 2.76 | 1.076 | 0 | 0 | 0.150 |
+| auth_stress (σ.10,d.2) | 100% | 0.034 | 2.91 | 1.022 | 0 | 0 | 0.150 |
+
+**解读**：① 大漏斗下 5 组全捕获、0 failsafe；② **`σ_used=0.150` 被 A 自身 `eph` 主导**，
+说明释放闸退化为“绝对 σ”，是 C1 要修正的核心（应建“相对 σ”）；③ 1 次/档仅作冒烟，正式统计需 `--reps 3`+CI。
+
 ### 阶段 1：C1 概率释放保证（2–4 周）
 - 离线（`tools/offline_run.py`、`tools/stack_run.py`）推导并验证 `P(capture)≥1−ε` 证书；
 - SITL 扫描 σ×delay，比较 **启发式闸** vs **证书闸**（触发即弃投/重试）。
@@ -169,7 +184,7 @@ capture ⇔  ‖p_B(t_c) − p_p(t_c)‖ ≤ r_eff  ∧  ‖v_B − v_p‖ ≤ v
 
 | 里程碑 | 内容 | 产出 |
 |---|---|---|
-| M1 | 阶段 0 benchmark | 标准化配置 + 指标脚本 + 基线结果 |
+| M1 ✅ | 阶段 0 benchmark | `tools/bench_coord.py` + `report/coordination_benchmark.md`（基线全捕获） |
 | M2 | C1 概率证书 | 定理/命题 + 曲线 |
 | M3 | C2/C3 消融 | 协调收益 vs 通信条件 |
 | M4 | C4 联合机动 | 分布式求解 + 改进 |

@@ -18,7 +18,6 @@
 - **末端能力**：大漏斗 `x500_funnel_big`（捕获余量×14）、空心导向锥杯 `x500_funnel_cup`、
   **主动保持锁扣** `payload_lock`（接住→刚性携带→落地）。
 - **抗扰**：速度前馈 + 预测对正、增广风 KF（`BallisticDragKF`）、A 端迎风预补偿、自适应下潜。
-- **协同**：释放握手（B 报就绪→A 释放权威→ack）、意图（预测落点）、时钟同步、编队握手、及时释放 + 超时中止。
 - **安全**：不确定度 keep-out（`min_ab_gap+kσ`）、**3D 反应式 keep-out**、**分级安全状态机**
   （`OK/HOLD/PULLBACK/LAND/KILL` + 越界回拉）、释放后清场、**飞行终止(kill)** 监督。
 - **协同**：释放握手（B 报就绪→A 释放权威→ack）、**释放提交窗口 + lead 窗口取消(abort)**、
@@ -26,6 +25,8 @@
 - **控制/规划**：ZEM 终端导引（`zem_gain`）、**DIVE 加速度前馈**、释放前落点余量闸、
   **在线自适应下潜**、速度指令速率限幅。
 - **M6-moving 支持速度 0.5/1.0 m/s（各 2/2 完美：捕获+保持+双机落地，无 failsafe）**。
+- **研究（协调方向）**：`report/research_roadmap.md`（C1–C5 贡献 + 差距 + 实验方案）；
+  **协同交接基准（阶段 0）** `tools/bench_coord.py` → `report/coordination_benchmark.md`。
 
 ## 任务与算法
 
@@ -376,6 +377,11 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 - [x] **M6 鲁棒/末端** 侧风鲁棒、KF/增广风、**大漏斗**、**空心杯**、**主动保持锁扣**、鲁棒几何优化
 - [x] **协同/安全** 释放握手 + 意图（预测落点）+ 时钟同步；不确定度 keep-out + **飞行终止(kill)** + 超时中止
 - [x] **M6-moving** 编队同速投放：**支持速度 0.5/1.0 m/s（各 2/2 完美）**；及时释放；2.0 m/s 保留（不再优化）
+- [x] **优化 2–5** 分级安全状态机 + 加速度前馈 + σ 共享 + 释放提交/取消 + 3D keep-out + 自适应下潜
+  + 传感器/估计器约束（EKF σ / 健康看门狗 / 限值）+ 姿态/角速率安全滤波（`report/opt_round2..5.md`）
+- [x] **研究·阶段 0** 协同交接基准实验台 `tools/bench_coord.py` → `report/coordination_benchmark.md`
+- [~] **研究·协调方向** 路线图 C1–C5（不确定性释放保证 / 通信鲁棒协议 / state-vs-intent / 联合机动 / handover-CBF）
+  → `report/research_roadmap.md`；**待推进**（C1 概率证书 为先）
 - [~] **M5** 真空心漏斗（现为 primitive 杯 / 实心盘）+ 真夹爪/磁吸 + 真机化
 
 ## 开发约定
