@@ -338,6 +338,11 @@ colcon build --packages-select payload_catch
 ## 10. 提交历史（git log，自上而下）
 
 ```
+e13483d feat: 优化第二轮——分级安全/加速度前馈/σ共享/释放提交取消/3D keepout/自适应下潜
+        （px4_iface 分级安全状态机 OK→HOLD→PULLBACK→LAND→KILL + 越界回拉 / DIVE 加速度前馈 /
+         B 在线 σ 共享给 A 释放闸 / 释放提交窗口 + lead 窗口取消 / 3D 反应式 keepout /
+         在线自适应下潜；新增 report/opt_round2.md）
+f65f089 docs: 同步工程现状（README 路线图/能力速览、MEMORY 现状/边界/下一步/提交史、SIM_COMMANDS）
 d82b839 feat: 鲁棒性/末端/协同/安全 系列优化 + 完整文档与验证
         （探索公式 / 抗风抗阻 / 增广风KF / 大漏斗 / 空心杯 / 主动保持锁扣 /
          协同握手+意图+时钟 / 安全监督kill / ZEM / 余量闸 / M6-moving加减速与及时释放超时中止；
