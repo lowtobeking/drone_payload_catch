@@ -121,6 +121,7 @@ drone_payload_catch/
     ├── opt_round3.md          ← **优化第三轮（安全硬化）**：安全指令绕过限幅/围栏软限幅/安全状态进日志
     ├── opt_round4.md          ← **优化第四轮（传感器约束）**：EKF σ(eph/epv)/健康看门狗/估计器限值
     ├── opt_round5.md          ← **优化第五轮（姿态约束）**：倾角/角速率→安全滤波(水平衰减+加速度限额)
+    ├── research_roadmap.md    ← **研究路线图（协调方向）**：C1–C5 贡献 + 现状差距 + 实验/代码映射 + MPU
     ├── planning_control_opt.md ← **规划/协调+控制优化**：ZEM 终端导引 + 释放前落点余量闸
     ├── safety_control_review.md ← **保护控制审查**：已有(限幅/keep-out/释放闸) vs 缺口(geofence/看门狗/abort/避碰)
     ├── safety_supervisor.md    ← **安全监督+飞行终止(kill)**：/safety/kill_a|b + 异常自动 kill；SITL 验证
