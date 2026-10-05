@@ -44,14 +44,22 @@ def generate_launch_description():
         'rel_dropout': '0.0', 'rel_bias': '0.0', 'rel_seed': '0', 'est_lpf_alpha': '0.30',
         'payload_meas_sigma': '0.0', 'payload_meas_latency': '0.0', 'payload_dropout': '0.0',
         'release_xy_sigma': '0.0', 'release_seed': '0',
+        'use_b_sigma': 'true', 'release_sigma_max': '0.15',  # A 余量闸用 B 在线 σ
         'align_xy_tol': '0.12', 'align_vel_tol': '0.20', 'align_alt_tol': '0.20',
         'align_hold_s': '0.6', 'release_lead': '0.20',
+        'commit_hold_s': '0.20',      # A 就绪门限需持续多久才提交释放
         'a_dive': '3.0', 'auto_min_dive': 'true', 'a_brake': '6.0',
         'funnel_mouth_radius': '0.20', 'funnel_eff_radius': '0.14',
         'funnel_mount_height': '0.21', 'funnel_depth': '0.30',
         'funnel_restitution': '0.60', 'v_retain': '4.04',
         'b_max_speed': '5.0', 'b_max_accel': '6.0',
         'stack_kp_xy': '1.2', 'stack_kp_z': '1.5',
+        'a_ff_gain': '1.0',           # DIVE 加速度前馈增益（0=关）
+        'keepout_dist': '0.60',       # 3D 反应式 keep-out 触发距离 (m)
+        'keepout_gain': '1.0',        # keep-out 排斥增益 (1/s)
+        'adaptive_dive': 'false',     # 在线自适应下潜
+        'adaptive_alt_floor': '0.35', # 自适应下潜：刹停后最小离地 (m)
+        'sp_rate_limit': '0.0',       # 速度设定点变化率上限 (m/s²)，0=不限
         'px4_z_bias': '0.24', 'catch_z_tol': '0.10',
         'min_ab_gap': '0.80', 'approach_alt_tol': '0.15', 'payload_release_offset': '0.15',
         'safety_k': '2.0', 'rel_sigma_floor': '0.0',
@@ -77,6 +85,16 @@ def generate_launch_description():
         'safety_auto_kill': 'false',   # 异常持续时自动飞行终止
         'safety_tilt_max_deg': '60.0', # 姿态角上限
         'safety_kill_hold_s': '0.8',   # 异常持续多久才 kill
+        # 分级安全响应（HOLD 悬停 / PULLBACK 越界回拉 / LAND 降落 / KILL 飞行终止）
+        'safety_pullback_enable': 'true',  # 越界时主动回拉（而非只 kill）
+        'safety_pullback_k': '1.0',        # 回拉比例增益
+        'safety_pullback_speed': '2.0',    # 回拉速度上限 (m/s)
+        'safety_pullback_clear': '0.15',   # 回拉恢复滞环 (m)
+        'safety_alt_min': '-1.0',          # 高度下界 (m)
+        'safety_geofence_xy': '50.0',      # 水平围栏半径 (m)
+        'safety_geofence_alt': '30.0',     # 高度上限 (m)
+        'safety_hold_escalate': 'none',    # 持续 HOLD/临界后升级：none|land
+        'safety_hold_timeout': '8.0',      # HOLD 多久后升级 (s)
         'align_reset_tol': '0.25',     # 编队：短晩失配容忍
         'formation_timeout_s': '12.0', # 编队释放超时→中止投放
     }
@@ -93,6 +111,19 @@ def generate_launch_description():
                           'safety_auto_kill': _b('safety_auto_kill'),
                           'safety_tilt_max_deg': _f('safety_tilt_max_deg'),
                           'safety_kill_hold_s': _f('safety_kill_hold_s'),
+                          'safety_pullback_enable': _b('safety_pullback_enable'),
+                          'safety_pullback_k': _f('safety_pullback_k'),
+                          'safety_pullback_speed': _f('safety_pullback_speed'),
+                          'safety_pullback_clear': _f('safety_pullback_clear'),
+                          'safety_alt_min': _f('safety_alt_min'),
+                          'safety_geofence_xy': _f('safety_geofence_xy'),
+                          'safety_geofence_alt': _f('safety_geofence_alt'),
+                          'safety_hold_escalate': LaunchConfiguration('safety_hold_escalate'),
+                          'safety_hold_timeout': _f('safety_hold_timeout'),
+                          'sp_rate_limit': _f('sp_rate_limit'),
+                          'use_b_sigma': _b('use_b_sigma'),
+                          'release_sigma_max': _f('release_sigma_max'),
+                          'commit_hold_s': _f('commit_hold_s'),
                           'auto_land': True, 'land_after_catch_s': _f('land_after_catch_s'),
                           'land_xy': [-4.0, 0.0], 'land_xy_tol': _f('land_xy_tol')}])
     b = Node(package='payload_catch', executable='b_node', name='b_node', output='screen',
@@ -123,6 +154,15 @@ def generate_launch_description():
                  'safety_auto_kill': _b('safety_auto_kill'),
                  'safety_tilt_max_deg': _f('safety_tilt_max_deg'),
                  'safety_kill_hold_s': _f('safety_kill_hold_s'),
+                 'safety_pullback_enable': _b('safety_pullback_enable'),
+                 'safety_pullback_k': _f('safety_pullback_k'),
+                 'safety_pullback_speed': _f('safety_pullback_speed'),
+                 'safety_pullback_clear': _f('safety_pullback_clear'),
+                 'safety_alt_min': _f('safety_alt_min'),
+                 'safety_geofence_xy': _f('safety_geofence_xy'),
+                 'safety_geofence_alt': _f('safety_geofence_alt'),
+                 'safety_hold_escalate': LaunchConfiguration('safety_hold_escalate'),
+                 'safety_hold_timeout': _f('safety_hold_timeout'),
                  'a_dive': _f('a_dive'), 'auto_min_dive': _b('auto_min_dive'),
                  'a_brake': _f('a_brake'),
                  'funnel_mouth_radius': _f('funnel_mouth_radius'),
@@ -132,6 +172,10 @@ def generate_launch_description():
                  'funnel_restitution': _f('funnel_restitution'), 'v_retain': _f('v_retain'),
                  'b_max_speed': _f('b_max_speed'), 'b_max_accel': _f('b_max_accel'),
                  'stack_kp_xy': _f('stack_kp_xy'), 'stack_kp_z': _f('stack_kp_z'),
+                 'a_ff_gain': _f('a_ff_gain'), 'sp_rate_limit': _f('sp_rate_limit'),
+                 'keepout_dist': _f('keepout_dist'), 'keepout_gain': _f('keepout_gain'),
+                 'adaptive_dive': _b('adaptive_dive'),
+                 'adaptive_alt_floor': _f('adaptive_alt_floor'),
                  'px4_z_bias': _f('px4_z_bias'), 'catch_z_tol': _f('catch_z_tol'),
                  'dive_anchor_vz': _f('dive_anchor_vz'),
                  'capture_min_vz': _f('capture_min_vz'),

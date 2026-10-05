@@ -19,8 +19,12 @@
   **主动保持锁扣** `payload_lock`（接住→刚性携带→落地）。
 - **抗扰**：速度前馈 + 预测对正、增广风 KF（`BallisticDragKF`）、A 端迎风预补偿、自适应下潜。
 - **协同**：释放握手（B 报就绪→A 释放权威→ack）、意图（预测落点）、时钟同步、编队握手、及时释放 + 超时中止。
-- **安全**：不确定度 keep-out（`min_ab_gap+kσ`）、释放后清场、**飞行终止(kill)** 监督。
-- **控制/规划**：ZEM 终端导引（`zem_gain`）、释放前落点余量闸。
+- **安全**：不确定度 keep-out（`min_ab_gap+kσ`）、**3D 反应式 keep-out**、**分级安全状态机**
+  （`OK/HOLD/PULLBACK/LAND/KILL` + 越界回拉）、释放后清场、**飞行终止(kill)** 监督。
+- **协同**：释放握手（B 报就绪→A 释放权威→ack）、**释放提交窗口 + lead 窗口取消(abort)**、
+  **B 在线 σ 上传**、意图（预测落点）、时钟同步、编队握手、及时释放 + 超时中止。
+- **控制/规划**：ZEM 终端导引（`zem_gain`）、**DIVE 加速度前馈**、释放前落点余量闸、
+  **在线自适应下潜**、速度指令速率限幅。
 - **M6-moving 支持速度 0.5/1.0 m/s（各 2/2 完美：捕获+保持+双机落地，无 failsafe）**。
 
 ## 任务与算法
@@ -334,6 +338,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `report/coordination_handshake.md` | **协同释放握手**：B 报就绪→A 作释放权威→ack→下潜；SITL 验证 |
 | `report/coordination_validation.md` | **协同协议 SITL 验证**：不变量（就绪→释放→ack/单次）+ 安全间隔 + 无 failsafe |
 | `report/optimization_backlog.md` | **后续可优化项总表**：按层整理 + 优先级 + 已证负结果 + Top-3 |
+| `report/opt_round2.md` | **优化第二轮**：分级安全状态机(HOLD/PULLBACK/LAND/KILL) + 加速度前馈/速率限幅 + σ共享 + 释放提交/取消窗口 + 3D keep-out + 在线自适应下潜 |
 | `report/planning_control_opt.md` | **规划/协调 + 控制优化**：ZEM 终端导引 + 释放前落点余量闸 |
 | `report/safety_control_review.md` | **保护控制审查**：已有（限幅/keep-out/释放闸）vs 缺口（geofence/看门狗/abort/避碰） |
 | `report/safety_supervisor.md` | **安全监督 + 飞行终止(kill)**：外部 `/safety/kill_a|b` + 异常自动 kill；SITL 验证 |

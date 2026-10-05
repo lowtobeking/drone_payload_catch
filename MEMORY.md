@@ -1,6 +1,6 @@
 # MEMORY.md — 项目记忆（给下一个 AI / 未来的自己）
 
-> 最后更新：2026-09-16。**新对话请先读本文件**，再按需读 `README.md`、`report/`。
+> 最后更新：2026-10-05。**新对话请先读本文件**，再按需读 `README.md`、`report/`。
 > 目标读者：接手本项目的 AI 助手。读完应能直接继续干活，不必重跑全部排查。
 
 ---
@@ -117,6 +117,7 @@ drone_payload_catch/
     ├── coordination_handshake.md ← **协同释放握手**：B 报就绪→A 释放权威→ack；SITL 验证
     ├── coordination_validation.md ← **协同协议 SITL 验证**：不变量+安全间隔+无 failsafe（全部通过）
     ├── optimization_backlog.md ← **后续可优化项总表**（分层+优先级+负结果+Top3）
+    ├── opt_round2.md          ← **优化第二轮**：安全状态机/加速度前馈/σ共享/释放提交取消/3Dkeepout/自适应下潜
     ├── planning_control_opt.md ← **规划/协调+控制优化**：ZEM 终端导引 + 释放前落点余量闸
     ├── safety_control_review.md ← **保护控制审查**：已有(限幅/keep-out/释放闸) vs 缺口(geofence/看门狗/abort/避碰)
     ├── safety_supervisor.md    ← **安全监督+飞行终止(kill)**：/safety/kill_a|b + 异常自动 kill；SITL 验证
@@ -214,6 +215,7 @@ colcon build --packages-select payload_catch
 | 协同协议验证 | `tools/validate_coord.py`（`report/coordination_validation.md`） | ✅ 3 组配置（标称/噪声+安全/编队）**全部通过**：捕获、就绪→释放→ack 顺序、单次释放、min\|A−B\|≥1.0m、无 failsafe |
 | 规划/协调+控制优化 | ZEM 终端导引(`zem_gain`) + 释放前落点余量闸（`report/planning_control_opt.md`） | ✅ 离线：ZEM 临界风 w4 28→36/40、w5 13→22/40（`zem≈1`）；SITL `COORD=handshake ZEM=0.8` → `STACK CAPTURED horiz=0.055m`、无 failsafe |
 | 安全监督(kill) | `px4_iface` 安全监督：`/safety/kill_a|b` 外部 kill + 异常(姿态/越界/状态超时)持续自动 kill（`MAV_CMD_DO_FLIGHTTERMINATION`）（`report/safety_supervisor.md`） | ✅ SITL：发 `/safety/kill_b` → B `Flight termination active`（动力切），**A 不受影响**（计数 0） |
+| 优化第二轮 | 安全分级状态机(OK/HOLD/PULLBACK/LAND/KILL) + 越界回拉；DIVE 加速度前馈(PX4 `trajectory_setpoint.acceleration`)；B 在线 σ 共享给 A 释放闸；释放提交窗口+lead 窗口取消；3D 反应式 keep-out；在线自适应下潜（`report/opt_round2.md`） | ✅ 单元+多轮 SITL：标称 `STACK CAPTURED horiz 0.008–0.080m`、双机落地、无 failsafe；越界 `PULLBACK`、丢状态 `HOLD`（自愈） |
 | M6-moving 加速度 | 编队控制优化（死推算参考+稳释放门限）+ 空心杯保持 + **及时释放/超时保护** + 多重复验证（`report/m6_moving_speed.md`） | ✅ **支持速度 0.5/1.0 m/s 各 2/2 完美**（捕获+保持+双机落地、无 failsafe）；✅ **及时释放**（编队 ~3.5s 即捕获，之前 10–20s）+ **超时中止**（不投、A 保留载荷、双机安全落地）；**2.0 m/s 保留、不再优化** |
 | M6-moving | 编队同速投放（同一投影点→同向同速巡航→运动中释放，物块继承 A 速度） | ✅ 无窗口 SITL 3/3（`STACK CAPTURED horiz 0.108–0.128m`，物块随漏斗落地）；GUI 偶发平台 failsafe |
 | 真机 | — | ❌ 未做 |

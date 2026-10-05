@@ -288,6 +288,29 @@ FUNNEL_MOUTH=0.30 bash ~/drone_payload_catch/run_m6_sitl.sh 70   # 大漏斗(0.3
 bash ~/drone_payload_catch/run_m1_sitl.sh      # M1 水平会合
 ```
 
+### 4.6 优化第二轮新增旋钮（安全/控制/协同，见 `report/opt_round2.md`）
+
+均通过 `LAUNCH_EXTRA` 传入（A/B 共用；编队可叠 FORMATION_VEL）：
+
+| launch 参数 | 默认 | 作用 |
+|---|---|---|
+| `safety_pullback_enable` / `safety_geofence_xy` / `safety_geofence_alt` | true / 50 / 30 | 越界**回拉**（而非只 kill） |
+| `safety_hold_escalate` / `safety_hold_timeout` | none / 8.0 | 持续 HOLD 后升级 `land` |
+| `safety_auto_kill` / `safety_tilt_max_deg` | false / 60 | 临界异常自动飞行终止 |
+| `a_ff_gain` | 1.0 | DIVE 加速度前馈（0=关） |
+| `sp_rate_limit` | 0.0 | 速度指令变化率限幅 (m/s²) |
+| `keepout_dist` / `keepout_gain` | 0.60 / 1.0 | 3D 反应式 keep-out |
+| `adaptive_dive` / `adaptive_alt_floor` | false / 0.35 | 在线自适应下潜 |
+| `commit_hold_s` | 0.20 | A 释放提交窗口 |
+| `use_b_sigma` / `release_sigma_max` | true / 0.15 | A 余量闸用 B 在线 σ |
+
+```bash
+# 示例：自适应下潜 + 释放提交窗口（handshake）
+COORD=handshake LAUNCH_EXTRA="adaptive_dive:=true" bash run_m6_sitl.sh 75
+# 示例：越界回拉（把高度围栏收到 3m，A/B 会被压回 3m）
+LAUNCH_EXTRA="safety_geofence_alt:=3.0" bash run_m6_sitl.sh 40
+```
+
 ---
 
 ## 5. SITL 难度扫描 / 蒙特卡洛（M6）

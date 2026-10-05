@@ -127,6 +127,7 @@ class PayloadNode(Node):
         self.pub_released = self.create_publisher(Bool, '/payload/released', 10)
         self.create_subscription(Bool, '/payload/caught', self._on_caught, 10)
         self.create_subscription(Float64, '/payload/release_at', self._on_release_at, 10)
+        self.create_subscription(Bool, '/payload/release_abort', self._on_release_abort, 10)
         if self.use_a_state:
             self.create_subscription(Float64MultiArray,
                                      str(self.get_parameter('a_state_topic').value),
@@ -172,6 +173,13 @@ class PayloadNode(Node):
         if self.abs_release_at is None:
             self.abs_release_at = float(msg.data)
             self.get_logger().warn(f'payload_node: 收到释放时刻 {self.abs_release_at:.3f}')
+
+    def _on_release_abort(self, msg):
+        """释放取消（A 在 lead 窗口复核失败）：撤销已排定的释放时刻（载荷未释放时）。"""
+        if msg.data and not self.model.released:
+            if self.abs_release_at is not None:
+                self.get_logger().warn('payload_node: 收到释放取消，撤销已排定的释放时刻')
+            self.abs_release_at = None
 
     def _on_a_state(self, msg):
         if len(msg.data) >= 4:

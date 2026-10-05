@@ -33,6 +33,7 @@ class ANode(Px4Drone):
         # ── 协同释放握手：'direct'(B 直接决定释放) | 'handshake'(B 报就绪→A 作释放权威) ──
         self.declare_parameter('coord_mode', 'direct')
         self.declare_parameter('release_lead', 0.20)     # A 提前发布释放时刻（补命令延迟）
+        self.declare_parameter('commit_hold_s', 0.20)    # 就绪门限需持续多久才提交释放
         self.declare_parameter('ready_timeout', 0.5)     # B 就绪消息的新鲜度上限 (s)
         self.declare_parameter('settle_xy_tol', 0.15)    # A “已就位”水平容差 (m)
         self.declare_parameter('settle_alt_tol', 0.15)   # A “已就位”高度容差 (m)
@@ -44,6 +45,8 @@ class ANode(Px4Drone):
         self.declare_parameter('min_release_margin', 0.05)
         self.declare_parameter('release_sigma_k', 1.0)
         self.declare_parameter('release_sigma', 0.03)
+        self.declare_parameter('release_sigma_max', 0.15)  # σ 上限（防重噪声把闸门卡死）
+        self.declare_parameter('use_b_sigma', True)   # 用 B 上报的在线 σ 做余量闸
         # ── 意图升级：A 广播【预测落点】= 目标点 + 风漂移，B 直接对齐落点 ──
         self.declare_parameter('wind_est', [0.0, 0.0, 0.0])   # A 的风估计 (NED)；可由 PX4 EKF 提供
         self.declare_parameter('payload_drag_k', 0.0)          # 载荷线性阻力 1/s（与 config 一致）
@@ -70,6 +73,7 @@ class ANode(Px4Drone):
         self._aborted = False
         self.coord_mode = str(self.get_parameter('coord_mode').value)
         self.release_lead = float(self.get_parameter('release_lead').value)
+        self.commit_hold_s = float(self.get_parameter('commit_hold_s').value)
         self.ready_timeout = float(self.get_parameter('ready_timeout').value)
         self.settle_xy_tol = float(self.get_parameter('settle_xy_tol').value)
         self.settle_alt_tol = float(self.get_parameter('settle_alt_tol').value)
@@ -77,12 +81,17 @@ class ANode(Px4Drone):
         self._ready = None
         self._ready_t = 0.0
         self._released = False
+        self._released_at = None      # 已提交释放的绝对时刻（lead 窗口内复核用）
+        self._commit_t0 = None        # 提交窗口起点
         self.release_xy_tol = float(self.get_parameter('release_xy_tol').value)
         self.release_spd_tol = float(self.get_parameter('release_spd_tol').value)
         self.funnel_eff_radius = float(self.get_parameter('funnel_eff_radius').value)
         self.min_release_margin = float(self.get_parameter('min_release_margin').value)
         self.release_sigma_k = float(self.get_parameter('release_sigma_k').value)
         self.release_sigma = float(self.get_parameter('release_sigma').value)
+        self.release_sigma_max = float(self.get_parameter('release_sigma_max').value)
+        self.use_b_sigma = bool(self.get_parameter('use_b_sigma').value)
+        self._b_sigma = None
         self._margin_warned = False
         self.wind_est = np.asarray(self.get_parameter('wind_est').value, float).reshape(3)
         self.payload_drag_k = float(self.get_parameter('payload_drag_k').value)
@@ -94,6 +103,7 @@ class ANode(Px4Drone):
         self.pub_state = self.create_publisher(Float64MultiArray, '/drone_a/state', 10)
         self.pub_intent = self.create_publisher(Float64MultiArray, '/drone_a/intent', 10)
         self.pub_release_cmd = self.create_publisher(Float64MultiArray, '/drone_a/release_cmd', 10)
+        self.pub_release_abort = self.create_publisher(Bool, '/payload/release_abort', 10)
         self.pub_release_at = self.create_publisher(Float64, '/payload/release_at', 10)
         self.create_subscription(Bool, '/payload/caught', self._on_caught, 10)
         self.create_subscription(Bool, '/payload/released', self._on_released, 10)
@@ -149,9 +159,11 @@ class ANode(Px4Drone):
             self.get_logger().warn('A: 收到 /payload/caught')
 
     def _on_b_ready(self, msg):
-        """B 报就绪：data=[ready(0/1), rel_xy, spd_xy, stamp]。"""
+        """B 报就绪：data=[ready(0/1), rel_xy, spd_xy, stamp, (sigma)]。"""
         self._ready = list(msg.data)
         self._ready_t = self.get_clock().now().nanoseconds * 1e-9
+        if len(msg.data) >= 5:
+            self._b_sigma = float(msg.data[4])
 
     def _on_ping(self, msg):
         """时钟同步：回显 B 的发送时刻 + A 的接收时刻。"""
@@ -176,44 +188,85 @@ class ANode(Px4Drone):
                   float(self.formation_vel[0]), float(self.formation_vel[1]),
                   ix + dx, iy + dy]
         self.pub_intent.publish(m)
-        if self.coord_mode != 'handshake' or self._released:
+        if self.coord_mode != 'handshake':
             return
-        # 协议健壮性：B 就绪必须【新鲜】且为真
-        if self._ready is None or (now - self._ready_t) > self.ready_timeout:
-            return
-        if float(self._ready[0]) < 0.5:
-            return
-        # 释放前一致性/余量门限：B 报告的对正质量需达 A 的独立门限（不只信 B 自己的阈值）
-        if len(self._ready) >= 3 and (float(self._ready[1]) > self.release_xy_tol
-                                      or float(self._ready[2]) > self.release_spd_tol):
-            return
-        # 落点余量闸：预测 miss = rel_xy + |风漂移| + kσ，必须 ≤ eff_r − min_margin，否则暂不释放
-        drift_mag = float(np.hypot(dx, dy))
-        pred_miss = float(self._ready[1]) + drift_mag + self.release_sigma_k * self.release_sigma
-        if pred_miss > self.funnel_eff_radius - self.min_release_margin:
-            if not self._margin_warned:
-                self._margin_warned = True
-                self.get_logger().warn(
-                    f'A: 落点余量不足 pred_miss={pred_miss:.3f} > '
-                    f'{self.funnel_eff_radius - self.min_release_margin:.3f}，暂不释放')
-            return
-        # A 自身已就位：编队=速度匹配编队速度；悬停=在悬停点且静止（用 A 的精确状态）
+        # A 自身就位（独立于 B 的 ready；提交窗口与 lead 窗口复核都用它）
         if in_formation:
             settled = float(np.linalg.norm(self.vel[:2] - self.formation_vel[:2])) < self.settle_vtol
         else:
             settled = (float(np.linalg.norm(self.pos_world[:2] - self.hover[:2])) < self.settle_xy_tol
                        and abs(-self.pos_world[2] - (-self.hover[2])) < self.settle_alt_tol
                        and float(np.linalg.norm(self.vel)) < self.settle_vtol)
-        if not settled:
+        # ── 释放门限评估（提交窗口用）──
+        drift_mag = float(np.hypot(dx, dy))
+        gate_ok = True
+        reason = ''
+        sigma = self.release_sigma
+        if self._ready is None or (now - self._ready_t) > self.ready_timeout:
+            gate_ok, reason = False, 'ready 不新鲜'
+        elif float(self._ready[0]) < 0.5:
+            gate_ok, reason = False, 'B 未就绪'
+        elif len(self._ready) >= 3 and (float(self._ready[1]) > self.release_xy_tol
+                                        or float(self._ready[2]) > self.release_spd_tol):
+            gate_ok, reason = False, 'B 对正质量超门限'
+        else:
+            # σ：取 A 静态先验与 B 上报在线估计的较大者，再封顶
+            if self.use_b_sigma and self._b_sigma is not None:
+                sigma = max(sigma, self._b_sigma)
+            sigma = min(sigma, self.release_sigma_max)
+            pred_miss = float(self._ready[1]) + drift_mag + self.release_sigma_k * sigma
+            if pred_miss > self.funnel_eff_radius - self.min_release_margin:
+                gate_ok = False
+                reason = f'落点余量不足 {pred_miss:.3f}'
+                if not self._margin_warned:
+                    self._margin_warned = True
+                    self.get_logger().warn(
+                        f'A: 落点余量不足 pred_miss={pred_miss:.3f} > '
+                        f'{self.funnel_eff_radius - self.min_release_margin:.3f}，暂不释放')
+            elif not settled:
+                gate_ok, reason = False, 'A 未就位'
+
+        # ── 已提交：lead 窗口内只复核 A 自身就位（B 已 ack 后会停发 ready）──
+        if self._released:
+            if (self._released_at is not None and now < self._released_at
+                    and not settled):
+                self._abort_release(now, 'A 释放前未就位')
             return
+
+        if not gate_ok:
+            self._commit_t0 = None
+            return
+        # ── 提交窗口：需持续 gate_ok 达 commit_hold_s，避免单拍抖动误释放 ──
+        if self._commit_t0 is None:
+            self._commit_t0 = now
+            self.get_logger().warn(
+                f'A: 就绪门限通过 → 进入释放提交窗口 ({self.commit_hold_s:.2f}s)')
+            return
+        if (now - self._commit_t0) < self.commit_hold_s:
+            return
+        # ── 提交：发布释放时刻 + ack ──
         t_rel = now + self.release_lead
+        self._released_at = t_rel
         self.pub_release_at.publish(Float64(data=t_rel))
         c = Float64MultiArray()
         c.data = [1.0, t_rel, now]
         self.pub_release_cmd.publish(c)
         self._released = True
+        self._commit_t0 = None
         self.get_logger().warn(
-            f'A: 收到 B 就绪 → 释放权威发布 release@{t_rel:.2f}s (lead={self.release_lead})')
+            f'A: 释放权威发布 release@{t_rel:.2f}s '
+            f'(lead={self.release_lead}, σ={sigma:.3f})')
+
+    def _abort_release(self, now, reason):
+        """在真正释放前撤销已排定的释放（重置状态，可重新尝试）。"""
+        self.get_logger().error(f'A: 释放前复核失败 → 取消释放: {reason}')
+        self.pub_release_abort.publish(Bool(data=True))
+        c = Float64MultiArray()
+        c.data = [-1.0, 0.0, now]
+        self.pub_release_cmd.publish(c)
+        self._released = False
+        self._released_at = None
+        self._commit_t0 = None
 
     def control(self):
         now = self.get_clock().now().nanoseconds * 1e-9

@@ -16,7 +16,7 @@ from std_msgs.msg import Bool, Float64, Float64MultiArray
 
 from .px4_iface import Px4Drone
 from .rendezvous import RendezvousPlanner
-from .stack_drop import plan_stack_drop, _stack_ref, minimal_dive, retain_speed
+from .stack_drop import plan_stack_drop, _stack_ref, _adaptive_dive, minimal_dive, retain_speed
 
 
 class BNode(Px4Drone):
@@ -95,6 +95,14 @@ class BNode(Px4Drone):
         self.declare_parameter('v_retain', 4.04)          # 刚性漏斗保持速度 m/s
         self.declare_parameter('stack_kp_xy', 1.2)
         self.declare_parameter('stack_kp_z', 1.5)
+        self.declare_parameter('a_ff_gain', 1.0)   # 加速度前馈增益（用 _stack_ref 的 ar）
+        # 3D 反应式 keep-out：接近 A 时去掉向内速度 + 排斥（静态高度规则之外的兵底）
+        self.declare_parameter('keepout_enable', True)
+        self.declare_parameter('keepout_dist', 0.60)   # 触发距离 (m)
+        self.declare_parameter('keepout_gain', 1.0)    # 排斥增益 (1/s)
+        # 在线自适应下潜：滚动重解 a_dive（抗垂直扰动，如下击暴流）
+        self.declare_parameter('adaptive_dive', False)
+        self.declare_parameter('adaptive_alt_floor', 0.35)   # 刹停后最小离地 (m)
 
         self.standby = np.asarray(self.get_parameter('standby_world').value, float).reshape(3)
         self.r_c = float(self.get_parameter('capture_radius').value)
@@ -170,6 +178,13 @@ class BNode(Px4Drone):
         self.v_retain = float(self.get_parameter('v_retain').value)
         self.stack_kp_xy = float(self.get_parameter('stack_kp_xy').value)
         self.stack_kp_z = float(self.get_parameter('stack_kp_z').value)
+        self.a_ff_gain = float(self.get_parameter('a_ff_gain').value)
+        self.keepout_enable = bool(self.get_parameter('keepout_enable').value)
+        self.keepout_dist = float(self.get_parameter('keepout_dist').value)
+        self.keepout_gain = float(self.get_parameter('keepout_gain').value)
+        self.adaptive_dive = bool(self.get_parameter('adaptive_dive').value)
+        self.adaptive_alt_floor = float(self.get_parameter('adaptive_alt_floor').value)
+        self._a_adapt = None
         self.a_state_hist = []          # [(t, pos_world_NED, vel_NED)]
         self.a_est = None
         self.a_vel_est = None
@@ -303,13 +318,41 @@ class BNode(Px4Drone):
 
     def _pub_ready(self, now, ready, rel_xy, spd_xy):
         m = Float64MultiArray()
-        m.data = [float(ready), float(rel_xy), float(spd_xy), float(now)]
+        # [ready, rel_xy, spd_xy, stamp, sigma]：sigma=在线估计的相对定位不确定度(σ)
+        sigma = float(max(self._sigma_est, self.rel_sigma_floor))
+        m.data = [float(ready), float(rel_xy), float(spd_xy), float(now), sigma]
         self.pub_ready.publish(m)
 
     def _gap_eff(self):
         """安全 keep-out：min_ab_gap + kσ（随在线估计的不确定度自适应）。"""
         sigma = max(self._sigma_est, self.rel_sigma_floor)
         return self.min_ab_gap + self.safety_k * sigma
+
+    def _keepout_velocity(self, v_sp):
+        """3D 反应式 keep-out：若接近 A，去掉向 A 的速度分量并叠加排斥。
+
+        与“B 高度 ≤ A−gap_eff”的静态规则互补：后者靠高度，前者靠真实三维距离，
+        在水平贴近/异常机动（例如估计跳变）时提供最后一道防碰。
+        """
+        if (not self.keepout_enable) or self.a_est is None:
+            return v_sp
+        d_vec = self.a_est - self.pos_world          # B→A
+        dist = float(np.linalg.norm(d_vec))
+        if dist > self.keepout_dist or dist < 1e-6:
+            return v_sp
+        u = d_vec / dist                             # 单位向量，指向 A
+        v = np.asarray(v_sp, float).copy()
+        v_in = float(np.dot(v, u))
+        if v_in > 0.0:                               # 有朝 A 的分量 → 去掉
+            v = v - v_in * u
+        v = v - self.keepout_gain * (self.keepout_dist - dist) * u   # 排斥（远离 A）
+        return v
+
+    def publish_velocity(self, vel_ned, yaw=0.0, acc_ff=None):
+        """B 的栈模式叠加 3D 反应式 keep-out（其余交给基类）。"""
+        if self.mode == 'stack':
+            vel_ned = self._keepout_velocity(vel_ned)
+        super().publish_velocity(vel_ned, yaw=yaw, acc_ff=acc_ff)
 
     def _on_a_state(self, msg):
         if len(msg.data) >= 7:
@@ -538,6 +581,16 @@ class BNode(Px4Drone):
             self.get_logger().warn(
                 f'B: 收到 A 释放 ack@{t_rel:.2f}s（原 phase={self.phase}）→ DIVE')
             self.phase = 'DIVE'
+        # 释放取消（A 在 lead 窗口复核失败）：若在 DIVE 且尚未真正下潜 → 回到 ALIGN
+        if (self.coord_mode == 'handshake' and self.phase == 'DIVE'
+                and not self._dive_anchored and self._release_cmd is not None
+                and float(self._release_cmd[0]) < 0.0
+                and (now - self._release_cmd_t) < self.handshake_timeout):
+            self.phase = 'ALIGN'
+            self.align_t0 = now
+            self._dive_anchored = False
+            self.release_ref_t0 = None
+            self.get_logger().warn('B: 收到释放取消 → 回到 ALIGN（重新对正）')
         p_est, v_est = self._relnav_a(now)
         if p_est is not None:
             self.a_est, self.a_vel_est = p_est, v_est
@@ -765,6 +818,7 @@ class BNode(Px4Drone):
                 if falling or tl > 0.5:
                     self.release_ref_t0 = now
                     self.stack_plan = None
+                    self._a_adapt = None
                     self._dive_anchored = True
                     tl = 0.0
                     self.get_logger().warn(
@@ -797,6 +851,7 @@ class BNode(Px4Drone):
                     f'B: DIVE plan a_dive={a_dive_use:.2f}(auto={self.auto_min_dive}) '
                     f't_c={self.stack_plan.t_c:.3f}s v_rel={self.stack_plan.v_rel:.3f} '
                     f'v_retain={self.stack_plan.v_retain:.3f} feasible={self.stack_plan.feasible}')
+                self._a_adapt = float(self.stack_plan.a_dive)
             xy_tgt = self.a_est[:2] if self.a_est is not None else pos[:2]
             vxy_ff = np.zeros(2)
             # 编队模式：物块就是从 A 释放的（无释放误差），直接跟踪 A 更稳
@@ -808,7 +863,32 @@ class BNode(Px4Drone):
                     vxy_ff = pe[1][:2]
             elif self.use_formation and self.a_vel_est is not None:
                 vxy_ff = self.a_vel_est[:2]
-            pr, vr, _ar = _stack_ref(tl, self.stack_plan, (xy_tgt[0], xy_tgt[1]), 9.81)
+            pr, vr, ar = _stack_ref(tl, self.stack_plan, (xy_tgt[0], xy_tgt[1]), 9.81)
+            # 在线自适应下潜：用估计的载荷竖直状态滚动重解 a_dive（抗下击暴流等垂直扰动）
+            if self.adaptive_dive and self._dive_anchored and self._a_adapt is not None:
+                pe = self._payload_est(now) if self.track_payload else None
+                if pe is not None:
+                    p_z, v_z = float(pe[0][2]), float(pe[1][2])
+                elif self.p_pay is not None:
+                    p_z, v_z = float(self.p_pay[2]), float(self.v_pay[2])
+                else:
+                    p_z = None
+                if p_z is not None:
+                    a_target = _adaptive_dive(
+                        p_z, v_z, float(pos[2]), float(self.vel[2]),
+                        self.funnel_mount_height, 9.81,
+                        float(self.get_parameter('b_max_accel').value), self.a_brake,
+                        self.adaptive_alt_floor, self.v_retain)
+                    slew = 20.0 / max(self.hz, 1e-6)
+                    self._a_adapt = float(np.clip(
+                        a_target, self._a_adapt - slew, self._a_adapt + slew))
+                    look = 4.0 / max(self.hz, 1e-6)
+                    pr = np.array(pr, float, copy=True)
+                    vr = np.array(vr, float, copy=True)
+                    ar = np.array(ar, float, copy=True)
+                    pr[2] = pos[2] + self.vel[2] * look + 0.5 * self._a_adapt * look * look
+                    vr[2] = self.vel[2] + self._a_adapt * look
+                    ar[2] = self._a_adapt
             v_sp = np.zeros(3)
             v_sp[:2] = vxy_ff + self.stack_kp_xy * (xy_tgt - pos[:2])
             # 终端导引(ZEM)：把水平目标投影到接触时刻，用零控脱靶修正（减终端 miss）
@@ -822,7 +902,9 @@ class BNode(Px4Drone):
             if n > self.v_max:
                 v_sp[:2] *= self.v_max / n
             v_sp[2] = float(np.clip(v_sp[2], -self.v_max, self.v_max))
-            self.publish_velocity(v_sp, yaw=self.yaw)
+            # 加速度前馈：把参考加速度 ar 交给 PX4（velocity 模式下直接叠加，减跟踪滞后）
+            acc_ff = self.a_ff_gain * ar if self.a_ff_gain != 0.0 else None
+            self.publish_velocity(v_sp, yaw=self.yaw, acc_ff=acc_ff)
             self._stack_capture_check()
             return
 
