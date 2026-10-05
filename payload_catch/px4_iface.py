@@ -214,23 +214,36 @@ class Px4Drone(Node):
         self.get_logger().error(f'[{self.drone_id}] SAFETY LAND: {reason}')
         self.land()
 
-    def _pullback_velocity(self) -> np.ndarray:
-        """越界回拉速度（世界系 NED）：把位置软拉回几何围栏内。"""
-        pw = self.pos_world
+    def _fence_velocity(self, v_sp) -> np.ndarray:
+        """软围栏（世界系 NED）：在任务速度上**剔除继续向外**的分量，越界时叠加回拉。
+
+        相比“直接替换为纯回拉速度”，保留沿围栏的切向机动，避免安全层与任务互相顶。
+        """
+        v = np.asarray(v_sp, float).copy()
         gx = self.safety_geofence_xy
         k = self.safety_pullback_k
         vmax = self.safety_pullback_speed
-        tx = min(max(float(pw[0]), -gx), gx)
-        ty = min(max(float(pw[1]), -gx), gx)
-        vx = k * (tx - float(pw[0]))
-        vy = k * (ty - float(pw[1]))
-        n = math.hypot(vx, vy)
-        if n > vmax and n > 1e-9:
-            vx, vy = vx * vmax / n, vy * vmax / n
+        pw = self.pos_world
+        for i in (0, 1):
+            p = float(pw[i])
+            if p > gx:
+                v[i] = min(v[i], -k * (p - gx))        # 越界：强制向内
+            elif p < -gx:
+                v[i] = max(v[i], k * (-gx - p))
+            elif p > 0.0:
+                v[i] = min(v[i], 0.0)                  # 界内：禁止继续向外
+            elif p < 0.0:
+                v[i] = max(v[i], 0.0)
         alt = -float(pw[2])
-        want_alt = min(max(alt, self.safety_alt_min), self.safety_geofence_alt)
-        vz = float(np.clip(-k * (want_alt - alt), -vmax, vmax))
-        return np.array([vx, vy, vz])
+        if alt > self.safety_geofence_alt:
+            v[2] = max(v[2], k * (alt - self.safety_geofence_alt))    # 下压
+        elif alt < self.safety_alt_min:
+            v[2] = min(v[2], -k * (self.safety_alt_min - alt))        # 上拉
+        n = float(np.linalg.norm(v[:2]))
+        if n > vmax and n > 1e-9:
+            v[:2] *= vmax / n
+        v[2] = float(np.clip(v[2], -vmax, vmax))
+        return v
 
     def _safety_update(self, now: float) -> None:
         """分级安全响应：OK → (HOLD | PULLBACK) → LAND → KILL。
@@ -339,14 +352,15 @@ class Px4Drone(Node):
         """速度设定点（世界 NED）。acc_ff 非 None 时作为 PX4 加速度前馈
         （velocity 模式下 PositionControl 会把 acceleration 直接叠加，见 PX4 源码）。
 
-        分级安全响应：HOLD 覆盖为原地悬停；PULLBACK 覆盖为越界回拉速度。
-        sp_rate_limit > 0 时对速度指令做变化率限幅（平滑、降姿态激励）。
+        分级安全响应：HOLD 覆盖为原地悬停；PULLBACK 在任务速度上做软围栏限制。
+        sp_rate_limit > 0 时只对**正常态**速度指令做变化率限幅（安全指令不被拖延）。
         """
         if self._safety_state == 'HOLD':
             vel_ned = [0.0, 0.0, 0.0]
         elif self._safety_state == 'PULLBACK':
-            vel_ned = self._pullback_velocity()
-        if self.sp_rate_limit > 0.0:
+            vel_ned = self._fence_velocity(vel_ned)
+        # 速率限幅只在正常态生效：安全指令（HOLD/PULLBACK）不得被平滑拖慢
+        if self.sp_rate_limit > 0.0 and self._safety_state == 'OK':
             v = np.asarray(vel_ned, float)
             max_dv = self.sp_rate_limit / max(self.hz, 1e-6)
             if self._last_vsp is not None:
@@ -354,8 +368,8 @@ class Px4Drone(Node):
                 n = float(np.linalg.norm(dv))
                 if n > max_dv and n > 1e-9:
                     v = self._last_vsp + dv * (max_dv / n)
-            self._last_vsp = v.copy()
             vel_ned = v
+        self._last_vsp = np.asarray(vel_ned, float).copy()
         m = TrajectorySetpoint()
         m.position = [float('nan')] * 3
         m.velocity = [float(v) for v in vel_ned]

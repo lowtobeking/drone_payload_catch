@@ -271,6 +271,10 @@ class ANode(Px4Drone):
     def control(self):
         now = self.get_clock().now().nanoseconds * 1e-9
         self._coord_tick(now)
+        if self._tick_count % int(self.hz) == 0:
+            self.get_logger().info(
+                f'A safe={self._safety_state} pos_w={self.pos_world.round(2)} '
+                f'vel={self.vel.round(2)} released={self._released}')
         # 捕获后：先飞到自己的着陆点（保持高度），到位后再落地
         if self.auto_land and (self._caught or self._aborted) and not self._landing:
             if now - self._caught_t >= self.land_after_catch_s:
