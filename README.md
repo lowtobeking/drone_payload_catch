@@ -343,11 +343,13 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `report/opt_round4.md` | **优化第四轮（传感器约束）**：用 PX4 EKF 已有 `eph/epv` 作 σ + 健康/一致性看门狗 + 估计器限值 |
 | `report/opt_round5.md` | **优化第五轮（姿态约束）**：IMU 倾角/角速率 → 安全滤波（水平指令衰减 + 加速度限额），对标姿态 failsafe 边界 |
 | `report/research_roadmap.md` | **研究路线图（协调方向）**：目标/UAV协调研究地图 + 核心贡献 C1–C5 + 现状差距 + 理论工具 + 分阶段实验 + 代码映射 + 最小可发表单元 |
+| `report/coordination_benchmark.md` | **协同交接基准（阶段 0）**：`tools/bench_coord.py` 生成（coord_mode×intent×σ×delay + 置信区间） |
 | `report/planning_control_opt.md` | **规划/协调 + 控制优化**：ZEM 终端导引 + 释放前落点余量闸 |
 | `report/safety_control_review.md` | **保护控制审查**：已有（限幅/keep-out/释放闸）vs 缺口（geofence/看门狗/abort/避碰） |
 | `report/safety_supervisor.md` | **安全监督 + 飞行终止(kill)**：外部 `/safety/kill_a|b` + 异常自动 kill；SITL 验证 |
 | `report/m6_moving_speed.md` | **M6-moving 加速度**：编队控制优化 + 及时释放/超时中止；**支持 0.5/1.0 m/s（各 2/2 完美）**，2.0 保留 |
 | `tools/validate_coord.py` | 协同协议 SITL 验证器（跑多组配置 + 不变量检查） |
+| `tools/bench_coord.py` | **协同交接基准（阶段 0）**：coord_mode×intent×σ×delay 网格 + Wilson CI + 报告 |
 | `tools/drag_reject.py` | 阻力/风扰 × 估计器对比 |
 | `tools/gen_funnel_cup.py` | 生成空心导向锥杯模型（x500_funnel_cup / funnel_cup / funnel_flat） |
 | `models/x500_funnel_cup/` | M6 末端：x500 + 空心导向锥杯（`FUNNEL_TYPE=cup` 启用） |

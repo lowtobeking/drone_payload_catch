@@ -112,7 +112,8 @@ capture ⇔  ‖p_B(t_c) − p_p(t_c)‖ ≤ r_eff  ∧  ‖v_B − v_p‖ ≤ v
 ### 阶段 0：固化基准（1–2 周，几乎零新代码）
 - 把现有协调能力做成**标准 benchmark 配置**：`direct/authority × state/intent × σ∈{0,0.05,0.1} × delay∈{0,0.1,0.2}`。
 - 指标：捕获成功率、捕获时水平偏差、相对速度、最小 A-B 间距、释放时刻的余量、通信量。
-- 命令：`COORD=handshake` / `use_intent:=true` / `rel_pos_sigma` / `rel_latency` / `validate_coord.py`。
+- **已实现**：`tools/bench_coord.py`（网格 + Wilson 置信区间 → `report/coordination_benchmark.md`）。
+- 命令：`python3 tools/bench_coord.py --quick` / `--full --reps 3`；也可 `COORD=handshake use_intent:=... `。
 
 ### 阶段 1：C1 概率释放保证（2–4 周）
 - 离线（`tools/offline_run.py`、`tools/stack_run.py`）推导并验证 `P(capture)≥1−ε` 证书；

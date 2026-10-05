@@ -325,6 +325,20 @@ LAUNCH_EXTRA="safety_geofence_alt:=3.0" bash run_m6_sitl.sh 40
 
 ## 5. SITL 难度扫描 / 蒙特卡洛（M6）
 
+### 5.1 协同交接基准（研究用，阶段 0）
+
+系统扫描 `coord_mode × intent × σ × delay`，带 Wilson 置信区间，输出 `report/coordination_benchmark.md`：
+
+```bash
+python3 tools/bench_coord.py --quick            # 5 配置×1（≈10 min，先验证）
+python3 tools/bench_coord.py --reps 3           # 小网格×3 次
+python3 tools/bench_coord.py --full --reps 3     # 全网格 36 配置×3（≈多小时）
+python3 tools/bench_coord.py --dry-run          # 只打印配置
+python3 tools/bench_coord.py --only auth       # 只跑名字匹配的配置
+```
+
+指标：捕获率(95% CI)、horiz、rel_v、min\|A-B\|、就绪→释放时延、协调异常、failsafe。
+
 ```bash
 source ~/drone_payload_catch/env.sh
 bash tools/sweep_m6_sitl.sh      # 10 档难度扫描 → report/m6_sitl_results.md
