@@ -127,6 +127,7 @@ drone_payload_catch/
     ├── opt_round4.md          ← **优化第四轮（传感器约束）**：EKF σ(eph/epv)/健康看门狗/估计器限值
     ├── opt_round5.md          ← **优化第五轮（姿态约束）**：倾角/角速率→安全滤波(水平衰减+加速度限额)
     ├── research_roadmap.md    ← **研究路线图（协调方向）**：C1–C5 贡献 + 现状差距 + 实验/代码映射 + MPU
+    ├── paper_outline.md       ← **论文骨架（协调方向）**：题目/摘要/贡献/形式化/实验/相关工作/真机/时间线
     ├── coordination_benchmark.md ← **协同交接基准（阶段 0）**：bench_coord.py 生成（coord_mode×intent×σ×delay + Wilson CI）
     ├── planning_control_opt.md ← **规划/协调+控制优化**：ZEM 终端导引 + 释放前落点余量闸
     ├── safety_control_review.md ← **保护控制审查**：已有(限幅/keep-out/释放闸) vs 缺口(geofence/看门狗/abort/避碰)
