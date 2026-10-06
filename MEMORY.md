@@ -363,6 +363,8 @@ colcon build --packages-select payload_catch
 ## 10. 提交历史（git log，自上而下）
 
 ```
+fdf5476 feat(research): 逐项消融实验主表（--grid ablation [--stress]）+ 实验报告
+        （应力下释放时延 3.3→0.72→0.42s；report/coordination_experiments.md）
 724834e feat(research): 理论补强 T1/T2/T3——最优性 + 联合证书 + 延迟 CBF
         （report/coordination_theory.md；coord_optimal.py/coord_cbf.py）
 83641e0 feat(research): 整合 C5 CBF + C2 冗余触发入节点 + SITL 全套验证
