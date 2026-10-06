@@ -349,6 +349,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `report/coordination_information.md` | **C3 信息：state vs intent**：延迟下 intent 延迟不变、保留保证；state 随 `v_A·d` 崩并破坏证书 |
 | `report/coordination_protocol.md` | **C2 协议时序界**：`release_lead= d_max/(2(1−catch))`、丢包失败模式（丢 cmd→未下潜）、设计建议 |
 | `report/coordination_maneuver.md` | **C4 联合机动**：A 速度/高度 × B 机动联合优化；速度—余量权衡、联合几何恢复余量、顺风耦合 |
+| `report/coordination_cbf.md` | **C5 handover-CBF**：速度级 CBF 防碰不变集 + 可行性条件 + C1 交接门；可行域内 100% 保证 |
 | `report/coordination_benchmark.md` | **协同交接基准（阶段 0）**：`tools/bench_coord.py` 生成（coord_mode×intent×σ×delay + 置信区间） |
 | `report/planning_control_opt.md` | **规划/协调 + 控制优化**：ZEM 终端导引 + 释放前落点余量闸 |
 | `report/safety_control_review.md` | **保护控制审查**：已有（限幅/keep-out/释放闸）vs 缺口（geofence/看门狗/abort/避碰） |
@@ -359,6 +360,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `tools/coord_prob.py` | **C1 概率证书**：二维脱靶模型 + 证书 k(ε) + 策略/延迟扫描（离线、秒级） |
 | `tools/coord_proto.py` | **C2 协议时序界**：取消窗口/取消捕获率/设计表/丢包结局（离线） |
 | `tools/coord_maneuver.py` | **C4 联合机动**：A 速度/高度 × B 机动联合优化（离线 MC） |
+| `tools/coord_cbf.py` | **C5 handover-CBF**：速度级防碰不变集 + 交接门（离线） |
 | `tools/drag_reject.py` | 阻力/风扰 × 估计器对比 |
 | `tools/gen_funnel_cup.py` | 生成空心导向锥杯模型（x500_funnel_cup / funnel_cup / funnel_flat） |
 | `models/x500_funnel_cup/` | M6 末端：x500 + 空心导向锥杯（`FUNNEL_TYPE=cup` 启用） |

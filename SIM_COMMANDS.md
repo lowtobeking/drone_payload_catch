@@ -373,6 +373,13 @@ python3 tools/coord_maneuver.py --wind 0 --n 12   # A 速度/高度 × B 机动�
 ```
 输出 → `report/coordination_maneuver.md`：速度—余量权衡、联合几何恢复余量、顺风耦合。
 
+### 5.5 C5 handover-CBF（研究 W4）
+
+```bash
+python3 tools/coord_cbf.py --n 50000   # 速度级防碰不变集 + 交接门
+```
+输出 → `report/coordination_cbf.md`：可行域内 CBF 100% 满足（未滤波 56.8%）；可行性 `v_max ≥ ‖v_A‖−(α/2)h/‖r‖`。
+
 ```bash
 source ~/drone_payload_catch/env.sh
 bash tools/sweep_m6_sitl.sh      # 10 档难度扫描 → report/m6_sitl_results.md
