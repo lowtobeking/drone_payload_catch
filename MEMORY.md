@@ -21,8 +21,9 @@
 - **控制/规划**：ZEM 终端导引、释放前落点余量闸；
 - **安全约束链（优化 2–5）**：分级安全状态机（`OK/HOLD/PULLBACK/LAND/KILL` + 越界软限幅）、
   传感器/估计器约束（EKF `eph/epv` σ + 健康看门狗 + 限值）、姿态/角速率安全滤波（`report/opt_round2..5.md`）；
-- **研究（协调方向）**：`report/research_roadmap.md`（C1–C5 贡献）；
-  **阶段 0 协同基准** `tools/bench_coord.py` → `report/coordination_benchmark.md`。
+- **研究（协调方向）**：理论 **C1–C5 + T1–T3**（释放证书+最优性 / 协议时序界 / state-vs-intent /
+  联合机动 / handover-CBF / 联合证书 / 延迟 CBF）；**SITL 逐项消融主表**；
+  报告 `report/coordination_*.md`、`coordination_theory.md`、`coordination_experiments.md`。
 
 **未做**：真空心漏斗 / 真实夹爪/磁吸；真机；真实相对导航（现为真值+噪声）；平台 failsafe 边界（~4.9 m/s，
 需修 B 的 EKF/磁罗盘）；协同研究的**理论保证（C1 概率证书）** 与真机验证。
@@ -240,7 +241,7 @@ colcon build --packages-select payload_catch
 | M6-moving 加速度 | 编队控制优化（死推算参考+稳释放门限）+ 空心杯保持 + **及时释放/超时保护** + 多重复验证（`report/m6_moving_speed.md`） | ✅ **支持速度 0.5/1.0 m/s 各 2/2 完美**（捕获+保持+双机落地、无 failsafe）；✅ **及时释放**（编队 ~3.5s 即捕获，之前 10–20s）+ **超时中止**（不投、A 保留载荷、双机安全落地）；**2.0 m/s 保留、不再优化** |
 | M6-moving | 编队同速投放（同一投影点→同向同速巡航→运动中释放，物块继承 A 速度） | ✅ 无窗口 SITL 3/3（`STACK CAPTURED horiz 0.108–0.128m`，物块随漏斗落地）；GUI 偶发平台 failsafe |
 | 优化 2–5 | 分级安全状态机/越界软限幅/加速度前馈/σ共享/释放提交取消/3D keepout/自适应下潜；传感器约束(EKF σ/看门狗/限值)；姿态安全滤波 | ✅ 单元+多轮 SITL（`report/opt_round2..5.md`）；标称 `horiz 0.008–0.08m` 无 failsafe |
-| 研究·协调 | 路线图 C1–C5（`report/research_roadmap.md`）；阶段 0 协同基准 `tools/bench_coord.py` | ✅ 路线图立项；✅ 基准；✅ **理论五件套 C1–C5**（证书/协议/信息/机动/CBF，`report/coordination_*.md`）；✅ 证书闸 + CBF(`keepout_mode=cbf`) + C2 冗余已接入 SITL；✅ **理论 T1–T3**（最优性/联合证书/延迟 CBF） |
+| 研究·协调 | 路线图 C1–C5（`report/research_roadmap.md`）；阶段 0 协同基准 `tools/bench_coord.py` | ✅ 基准；✅ **理论 C1–C5 + T1–T3**（证书/最优性/协议/信息/机动/CBF/联合证书/延迟 CBF）；✅ 证书闸+CBF+C2 冗余接入 SITL；✅ **实验主表**（逐项消融，stress 下时延 3.3→0.72→0.42s，`coordination_experiments.md`）；⏳ 真机 & 写作 |
 | 真机 | — | ❌ 未做 |
 
 **SITL 难度扫描结果**（`report/m5_sitl_results.md`，MPC 控制器）：

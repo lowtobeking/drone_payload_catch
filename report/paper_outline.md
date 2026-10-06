@@ -17,6 +17,19 @@
 
 ---
 
+## 0.5 进度快照（2026-10-05）
+
+| 章节 | 状态 | 产出 |
+|---|---|---|
+| **理论 C1–C5** | ✅ | 概率证书（精确 Rice）/ 协议时序界 / state-vs-intent / 联合机动 / handover-CBF |
+| **理论 T1–T3** | ✅ | 释放域最优性（中心球）/ 联合 handover 证书 / 延迟 CBF 鲁棒界（`coordination_theory.md`） |
+| **系统实现** | ✅ | 证书闸 + CBF(`keepout_mode=cbf`) + C2 冗余触发，均已接入 SITL |
+| **SITL 实验** | ✅ | 逐项消融主表（baseline→+权威→+证书→+intent→+CBF）；stress 下时延 3.3→0.72→0.42s（`coordination_experiments.md`） |
+| **真机** | ❌ | 未做（**唯一投稿硬门槛**） |
+| **写作** | ⏳ | 本骨架待展开为初稿 |
+
+---
+
 ## 1. 题目候选
 
 1. *Uncertainty-Aware Coordination for Mid-Air Payload Handover: Release Authority, Shared Intent, and Safety Certificates*

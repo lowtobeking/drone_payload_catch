@@ -25,8 +25,9 @@
 - **控制/规划**：ZEM 终端导引（`zem_gain`）、**DIVE 加速度前馈**、释放前落点余量闸、
   **在线自适应下潜**、速度指令速率限幅。
 - **M6-moving 支持速度 0.5/1.0 m/s（各 2/2 完美：捕获+保持+双机落地，无 failsafe）**。
-- **研究（协调方向）**：`report/research_roadmap.md`（C1–C5 贡献 + 差距 + 实验方案）；
-  **协同交接基准（阶段 0）** `tools/bench_coord.py` → `report/coordination_benchmark.md`。
+- **研究（协调方向）**：理论 **C1–C5 + T1–T3**（释放证书+最优性 / 协议时序界 / state-vs-intent /
+  联合机动 / handover-CBF / 联合证书 / 延迟 CBF）→ `report/coordination_*.md`、`coordination_theory.md`；
+  **SITL 逐项消融主表** → `report/coordination_experiments.md`；路线图 `research_roadmap.md`；骨架 `paper_outline.md`。
 
 ## 任务与算法
 
@@ -393,8 +394,10 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 - [x] **优化 2–5** 分级安全状态机 + 加速度前馈 + σ 共享 + 释放提交/取消 + 3D keep-out + 自适应下潜
   + 传感器/估计器约束（EKF σ / 健康看门狗 / 限值）+ 姿态/角速率安全滤波（`report/opt_round2..5.md`）
 - [x] **研究·阶段 0** 协同交接基准实验台 `tools/bench_coord.py` → `report/coordination_benchmark.md`
-- [~] **研究·协调方向** 路线图 C1–C5（不确定性释放保证 / 通信鲁棒协议 / state-vs-intent / 联合机动 / handover-CBF）
-  → `report/research_roadmap.md`；**待推进**（C1 概率证书 为先）
+- [x] **研究·协调理论** C1–C5 + T1–T3（证书/最优性/协议/信息/机动/CBF/联合证书/延迟 CBF）
+  → `report/coordination_*.md`、`coordination_theory.md`
+- [x] **研究·实验** 逐项消融主表（标称 + stress，含 CI）→ `report/coordination_experiments.md`
+- [~] **研究·真机 & 写作**：真机方案（平台+相对导航）+ 论文初稿（`report/paper_outline.md`）
 - [~] **M5** 真空心漏斗（现为 primitive 杯 / 实心盘）+ 真夹爪/磁吸 + 真机化
 
 ## 开发约定
