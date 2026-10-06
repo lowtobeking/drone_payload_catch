@@ -239,7 +239,7 @@ colcon build --packages-select payload_catch
 | M6-moving 加速度 | 编队控制优化（死推算参考+稳释放门限）+ 空心杯保持 + **及时释放/超时保护** + 多重复验证（`report/m6_moving_speed.md`） | ✅ **支持速度 0.5/1.0 m/s 各 2/2 完美**（捕获+保持+双机落地、无 failsafe）；✅ **及时释放**（编队 ~3.5s 即捕获，之前 10–20s）+ **超时中止**（不投、A 保留载荷、双机安全落地）；**2.0 m/s 保留、不再优化** |
 | M6-moving | 编队同速投放（同一投影点→同向同速巡航→运动中释放，物块继承 A 速度） | ✅ 无窗口 SITL 3/3（`STACK CAPTURED horiz 0.108–0.128m`，物块随漏斗落地）；GUI 偶发平台 failsafe |
 | 优化 2–5 | 分级安全状态机/越界软限幅/加速度前馈/σ共享/释放提交取消/3D keepout/自适应下潜；传感器约束(EKF σ/看门狗/限值)；姿态安全滤波 | ✅ 单元+多轮 SITL（`report/opt_round2..5.md`）；标称 `horiz 0.008–0.08m` 无 failsafe |
-| 研究·协调 | 路线图 C1–C5（`report/research_roadmap.md`）；阶段 0 协同基准 `tools/bench_coord.py` | ✅ 路线图立项；✅ 基准；✅ **理论五件套 C1–C5**（证书/协议/信息/机动/CBF，`report/coordination_*.md`）；✅ 证书闸 + CBF(`keepout_mode=cbf`) + C2 冗余已接入 SITL |
+| 研究·协调 | 路线图 C1–C5（`report/research_roadmap.md`）；阶段 0 协同基准 `tools/bench_coord.py` | ✅ 路线图立项；✅ 基准；✅ **理论五件套 C1–C5**（证书/协议/信息/机动/CBF，`report/coordination_*.md`）；✅ 证书闸 + CBF(`keepout_mode=cbf`) + C2 冗余已接入 SITL；✅ **理论 T1–T3**（最优性/联合证书/延迟 CBF） |
 | 真机 | — | ❌ 未做 |
 
 **SITL 难度扫描结果**（`report/m5_sitl_results.md`，MPC 控制器）：
@@ -362,6 +362,8 @@ colcon build --packages-select payload_catch
 ## 10. 提交历史（git log，自上而下）
 
 ```
+724834e feat(research): 理论补强 T1/T2/T3——最优性 + 联合证书 + 延迟 CBF
+        （report/coordination_theory.md；coord_optimal.py/coord_cbf.py）
 83641e0 feat(research): 整合 C5 CBF + C2 冗余触发入节点 + SITL 全套验证
         （keepout_mode=cbf / /payload/released 冗余触发；payload_catch/keepout.py）
 67e8749 feat(research): C5 handover-CBF 交接安全证书（速度级防碰 + C1 交接门）
