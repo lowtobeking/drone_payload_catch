@@ -358,6 +358,8 @@ colcon build --packages-select payload_catch
 ## 10. 提交历史（git log，自上而下）
 
 ```
+801529f feat(research): C3 state vs intent 延迟容忍（离线概率模型）
+        （intent 延迟不变/保留证书；state 随 v_A·d 崩；report/coordination_information.md）
 3167352 feat(research): 协同基准增加“证书闸 vs 启发式”消融（--grid gate）
         （噪声下释放时延 ~2.4s→~0.42s，≈5×；report/coordination_probability.md §8）
 73626d7 feat(research): C1 证书闸接入 a_node/b_node（相对 σ）+ SITL 验证
