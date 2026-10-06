@@ -359,6 +359,8 @@ colcon build --packages-select payload_catch
 ## 10. 提交历史（git log，自上而下）
 
 ```
+9a23e14 feat(research): C2 交接协议时序误差界与鲁棒性
+        （release_lead=d_max/(2(1−catch))；丢 cmd→未下潜；report/coordination_protocol.md）
 801529f feat(research): C3 state vs intent 延迟容忍（离线概率模型）
         （intent 延迟不变/保留证书；state 随 v_A·d 崩；report/coordination_information.md）
 3167352 feat(research): 协同基准增加“证书闸 vs 启发式”消融（--grid gate）
