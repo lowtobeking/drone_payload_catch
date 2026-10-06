@@ -361,6 +361,8 @@ colcon build --packages-select payload_catch
 ## 10. 提交历史（git log，自上而下）
 
 ```
+67e8749 feat(research): C5 handover-CBF 交接安全证书（速度级防碰 + C1 交接门）
+        （可行域内 CBF 100%；report/coordination_cbf.md；理论五件套 C1–C5 齐备）
 ba64a61 feat(research): C4 A 速度/高度 × B 机动联合优化
         （速度—余量权衡/联合几何恢复余量/顺风耦合；report/coordination_maneuver.md）
 9a23e14 feat(research): C2 交接协议时序误差界与鲁棒性
