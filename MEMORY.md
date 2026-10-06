@@ -357,6 +357,8 @@ colcon build --packages-select payload_catch
 ## 10. 提交历史（git log，自上而下）
 
 ```
+3167352 feat(research): 协同基准增加“证书闸 vs 启发式”消融（--grid gate）
+        （噪声下释放时延 ~2.4s→~0.42s，≈5×；report/coordination_probability.md §8）
 73626d7 feat(research): C1 证书闸接入 a_node/b_node（相对 σ）+ SITL 验证
 40f6d62 feat(research): C1 v2——精确 Rice 证书 + EMA 标定
 3b826a0 feat(research): C1 释放决策的概率模型与捕获概率证书（W2）
