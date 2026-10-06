@@ -318,11 +318,15 @@ class BNode(Px4Drone):
 
     def _pub_ready(self, now, ready, rel_xy, spd_xy):
         m = Float64MultiArray()
-        # [ready, rel_xy, spd_xy, stamp, sigma]：sigma=在线估计的相对定位不确定度(σ)
-        sigma = float(max(self._sigma_est, self.rel_sigma_floor))
+        # [ready, rel_xy, spd_xy, stamp, sigma_abs, sigma_rel]
+        #   sigma_abs = 在线残差 ⊕ EKF 自身 σ（keep-out/启发式用）
+        #   sigma_rel = 纯相对定位残差（证书闸用；与绝对 σ 分离）
+        sigma_rel = float(max(self._sigma_est, self.rel_sigma_floor))
+        sigma_abs = sigma_rel
         if self.sensor_constraints_enable and self.sensor_use_ekf_sigma:
-            sigma = float(np.sqrt(sigma * sigma + self.pos_sigma_h ** 2))
-        m.data = [float(ready), float(rel_xy), float(spd_xy), float(now), sigma]
+            sigma_abs = float(np.sqrt(sigma_rel ** 2 + self.pos_sigma_h ** 2))
+        m.data = [float(ready), float(rel_xy), float(spd_xy), float(now),
+                  sigma_abs, sigma_rel]
         self.pub_ready.publish(m)
 
     def _gap_eff(self):

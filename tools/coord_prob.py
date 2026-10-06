@@ -21,56 +21,14 @@ from __future__ import annotations
 
 import argparse
 import math
+import os
+import sys
 import numpy as np
 
-try:
-    from scipy.stats import ncx2
-    from scipy.optimize import brentq
-    _HAVE_SCIPY = True
-except Exception:  # noqa: BLE001
-    _HAVE_SCIPY = False
-
-
-# ------------------------------------------------------------------ 证书
-def k_chernoff(eps: float) -> float:
-    """Chernoff 界系数：P(‖m‖>R) ≤ exp(−(R−‖μ‖)²/(2σ²)) ⇒ k=√(2 ln(1/ε))。"""
-    return math.sqrt(2.0 * math.log(1.0 / eps))
-
-
-def eps_of_k(k: float) -> float:
-    return math.exp(-0.5 * k * k)
-
-
-def capture_prob(R: float, mu: float, sigma: float) -> float:
-    """P(‖m‖ ≤ R)，m~N(μ, σ²I₂)。用非中心卡方：X=‖m/σ‖² ~ ncx2(df=2, nc=(μ/σ)²)。"""
-    if sigma <= 0.0:
-        return 1.0 if mu <= R else 0.0
-    if not _HAVE_SCIPY:
-        # 退化近似：无偏 Rayleigh
-        return 1.0 - math.exp(-(max(R - mu, 0.0) ** 2) / (2 * sigma * sigma))
-    return float(ncx2.cdf((R / sigma) ** 2, df=2, nc=(mu / sigma) ** 2))
-
-
-def T_exact(eps: float, R: float, sigma_m: float) -> float:
-    """精确阈值 T：使 μ=T 时 P(‖m‖≤R)=1−ε；不可达则返回 0（无法认证）。"""
-    if R <= 0.0 or sigma_m <= 0.0:
-        return 0.0
-    if not _HAVE_SCIPY:
-        return max(0.0, R - k_chernoff(eps) * sigma_m)
-    f = lambda T: capture_prob(R, T, sigma_m) - (1.0 - eps)   # noqa: E731, 关于 T 递减
-    if f(0.0) <= 0.0:
-        return 0.0
-    return float(brentq(f, 0.0, R))
-
-
-def threshold(method: str, eps: float, r_eff: float, margin: float,
-              sigma_m: float) -> float:
-    R = r_eff - margin
-    if method == 'exact':
-        return T_exact(eps, R, sigma_m)
-    if method == 'chernoff':
-        return max(0.0, R - k_chernoff(eps) * sigma_m)
-    return max(0.0, R - 1.0 * sigma_m)           # heuristic(k=1)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from payload_catch.coord_cert import (  # noqa: E402
+    HAVE_SCIPY as _HAVE_SCIPY, k_chernoff, eps_of_k, capture_prob, T_exact,
+    cert_threshold as threshold)
 
 
 # ------------------------------------------------------------------ 仿真

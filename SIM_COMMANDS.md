@@ -348,6 +348,14 @@ python3 tools/coord_prob.py --n 300000      # 证书 k(ε) + 策略/延迟扫描
 `P(capture)≥1−ε`、exact/Chernoff/heuristic 对比、direct vs authority、延迟偏置 `v_A·d`、
 EMA 标定（`rel_pos_sigma→σ_e`）、覆盖性检查。
 
+**证书闸接入 SITL**（`release_gate_mode=certificate`）：
+```bash
+COORD=handshake FUNNEL_MOUTH=0.30 \
+  LAUNCH_EXTRA="release_gate_mode:=certificate cert_eps:=0.05 cert_sigma_track:=0.02" \
+  bash run_m6_sitl.sh 70
+```
+> B 的 `/drone_b/ready` 已扩为 `[.., sigma_abs, sigma_rel]`；证书闸用**相对 σ_rel**（启发式用 σ_abs）。
+
 ```bash
 source ~/drone_payload_catch/env.sh
 bash tools/sweep_m6_sitl.sh      # 10 档难度扫描 → report/m6_sitl_results.md

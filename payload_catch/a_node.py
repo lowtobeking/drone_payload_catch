@@ -15,6 +15,7 @@ from std_msgs.msg import Bool, Float64, Float64MultiArray
 
 from .px4_iface import Px4Drone
 from .stack_drop import _horiz_drift
+from .coord_cert import cert_threshold
 
 
 class ANode(Px4Drone):
@@ -47,6 +48,9 @@ class ANode(Px4Drone):
         self.declare_parameter('release_sigma', 0.03)
         self.declare_parameter('release_sigma_max', 0.15)  # σ 上限（防重噪声把闸门卡死）
         self.declare_parameter('use_b_sigma', True)   # 用 B 上报的在线 σ 做余量闸
+        self.declare_parameter('release_gate_mode', 'heuristic')  # heuristic | certificate
+        self.declare_parameter('cert_eps', 0.05)        # 证书保证水平（certificate 模式）
+        self.declare_parameter('cert_sigma_track', 0.02)  # 释放后跟踪残差 σ (m)
         # ── 意图升级：A 广播【预测落点】= 目标点 + 风漂移，B 直接对齐落点 ──
         self.declare_parameter('wind_est', [0.0, 0.0, 0.0])   # A 的风估计 (NED)；可由 PX4 EKF 提供
         self.declare_parameter('payload_drag_k', 0.0)          # 载荷线性阻力 1/s（与 config 一致）
@@ -92,6 +96,10 @@ class ANode(Px4Drone):
         self.release_sigma_max = float(self.get_parameter('release_sigma_max').value)
         self.use_b_sigma = bool(self.get_parameter('use_b_sigma').value)
         self._b_sigma = None
+        self._b_sigma_rel = None
+        self.release_gate_mode = str(self.get_parameter('release_gate_mode').value).lower()
+        self.cert_eps = float(self.get_parameter('cert_eps').value)
+        self.cert_sigma_track = float(self.get_parameter('cert_sigma_track').value)
         self._margin_warned = False
         self.wind_est = np.asarray(self.get_parameter('wind_est').value, float).reshape(3)
         self.payload_drag_k = float(self.get_parameter('payload_drag_k').value)
@@ -159,11 +167,13 @@ class ANode(Px4Drone):
             self.get_logger().warn('A: 收到 /payload/caught')
 
     def _on_b_ready(self, msg):
-        """B 报就绪：data=[ready(0/1), rel_xy, spd_xy, stamp, (sigma)]。"""
+        """B 报就绪：data=[ready(0/1), rel_xy, spd_xy, stamp, (sigma_abs), (sigma_rel)]。"""
         self._ready = list(msg.data)
         self._ready_t = self.get_clock().now().nanoseconds * 1e-9
         if len(msg.data) >= 5:
             self._b_sigma = float(msg.data[4])
+        if len(msg.data) >= 6:
+            self._b_sigma_rel = float(msg.data[5])
 
     def _on_ping(self, msg):
         """时钟同步：回显 B 的发送时刻 + A 的接收时刻。"""
@@ -210,23 +220,43 @@ class ANode(Px4Drone):
                                         or float(self._ready[2]) > self.release_spd_tol):
             gate_ok, reason = False, 'B 对正质量超门限'
         else:
-            # σ：取 A 静态先验、B 上报在线估计、A 自身 EKF σ 的较大者，再封顶
-            if self.use_b_sigma and self._b_sigma is not None:
-                sigma = max(sigma, self._b_sigma)
-            if self.sensor_constraints_enable and self.sensor_use_ekf_sigma:
-                sigma = max(sigma, self.pos_sigma_h)
-            sigma = min(sigma, self.release_sigma_max)
-            pred_miss = float(self._ready[1]) + drift_mag + self.release_sigma_k * sigma
-            if pred_miss > self.funnel_eff_radius - self.min_release_margin:
-                gate_ok = False
-                reason = f'落点余量不足 {pred_miss:.3f}'
-                if not self._margin_warned:
-                    self._margin_warned = True
-                    self.get_logger().warn(
-                        f'A: 落点余量不足 pred_miss={pred_miss:.3f} > '
-                        f'{self.funnel_eff_radius - self.min_release_margin:.3f}，暂不释放')
-            elif not settled:
-                gate_ok, reason = False, 'A 未就位'
+            sigma = self.release_sigma
+            if self.release_gate_mode == 'certificate':
+                # 证书闸：用**相对** σ_m，阈值 T(ε) 由精确 Rice 证书给
+                s_rel = (self._b_sigma_rel if self._b_sigma_rel is not None
+                         else (self._b_sigma if self._b_sigma is not None else self.release_sigma))
+                sigma_m = float(np.sqrt(s_rel ** 2 + self.cert_sigma_track ** 2))
+                T = cert_threshold('exact', self.cert_eps, self.funnel_eff_radius,
+                                   self.min_release_margin, sigma_m)
+                rel_est = float(self._ready[1]) + drift_mag
+                if rel_est > T:
+                    gate_ok = False
+                    reason = (f'证书闸 rel={rel_est:.3f} > T={T:.3f} '
+                              f'(σ_m={sigma_m:.3f}, ε={self.cert_eps})')
+                    if not self._margin_warned:
+                        self._margin_warned = True
+                        self.get_logger().warn(f'A: {reason}，暂不释放')
+                elif not settled:
+                    gate_ok, reason = False, 'A 未就位'
+                sigma = sigma_m
+            else:
+                # 启发式闸：σ 取 A 先验 / B 上报 / A 自身 EKF σ 的较大者，再封顶
+                if self.use_b_sigma and self._b_sigma is not None:
+                    sigma = max(sigma, self._b_sigma)
+                if self.sensor_constraints_enable and self.sensor_use_ekf_sigma:
+                    sigma = max(sigma, self.pos_sigma_h)
+                sigma = min(sigma, self.release_sigma_max)
+                pred_miss = float(self._ready[1]) + drift_mag + self.release_sigma_k * sigma
+                if pred_miss > self.funnel_eff_radius - self.min_release_margin:
+                    gate_ok = False
+                    reason = f'落点余量不足 {pred_miss:.3f}'
+                    if not self._margin_warned:
+                        self._margin_warned = True
+                        self.get_logger().warn(
+                            f'A: 落点余量不足 pred_miss={pred_miss:.3f} > '
+                            f'{self.funnel_eff_radius - self.min_release_margin:.3f}，暂不释放')
+                elif not settled:
+                    gate_ok, reason = False, 'A 未就位'
 
         # ── 已提交：lead 窗口内只复核 A 自身就位（B 已 ack 后会停发 ready）──
         if self._released:

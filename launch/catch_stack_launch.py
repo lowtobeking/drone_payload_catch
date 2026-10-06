@@ -45,6 +45,8 @@ def generate_launch_description():
         'payload_meas_sigma': '0.0', 'payload_meas_latency': '0.0', 'payload_dropout': '0.0',
         'release_xy_sigma': '0.0', 'release_seed': '0',
         'use_b_sigma': 'true', 'release_sigma_max': '0.15',  # A 余量闸用 B 在线 σ
+        'release_gate_mode': 'heuristic',   # heuristic | certificate（C1 证书闸）
+        'cert_eps': '0.05', 'cert_sigma_track': '0.02',
         # 传感器/估计器约束（读 PX4 EKF 已有字段）
         'sensor_constraints_enable': 'true',
         'sensor_use_ekf_sigma': 'true',
@@ -136,6 +138,9 @@ def generate_launch_description():
                           'sp_rate_limit': _f('sp_rate_limit'),
                           'use_b_sigma': _b('use_b_sigma'),
                           'release_sigma_max': _f('release_sigma_max'),
+                          'release_gate_mode': LaunchConfiguration('release_gate_mode'),
+                          'cert_eps': _f('cert_eps'),
+                          'cert_sigma_track': _f('cert_sigma_track'),
                           'sensor_constraints_enable': _b('sensor_constraints_enable'),
                           'sensor_use_ekf_sigma': _b('sensor_use_ekf_sigma'),
                           'sensor_watchdog_enable': _b('sensor_watchdog_enable'),

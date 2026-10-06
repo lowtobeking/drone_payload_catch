@@ -105,17 +105,37 @@ SITL 的 `_relnav_a` 对相对定位做 EMA 低通，稳态噪声折算因子 `�
 
 ---
 
-## 7. 结论（可写进论文）
+## 8. SITL 接入与验证（证书闸）
+
+把证书接入 `a_node`（`release_gate_mode=certificate`），并把核心数学抽成无 ROS 依赖的
+`payload_catch/coord_cert.py`（工具与节点共用）。
+
+**信息改动**：B 的 `/drone_b/ready` 扩为 `[ready, rel_xy, spd_xy, stamp, sigma_abs, sigma_rel]`——
+`sigma_rel` 是**纯相对定位残差**（不含 EKF 绝对 σ），供证书闸用；`sigma_abs` 保留给 keep-out/启发式。
+
+**新增参数**：`release_gate_mode`(heuristic|certificate)、`cert_eps`、`cert_sigma_track`。
+
+**单元验证**：B 上报 6 元 `[.., 0.153, 0.03]`；A 证书闸 `σ_m=0.036, T=0.137`，
+`rel=0.02<T` 通过、`rel=0.20>T` 拦截。
+
+**SITL**（`COORD=handshake FUNNEL_MOUTH=0.30 release_gate_mode:=certificate`）：
+```
+A: 就绪门限通过 → 提交窗口 → 释放权威发布 release@... (lead=0.2, σ=0.026)
+*** STACK CAPTURED horiz=0.058m ***   无 failsafe
+```
+> **关键对比**：证书闸用的是**相对 σ=0.026**；启发式闸（同场景）用的是**绝对 σ=0.150**（被 A 的 eph 主导）。
+> 这正是 C1 要修正的：**用绝对 σ 会让标准漏斗无法认证，用相对 σ 则可认证且可释放**。
+
+## 9. 下一步
+
+- 用 `bench_coord.py`（扩展 `release_gate_mode` 维度）+ `--reps 3` 做**证书 vs 启发式**的 SITL 对照。
+- 从 SITL `horiz` 分布反推 `σ_track`（现为经验 0.02）。
+
+## 10. 结论（可写进论文）
 
 1. **精确证书**：`P(capture) = F_{ncx2}((R/σ_m)²;2,(μ/σ_m)²)`；阈值 `T(ε)` 使 `P(capture)≥1−ε`；
    无偏时 Rayleigh 精确，`k=√(2 ln(1/ε))`。
 2. **比保守界强得多**：Chernoff 界把 direct 成功率压到 0.097，精确解恢复到 0.273。
 3. **校准/可行性**：现用 `k=1` 无保证；标准漏斗在 `rel_σ≥0.10` 无法保证 95%，大漏斗可以。
 4. **协调收益**：`authority`（精确自身状态）在两个界下都显著优于 `direct`。
-5. **延迟**：运动交付被 `b=v_A·d` 直接消耗余量（见 v1 §3.3）。
-
-## 8. 下一步
-
-- 用 `bench_coord.py`（`--reps 3`）的 SITL 成功率**交叉验证**上表的标定（σ_e_eff 与 T）。
-- 把证书闸接入 `a_node`（`release_sigma_k` → `T(ε)`，`σ` → 相对 σ），SITL 对照 heuristic vs exact。
-- 收紧 σ_track：从 SITL `horiz` 分布反推（现为 0.02 经验值）。
+5. **延迟**：运动交付被 `b=v_A·d` 直接消耗余量（v1 扫描：v_A=1,d=0.2 时成功率 0.575→0.088）。
