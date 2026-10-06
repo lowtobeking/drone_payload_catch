@@ -37,8 +37,20 @@ OUT = os.path.join(REPO, 'report', 'coordination_benchmark.md')
 
 
 # ------------------------------------------------------------------ 配置网格
-def build_grid(full: bool):
-    if not full:
+def build_grid(grid: str = 'quick'):
+    if grid == 'gate':
+        # 证书闸 vs 启发式闸（论文核心消融）
+        return [
+            ('heur_clean', dict(COORD='handshake')),
+            ('cert_clean', dict(COORD='handshake',
+                                LAUNCH_EXTRA='release_gate_mode:=certificate')),
+            ('heur_noise', dict(COORD='handshake',
+                                LAUNCH_EXTRA='rel_pos_sigma:=0.08 rel_latency:=0.10')),
+            ('cert_noise', dict(COORD='handshake',
+                                LAUNCH_EXTRA='release_gate_mode:=certificate '
+                                             'rel_pos_sigma:=0.08 rel_latency:=0.10')),
+        ]
+    if grid != 'full':
         return [
             ('direct_clean', dict(COORD='direct')),
             ('auth_clean', dict(COORD='handshake')),
@@ -154,14 +166,17 @@ def agg(rows: list) -> dict:
 # ------------------------------------------------------------------ 主流程
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--full', action='store_true', help='全网格（大）')
+    ap.add_argument('--grid', default='quick', choices=['quick', 'full', 'gate'],
+                    help='quick | full | gate（证书 vs 启发式消融）')
+    ap.add_argument('--full', action='store_true', help='(等价 --grid full)')
     ap.add_argument('--reps', type=int, default=1, help='每配置重复次数')
     ap.add_argument('--secs', type=int, default=70, help='每次运行秒数')
     ap.add_argument('--dry-run', action='store_true')
     ap.add_argument('--only', default='', help='只跑名字匹配该正则的配置')
     args = ap.parse_args()
 
-    grid = build_grid(args.full)
+    grid_name = 'full' if args.full else args.grid
+    grid = build_grid(grid_name)
     if args.only:
         rx = re.compile(args.only)
         grid = [(n, c) for (n, c) in grid if rx.search(n)]
@@ -185,7 +200,7 @@ def main():
     # ---- 报告 ----
     lines = ['# 协同交接基准（Coordination Benchmark）', '',
              '> 由 `python3 tools/bench_coord.py` 生成。统一大漏斗（`FUNNEL_MOUTH=0.30`）。',
-             f'> 本次：{len(results)} 个配置 × {args.reps} 次 / 每次 {args.secs}s。',
+             f'> 本次：网格={grid_name}，{len(results)} 个配置 × {args.reps} 次 / 每次 {args.secs}s。',
              '> `auth`=handshake（A 作释放权威）；`dir`=direct（B 单边）；`i`=intent；`s`=σ；`l`=latency(s)。',
              '> `协调异常` = 非传感器瞬态的 HOLD + PULLBACK（已剔除 `estimator_reset`/`pos_stale`）。', '',
              '| 配置 | 捕获率 (95% CI) | horiz mean/max | rel_v mean | min\\|A-B\\| | failsafe | 协调异常 |',
