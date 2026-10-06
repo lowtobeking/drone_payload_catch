@@ -344,8 +344,9 @@ python3 tools/bench_coord.py --only auth       # 只跑名字匹配的配置
 ```bash
 python3 tools/coord_prob.py --n 300000      # 证书 k(ε) + 策略/延迟扫描（离线、秒级）
 ```
-输出 → `report/coordination_probability.md`：`k(ε)=√(2ln(1/ε))`、`P(capture)≥1−ε` 证书、
-`direct` vs `authority`、延迟偏置 `v_A·d` 扫描、覆盖性检查。
+输出 → `report/coordination_probability.md`：精确 Rice/非中心卡方证书 `T(ε)`、
+`P(capture)≥1−ε`、exact/Chernoff/heuristic 对比、direct vs authority、延迟偏置 `v_A·d`、
+EMA 标定（`rel_pos_sigma→σ_e`）、覆盖性检查。
 
 ```bash
 source ~/drone_payload_catch/env.sh

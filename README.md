@@ -345,7 +345,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `report/opt_round5.md` | **优化第五轮（姿态约束）**：IMU 倾角/角速率 → 安全滤波（水平指令衰减 + 加速度限额），对标姿态 failsafe 边界 |
 | `report/research_roadmap.md` | **研究路线图（协调方向）**：目标/UAV协调研究地图 + 核心贡献 C1–C5 + 现状差距 + 理论工具 + 分阶段实验 + 代码映射 + 最小可发表单元 |
 | `report/paper_outline.md` | **论文骨架（协调方向）**：题目/摘要/贡献 C1–C5/问题形式化/方法/实验协议/相关工作定位/真机需求/时间线/待定决策 |
-| `report/coordination_probability.md` | **C1 概率证书**：释放决策的二维脱靶模型 + `P(capture)≥1−ε` 证书（k(ε)=√(2ln1/ε)）+ 离线验证（含“小漏斗无法认证”） |
+| `report/coordination_probability.md` | **C1 概率证书（v2 精确 Rice）**：二维脱靶模型 + 精确 `P(capture)≥1−ε` 证书 + exact/Chernoff/heuristic 对比 + EMA 标定（“标准漏斗 rel_σ≥0.10 无法认证”）|
 | `report/coordination_benchmark.md` | **协同交接基准（阶段 0）**：`tools/bench_coord.py` 生成（coord_mode×intent×σ×delay + 置信区间） |
 | `report/planning_control_opt.md` | **规划/协调 + 控制优化**：ZEM 终端导引 + 释放前落点余量闸 |
 | `report/safety_control_review.md` | **保护控制审查**：已有（限幅/keep-out/释放闸）vs 缺口（geofence/看门狗/abort/避碰） |
