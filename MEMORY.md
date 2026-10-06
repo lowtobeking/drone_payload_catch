@@ -234,7 +234,7 @@ colcon build --packages-select payload_catch
 | M6-moving 加速度 | 编队控制优化（死推算参考+稳释放门限）+ 空心杯保持 + **及时释放/超时保护** + 多重复验证（`report/m6_moving_speed.md`） | ✅ **支持速度 0.5/1.0 m/s 各 2/2 完美**（捕获+保持+双机落地、无 failsafe）；✅ **及时释放**（编队 ~3.5s 即捕获，之前 10–20s）+ **超时中止**（不投、A 保留载荷、双机安全落地）；**2.0 m/s 保留、不再优化** |
 | M6-moving | 编队同速投放（同一投影点→同向同速巡航→运动中释放，物块继承 A 速度） | ✅ 无窗口 SITL 3/3（`STACK CAPTURED horiz 0.108–0.128m`，物块随漏斗落地）；GUI 偶发平台 failsafe |
 | 优化 2–5 | 分级安全状态机/越界软限幅/加速度前馈/σ共享/释放提交取消/3D keepout/自适应下潜；传感器约束(EKF σ/看门狗/限值)；姿态安全滤波 | ✅ 单元+多轮 SITL（`report/opt_round2..5.md`）；标称 `horiz 0.008–0.08m` 无 failsafe |
-| 研究·协调 | 路线图 C1–C5（`report/research_roadmap.md`）；阶段 0 协同基准 `tools/bench_coord.py` | ✅ 路线图立项；✅ 基准（5 配置全捕获、0 异常/failsafe）；✅ **C1 概率证书**（`report/coordination_probability.md`） |
+| 研究·协调 | 路线图 C1–C5（`report/research_roadmap.md`）；阶段 0 协同基准 `tools/bench_coord.py` | ✅ 路线图立项；✅ 基准（5 配置全捕获、0 异常/failsafe）；✅ **C1 概率证书（v2 精确 Rice + EMA 标定）**（`report/coordination_probability.md`） |
 | 真机 | — | ❌ 未做 |
 
 **SITL 难度扫描结果**（`report/m5_sitl_results.md`，MPC 控制器）：
@@ -357,6 +357,7 @@ colcon build --packages-select payload_catch
 ## 10. 提交历史（git log，自上而下）
 
 ```
+40f6d62 feat(research): C1 v2——精确 Rice 证书 + EMA 标定
 3b826a0 feat(research): C1 释放决策的概率模型与捕获概率证书（W2）
         （tools/coord_prob.py + report/coordination_probability.md）
 133741c docs: 新增论文骨架（协调方向）——锁定论点/贡献 C1-C5/形式化/实验/相关工作/真机/时间线
