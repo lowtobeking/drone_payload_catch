@@ -347,6 +347,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `report/paper_outline.md` | **论文骨架（协调方向）**：题目/摘要/贡献 C1–C5/问题形式化/方法/实验协议/相关工作定位/真机需求/时间线/待定决策 |
 | `report/coordination_probability.md` | **C1 概率证书（v2 精确 Rice）**：二维脱靶模型 + 精确 `P(capture)≥1−ε` 证书 + exact/Chernoff/heuristic 对比 + EMA 标定（“标准漏斗 rel_σ≥0.10 无法认证”）|
 | `report/coordination_information.md` | **C3 信息：state vs intent**：延迟下 intent 延迟不变、保留保证；state 随 `v_A·d` 崩并破坏证书 |
+| `report/coordination_protocol.md` | **C2 协议时序界**：`release_lead= d_max/(2(1−catch))`、丢包失败模式（丢 cmd→未下潜）、设计建议 |
 | `report/coordination_benchmark.md` | **协同交接基准（阶段 0）**：`tools/bench_coord.py` 生成（coord_mode×intent×σ×delay + 置信区间） |
 | `report/planning_control_opt.md` | **规划/协调 + 控制优化**：ZEM 终端导引 + 释放前落点余量闸 |
 | `report/safety_control_review.md` | **保护控制审查**：已有（限幅/keep-out/释放闸）vs 缺口（geofence/看门狗/abort/避碰） |
@@ -355,6 +356,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `tools/validate_coord.py` | 协同协议 SITL 验证器（跑多组配置 + 不变量检查） |
 | `tools/bench_coord.py` | **协同交接基准（阶段 0）**：coord_mode×intent×σ×delay 网格 + Wilson CI + 报告 |
 | `tools/coord_prob.py` | **C1 概率证书**：二维脱靶模型 + 证书 k(ε) + 策略/延迟扫描（离线、秒级） |
+| `tools/coord_proto.py` | **C2 协议时序界**：取消窗口/取消捕获率/设计表/丢包结局（离线） |
 | `tools/drag_reject.py` | 阻力/风扰 × 估计器对比 |
 | `tools/gen_funnel_cup.py` | 生成空心导向锥杯模型（x500_funnel_cup / funnel_cup / funnel_flat） |
 | `models/x500_funnel_cup/` | M6 末端：x500 + 空心导向锥杯（`FUNNEL_TYPE=cup` 启用） |

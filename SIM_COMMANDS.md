@@ -350,12 +350,21 @@ python3 tools/coord_prob.py --n 300000      # 证书 k(ε) + 策略/延迟扫描
 EMA 标定（`rel_pos_sigma→σ_e`）、覆盖性检查。
 
 **证书闸接入 SITL**（`release_gate_mode=certificate`）：
+> B 的 `/drone_b/ready` 已扩为 `[.., sigma_abs, sigma_rel]`；证书闸用**相对 σ_rel**（启发式用 σ_abs）。
+
+**证书闸接入 SITL 示例**：
 ```bash
 COORD=handshake FUNNEL_MOUTH=0.30 \
   LAUNCH_EXTRA="release_gate_mode:=certificate cert_eps:=0.05 cert_sigma_track:=0.02" \
   bash run_m6_sitl.sh 70
 ```
-> B 的 `/drone_b/ready` 已扩为 `[.., sigma_abs, sigma_rel]`；证书闸用**相对 σ_rel**（启发式用 σ_abs）。
+
+### 5.3 C2 协议时序界（研究 W3）
+
+```bash
+python3 tools/coord_proto.py --n 200000   # 取消窗口/取消捕获率/设计表/丢包结局
+```
+输出见 `report/coordination_protocol.md`：`release_lead=d_max/(2(1−catch))`、丢 cmd→未下潜失效。
 
 ```bash
 source ~/drone_payload_catch/env.sh

@@ -130,6 +130,7 @@ drone_payload_catch/
     ├── paper_outline.md       ← **论文骨架（协调方向）**：题目/摘要/贡献/形式化/实验/相关工作/真机/时间线
     ├── coordination_probability.md ← **C1 概率证书**：二维脱靶模型 + `P(capture)≥1−ε` + 离线验证
     ├── coordination_information.md ← **C3 信息**：state vs intent（延迟容忍；intent 保留证书）
+    ├── coordination_protocol.md ← **C2 协议时序界**：取消窗口/设计表/丢包失效模式
     ├── coordination_benchmark.md ← **协同交接基准（阶段 0）**：bench_coord.py 生成（coord_mode×intent×σ×delay + Wilson CI）
     ├── planning_control_opt.md ← **规划/协调+控制优化**：ZEM 终端导引 + 释放前落点余量闸
     ├── safety_control_review.md ← **保护控制审查**：已有(限幅/keep-out/释放闸) vs 缺口(geofence/看门狗/abort/避碰)
