@@ -366,6 +366,13 @@ python3 tools/coord_proto.py --n 200000   # 取消窗口/取消捕获率/设计�
 ```
 输出见 `report/coordination_protocol.md`：`release_lead=d_max/(2(1−catch))`、丢 cmd→未下潜失效。
 
+### 5.4 C4 联合机动（研究 W3）
+
+```bash
+python3 tools/coord_maneuver.py --wind 0 --n 12   # A 速度/高度 × B 机动联合优化
+```
+输出 → `report/coordination_maneuver.md`：速度—余量权衡、联合几何恢复余量、顺风耦合。
+
 ```bash
 source ~/drone_payload_catch/env.sh
 bash tools/sweep_m6_sitl.sh      # 10 档难度扫描 → report/m6_sitl_results.md
