@@ -356,6 +356,7 @@ colcon build --packages-select payload_catch
 ## 10. 提交历史（git log，自上而下）
 
 ```
+133741c docs: 新增论文骨架（协调方向）——锁定论点/贡献 C1-C5/形式化/实验/相关工作/真机/时间线
 fe2d73c docs: 将协调研究成果与发现并入说明/报告文档（README/MEMORY/research_roadmap）
 3cfcdb6 feat(bench): 协同交接基准实验台（研究阶段 0）
         （tools/bench_coord.py + report/coordination_benchmark.md；grid×CI）
