@@ -332,6 +332,8 @@ LAUNCH_EXTRA="safety_geofence_alt:=3.0" bash run_m6_sitl.sh 40
 ```bash
 python3 tools/bench_coord.py --quick            # 5 配置×1（≈10 min，先验证）
 python3 tools/bench_coord.py --grid gate --reps 2   # 证书闸 vs 启发式闸（论文核心消融）
+python3 tools/bench_coord.py --grid ablation --reps 3          # 逐项消融（标称）
+python3 tools/bench_coord.py --grid ablation --stress --reps 3 # 逐项消融（stress，实验主表）
 python3 tools/bench_coord.py --reps 3           # 小网格×3 次
 python3 tools/bench_coord.py --full --reps 3     # 全网格 36 配置×3（≈多小时）
 python3 tools/bench_coord.py --dry-run          # 只打印配置

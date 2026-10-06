@@ -38,6 +38,19 @@ OUT = os.path.join(REPO, 'report', 'coordination_benchmark.md')
 
 # ------------------------------------------------------------------ 配置网格
 def build_grid(grid: str = 'quick'):
+    if grid == 'ablation':
+        # 逐项消融：baseline → +权威 → +证书 → +intent → +CBF
+        return [
+            ('T0_direct', dict(COORD='direct')),
+            ('T1_auth', dict(COORD='handshake')),
+            ('T2_cert', dict(COORD='handshake',
+                             LAUNCH_EXTRA='release_gate_mode:=certificate')),
+            ('T3_intent', dict(COORD='handshake',
+                               LAUNCH_EXTRA='release_gate_mode:=certificate use_intent:=true')),
+            ('T4_cbf', dict(COORD='handshake',
+                            LAUNCH_EXTRA='release_gate_mode:=certificate '
+                                         'use_intent:=true keepout_mode:=cbf')),
+        ]
     if grid == 'gate':
         # 证书闸 vs 启发式闸（论文核心消融）
         return [
@@ -166,17 +179,25 @@ def agg(rows: list) -> dict:
 # ------------------------------------------------------------------ 主流程
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--grid', default='quick', choices=['quick', 'full', 'gate'],
-                    help='quick | full | gate（证书 vs 启发式消融）')
+    ap.add_argument('--grid', default='quick', choices=['quick', 'full', 'gate', 'ablation'],
+                    help='quick | full | gate | ablation（逐项消融）')
     ap.add_argument('--full', action='store_true', help='(等价 --grid full)')
     ap.add_argument('--reps', type=int, default=1, help='每配置重复次数')
     ap.add_argument('--secs', type=int, default=70, help='每次运行秒数')
     ap.add_argument('--dry-run', action='store_true')
     ap.add_argument('--only', default='', help='只跑名字匹配该正则的配置')
+    ap.add_argument('--stress', action='store_true',
+                    help='给所有配置叠加基准 stress（rel_pos_sigma:=0.08 rel_latency:=0.15）')
     args = ap.parse_args()
 
     grid_name = 'full' if args.full else args.grid
     grid = build_grid(grid_name)
+    if args.stress:
+        for i, (nm, cfg) in enumerate(grid):
+            extra = cfg.get('LAUNCH_EXTRA', '')
+            cfg['LAUNCH_EXTRA'] = ('rel_pos_sigma:=0.08 rel_latency:=0.15 ' + extra).strip()
+            grid[i] = (nm, cfg)
+        grid_name += '+stress'
     if args.only:
         rx = re.compile(args.only)
         grid = [(n, c) for (n, c) in grid if rx.search(n)]

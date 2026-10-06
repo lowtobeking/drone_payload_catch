@@ -134,6 +134,7 @@ drone_payload_catch/
     ├── coordination_maneuver.md ← **C4 联合机动**：A 速度/高度 × B 机动联合优化
     ├── coordination_cbf.md   ← **C5 handover-CBF**：速度级防碰不变集 + 交接门
     ├── coordination_theory.md ← **协调理论**：T1 释放域最优性 / T2 联合证书 / T3 延迟 CBF
+    ├── coordination_experiments.md ← **实验主表**：逐项消融（应力下时延 3.3→0.72→0.42s）
     ├── coordination_benchmark.md ← **协同交接基准（阶段 0）**：bench_coord.py 生成（coord_mode×intent×σ×delay + Wilson CI）
     ├── planning_control_opt.md ← **规划/协调+控制优化**：ZEM 终端导引 + 释放前落点余量闸
     ├── safety_control_review.md ← **保护控制审查**：已有(限幅/keep-out/释放闸) vs 缺口(geofence/看门狗/abort/避碰)

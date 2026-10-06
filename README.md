@@ -351,6 +351,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `report/coordination_maneuver.md` | **C4 联合机动**：A 速度/高度 × B 机动联合优化；速度—余量权衡、联合几何恢复余量、顺风耦合 |
 | `report/coordination_cbf.md` | **C5 handover-CBF**：速度级 CBF 防碰不变集 + 可行性条件 + C1 交接门；可行域内 100% 保证 |
 | `report/coordination_theory.md` | **协调理论三条新结果**：T1 释放域最优性（中心球）+ T2 联合 handover 证书 + T3 延迟 CBF 鲁棒界 |
+| `report/coordination_experiments.md` | **实验主表（逐项消融）**：baseline→+权威→+证书→+intent→+CBF；应力下释放时延 3.3s→0.72s→0.42s |
 | `report/coordination_benchmark.md` | **协同交接基准（阶段 0）**：`tools/bench_coord.py` 生成（coord_mode×intent×σ×delay + 置信区间） |
 | `report/planning_control_opt.md` | **规划/协调 + 控制优化**：ZEM 终端导引 + 释放前落点余量闸 |
 | `report/safety_control_review.md` | **保护控制审查**：已有（限幅/keep-out/释放闸）vs 缺口（geofence/看门狗/abort/避碰） |
