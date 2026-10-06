@@ -339,6 +339,14 @@ python3 tools/bench_coord.py --only auth       # 只跑名字匹配的配置
 
 指标：捕获率(95% CI)、horiz、rel_v、min\|A-B\|、就绪→释放时延、协调异常、failsafe。
 
+### 5.2 C1 概率证书（研究 W2）
+
+```bash
+python3 tools/coord_prob.py --n 300000      # 证书 k(ε) + 策略/延迟扫描（离线、秒级）
+```
+输出 → `report/coordination_probability.md`：`k(ε)=√(2ln(1/ε))`、`P(capture)≥1−ε` 证书、
+`direct` vs `authority`、延迟偏置 `v_A·d` 扫描、覆盖性检查。
+
 ```bash
 source ~/drone_payload_catch/env.sh
 bash tools/sweep_m6_sitl.sh      # 10 档难度扫描 → report/m6_sitl_results.md

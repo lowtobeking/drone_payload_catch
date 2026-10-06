@@ -131,9 +131,9 @@ capture ⇔  ‖p_B(t_c) − p_p(t_c)‖ ≤ r_eff  ∧  ‖v_B − v_p‖ ≤ v
 说明释放闸退化为“绝对 σ”，是 C1 要修正的核心（应建“相对 σ”）；③ 1 次/档仅作冒烟，正式统计需 `--reps 3`+CI。
 
 ### 阶段 1：C1 概率释放保证（2–4 周）
-- 离线（`tools/offline_run.py`、`tools/stack_run.py`）推导并验证 `P(capture)≥1−ε` 证书；
-- SITL 扫描 σ×delay，比较 **启发式闸** vs **证书闸**（触发即弃投/重试）。
-- 产出：`P(capture)`—σ—delay 曲线；证书的保守度/覆盖率。
+- **已实现（v1）**：`tools/coord_prob.py` + `report/coordination_probability.md`
+  —— 二维脱靶模型、证书 `k(ε)=√(2 ln(1/ε))`、`P(capture)≥1−ε`、策略/延迟扫描与覆盖性验证。
+- **待办**：用 Rice/Marcum-Q 精确 CDF 收紧保守界；用 `bench_coord` 标定 `σ_e`/`b`；SITL 证书闸对照。
 
 ### 阶段 2：C2 + C3 信息与通信（3–5 周）
 - 消融：`direct` vs `authority`；`state-only` vs `+intent`；
