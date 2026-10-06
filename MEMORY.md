@@ -360,6 +360,8 @@ colcon build --packages-select payload_catch
 ## 10. 提交历史（git log，自上而下）
 
 ```
+ba64a61 feat(research): C4 A 速度/高度 × B 机动联合优化
+        （速度—余量权衡/联合几何恢复余量/顺风耦合；report/coordination_maneuver.md）
 9a23e14 feat(research): C2 交接协议时序误差界与鲁棒性
         （release_lead=d_max/(2(1−catch))；丢 cmd→未下潜；report/coordination_protocol.md）
 801529f feat(research): C3 state vs intent 延迟容忍（离线概率模型）
