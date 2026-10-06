@@ -89,6 +89,35 @@ def handover_trajectory(d_safe, v_max, alpha, eps, r_eff, margin, sigma_m,
                 released=released, t_rel=t_rel, T_thr=T_thr)
 
 
+def sim_delay(d_safe, v_max, alpha, delay, robust, dt=0.02, T=4.0,
+              v_approach=0.8):
+    """延迟下的防碰：B 用 **延迟的** A 相对状态做 CBF。
+    robust=True 时用收紧屏障 d_safe_eff = d_safe + (‖v_A‖+‖v_B‖)·delay。
+    返回最小间距。"""
+    pA = np.array([0.0, 0.0, 1.5])
+    pB = np.array([0.0, 0.0, -1.5])
+    vA = np.array([0.0, 0.0, -v_approach])      # A 向 B 接近
+    vB = np.zeros(3)
+    step = max(1, int(round(delay / dt)))
+    hist = [(pA.copy(), vA.copy()) for _ in range(step + 1)]
+    h_min = np.inf
+    for _ in range(int(T / dt)):
+        vB_nom = np.array([0.0, 0.0, v_approach])    # B 向 A 接近
+        pA_d, vA_d = hist[0]                          # 延迟的 A 状态
+        r_d = pA_d - pB
+        rho = (np.linalg.norm(vA) + np.linalg.norm(vB)) * delay if robust else 0.0
+        d_eff = d_safe + rho
+        h = float(r_d @ r_d) - d_eff ** 2
+        c = cbf_bound(r_d, vA_d, h, alpha)
+        vB = project_cbf(vB_nom, r_d, c, v_max)
+        pA = pA + vA * dt
+        pB = pB + vB * dt
+        hist.append((pA.copy(), vA.copy()))
+        hist.pop(0)
+        h_min = min(h_min, float(np.linalg.norm(pA - pB)))
+    return h_min
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--n', type=int, default=50000)
@@ -120,6 +149,18 @@ def main():
         print(f"  α={alpha}: 最小间距={tr['h_min']:.3f} (≥d_safe? "
               f"{'✅' if tr['safe'] else '❌'}); 释放={tr['released']} @t={tr['t_rel']:.2f}; "
               f"T={tr['T_thr']:.3f}")
+
+    print('\n' + '=' * 78)
+    print('C5 延迟 CBF：B 用延迟的 A 相对状态（naive vs robust 收紧）')
+    print(f'  d_safe={args.d_safe} v_max={args.v_max} α={args.alpha}（A/B 各以 0.8 m/s 相向）')
+    print('=' * 78)
+    print(f"{'delay(s)':>9} {'naive 最小间距':>14} {'安全?':>6} "
+          f"{'robust 最小间距':>16} {'安全?':>6}")
+    for dly in (0.0, 0.05, 0.10, 0.20, 0.30):
+        hn = sim_delay(args.d_safe, args.v_max, args.alpha, dly, False)
+        hr = sim_delay(args.d_safe, args.v_max, args.alpha, dly, True)
+        print(f"{dly:>9.2f} {hn:>14.3f} {'✅' if hn >= args.d_safe - 1e-3 else '❌':>6} "
+              f"{hr:>16.3f} {'✅' if hr >= args.d_safe - 1e-3 else '❌':>6}")
 
     print('\n>>> 结论：速度级 CBF 保证 ḣ+αh≥0 ⇒ ‖r(t)‖≥d_safe·e^{−αt/2}（永不碰撞）；')
     print('>>>       交接门复用 C1 证书保证释放可达。叠加 = 交接过程的安全证书。')

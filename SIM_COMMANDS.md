@@ -380,6 +380,14 @@ python3 tools/coord_cbf.py --n 50000   # 速度级防碰不变集 + 交接门
 ```
 输出 → `report/coordination_cbf.md`：可行域内 CBF 100% 满足（未滤波 56.8%）；可行性 `v_max ≥ ‖v_A‖−(α/2)h/‖r‖`。
 
+### 5.7 理论三条（T1 最优性 / T3 延迟 CBF）
+
+```bash
+python3 tools/coord_optimal.py --n 800000 --sigma0 0.25 --eps 0.05   # T1：中心球最优
+python3 tools/coord_cbf.py --n 5000                                  # T3：延迟 CBF（naive 违反 vs robust 安全）
+```
+输出 → `report/coordination_theory.md`：T1 释放域最优性；T2 联合 handover 证书；T3 延迟鲁棒 `ρ=(v_A+v_B)d`。
+
 ### 5.6 全套整合验证（C1 证书闸 + C5 CBF + C2 冗余）
 
 ```bash
