@@ -125,6 +125,24 @@ def main():
         print(f"{rel:>6.2f} {s_e:>8.4f} {s_m:>7.4f} | {T25:>8.4f} "
               f"{'✅' if T25 > 0 else '❌':>6} | {T14:>8.4f} {'✅' if T14 > 0 else '❌':>6}")
 
+    # ---- C3: state vs intent（延迟容忍）----
+    print('\n' + '=' * 82)
+    print('C3: state vs intent —— 延迟容忍（exact, eff_r=0.25, ε=%.2f, σ_e=0.02）' % args.eps)
+    print('  state：对齐“当前状态”→ 延迟偏置 b=v_A·d；intent：对齐“计划落点”→ 无偏置')
+    print('=' * 82)
+    print(f"{'v_A':>5} {'delay':>6} {'bias':>6} | {'state 成功率':>12} {'state 条件':>10} "
+          f"| {'intent 成功率':>13} {'intent 条件':>11}")
+    for vA in (0.0, 0.5, 1.0, 2.0):
+        for d in (0.0, 0.1, 0.2, 0.3):
+            bias = vA * d
+            rs = sim_policy(N, 0.25, 0.05, sigma0, 0.02, bias, sigma_track,
+                            'exact', args.eps, rng)
+            ri = sim_policy(N, 0.25, 0.05, sigma0, 0.02, 0.0, sigma_track,
+                            'exact', args.eps, rng)
+            print(f"{vA:>5.1f} {d:>6.2f} {bias:>6.2f} | {rs['success_rate']:>12.3f} "
+                  f"{rs['cond_capture']:>10.3f} | {ri['success_rate']:>13.3f} "
+                  f"{ri['cond_capture']:>11.3f}")
+
     # ---- 覆盖性（exact）----
     print('\n' + '=' * 82)
     print('覆盖性检查（exact, authority σ_e=0.03, eff_r=0.25）')
