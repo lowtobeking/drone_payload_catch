@@ -24,37 +24,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from payload_catch.coord_cert import cert_threshold  # noqa: E402
-
-
-def project_cbf(v_nom, r, c, v_max):
-    """精确投影到 {r·v ≤ c} ∩ {‖v‖≤v_max}（闭式）。
-
-    可行条件： c ≥ −‖r‖·v_max（否则半空间与球不交 → 不可行）。
-    """
-    v = np.asarray(v_nom, float).copy()
-    n = float(np.linalg.norm(v))
-    if n > v_max and n > 1e-12:
-        v *= v_max / n
-    rn = float(np.linalg.norm(r))
-    if rn < 1e-12:
-        return v
-    e = r / rn
-    if float(r @ v) <= c:          # 已满足
-        return v
-    # 投影到平面 e·v = c/‖r‖，并限制在球内
-    c_e = c / rn
-    if c_e < -v_max:               # 不可行：取最接近的球面点（尽力）
-        return -v_max * e
-    perp = v - float(v @ e) * e
-    w_max = float(np.sqrt(max(0.0, v_max ** 2 - c_e ** 2)))
-    nw = float(np.linalg.norm(perp))
-    w = perp if (nw <= w_max or nw < 1e-12) else perp * (w_max / nw)
-    return c_e * e + w
-
-
-def cbf_bound(r, v_A, h, alpha):
-    """B 的约束右端： r·v_B ≤ r·v_A + (α/2) h。"""
-    return float(r @ v_A) + 0.5 * alpha * h
+from payload_catch.keepout import project_cbf, cbf_bound  # noqa: E402
 
 
 def check_invariance(n, d_safe, v_max, alpha, rng):

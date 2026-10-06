@@ -17,6 +17,7 @@ from std_msgs.msg import Bool, Float64, Float64MultiArray
 from .px4_iface import Px4Drone
 from .rendezvous import RendezvousPlanner
 from .stack_drop import plan_stack_drop, _stack_ref, _adaptive_dive, minimal_dive, retain_speed
+from .keepout import cbf_bound, project_cbf
 
 
 class BNode(Px4Drone):
@@ -100,6 +101,8 @@ class BNode(Px4Drone):
         self.declare_parameter('keepout_enable', True)
         self.declare_parameter('keepout_dist', 0.60)   # 触发距离 (m)
         self.declare_parameter('keepout_gain', 1.0)    # 排斥增益 (1/s)
+        self.declare_parameter('keepout_mode', 'heuristic')  # heuristic | cbf（C5 速度级 CBF）
+        self.declare_parameter('keepout_alpha', 1.0)   # CBF 指数增益 α
         # 在线自适应下潜：滚动重解 a_dive（抗垂直扰动，如下击暴流）
         self.declare_parameter('adaptive_dive', False)
         self.declare_parameter('adaptive_alt_floor', 0.35)   # 刹停后最小离地 (m)
@@ -182,6 +185,8 @@ class BNode(Px4Drone):
         self.keepout_enable = bool(self.get_parameter('keepout_enable').value)
         self.keepout_dist = float(self.get_parameter('keepout_dist').value)
         self.keepout_gain = float(self.get_parameter('keepout_gain').value)
+        self.keepout_mode = str(self.get_parameter('keepout_mode').value).lower()
+        self.keepout_alpha = float(self.get_parameter('keepout_alpha').value)
         self.adaptive_dive = bool(self.get_parameter('adaptive_dive').value)
         self.adaptive_alt_floor = float(self.get_parameter('adaptive_alt_floor').value)
         self._a_adapt = None
@@ -290,6 +295,14 @@ class BNode(Px4Drone):
             self.released = True
             if self.mode != 'stack':
                 self.phase = 'RENDEZ'
+            elif (self.coord_mode == 'handshake'
+                  and self.phase in ('ALIGN', 'FORMATION') and not self._dive_anchored):
+                # C2 冗余：若 release_cmd 丢失，用 /payload/released（载荷实际分离）兜底触发 DIVE
+                self.release_ref_t0 = self.get_clock().now().nanoseconds * 1e-9
+                self._dive_anchored = False
+                self.phase = 'DIVE'
+                self.get_logger().warn(
+                    'B: /payload/released → 冗余触发 DIVE（release_cmd 可能丢失）')
             self.get_logger().warn('B: payload released → rendezvous')
 
     def _on_a_intent(self, msg):
@@ -356,10 +369,23 @@ class BNode(Px4Drone):
         v = v - self.keepout_gain * (self.keepout_dist - dist) * u   # 排斥（远离 A）
         return v
 
+    def _cbf_velocity(self, v_sp):
+        """C5：速度级 CBF 防碰滤波（B 侧，用 B 对 A 的估计）。"""
+        if self.a_est is None:
+            return v_sp
+        r = self.a_est - self.pos_world
+        h = float(r @ r) - self.keepout_dist ** 2
+        v_A = self.a_vel_est if self.a_vel_est is not None else np.zeros(3)
+        c = cbf_bound(r, v_A, h, self.keepout_alpha)
+        return project_cbf(np.asarray(v_sp, float), r, c, self.v_max)
+
     def publish_velocity(self, vel_ned, yaw=0.0, acc_ff=None):
-        """B 的栈模式叠加 3D 反应式 keep-out（其余交给基类）。"""
+        """B 的栈模式叠加 keep-out（heuristic 排斥 或 C5 CBF 滤波）。"""
         if self.mode == 'stack':
-            vel_ned = self._keepout_velocity(vel_ned)
+            if self.keepout_mode == 'cbf':
+                vel_ned = self._cbf_velocity(vel_ned)
+            else:
+                vel_ned = self._keepout_velocity(vel_ned)
         super().publish_velocity(vel_ned, yaw=yaw, acc_ff=acc_ff)
 
     def _on_a_state(self, msg):

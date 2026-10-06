@@ -64,8 +64,12 @@ A 悬停 → B 上近（对正残差 `0.20·e^{−t/0.5}` 收敛）→ **C1 证�
 | 监督 | 分级安全状态机 `_safety_update`（OK/HOLD/PULLBACK/LAND/KILL） | 保留（**离散监督**层） |
 | 释放门 | `a_node` 余量闸 / 证书闸（C1） | **handover 门 = C1 证书** |
 
-C5 可作为 `_keepout_velocity` 的**形式化升级**：把"排斥+去内向"换成 CBF 约束，
+C5 可作为 `_keepout_velocity` 的**形式化升级**：把“排斥+去内向”换成 CBF 约束，
 获得 `‖r(t)‖≥d_safe e^{−αt/2}` 的**可证保证**；安全状态机仍是上层的离散兜底。
+
+**已实现**：`b_node.keepout_mode`（`heuristic`|`cbf`）+ `keepout_alpha`；CBF 用 B 对 A 的估计
+（`a_est/a_vel_est`）作相对状态。SITL（`release_gate_mode:=certificate keepout_mode:=cbf`）：
+`STACK CAPTURED horiz=0.027m`、无 failsafe（标称 r≈1m>d_safe 不触发；单元已验触发时 100%）。
 
 ## 7. 结论（可写进论文）
 

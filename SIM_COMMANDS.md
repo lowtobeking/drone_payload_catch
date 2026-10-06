@@ -380,6 +380,17 @@ python3 tools/coord_cbf.py --n 50000   # 速度级防碰不变集 + 交接门
 ```
 输出 → `report/coordination_cbf.md`：可行域内 CBF 100% 满足（未滤波 56.8%）；可行性 `v_max ≥ ‖v_A‖−(α/2)h/‖r‖`。
 
+### 5.6 全套整合验证（C1 证书闸 + C5 CBF + C2 冗余）
+
+```bash
+COORD=handshake FUNNEL_MOUTH=0.30 \
+  LAUNCH_EXTRA="release_gate_mode:=certificate keepout_mode:=cbf" \
+  bash run_m6_sitl.sh 70
+```
+- `keepout_mode=cbf`：用 C5 速度级 CBF 替代启发式排斥（`heuristic`）。
+- C2 冗余：若 `release_cmd` 丢失，B 收 `/payload/released`（载荷实际分离）也兜底触发 DIVE。
+- 实测：`STACK CAPTURED horiz=0.027m`、双机落地、无 failsafe。
+
 ```bash
 source ~/drone_payload_catch/env.sh
 bash tools/sweep_m6_sitl.sh      # 10 档难度扫描 → report/m6_sitl_results.md

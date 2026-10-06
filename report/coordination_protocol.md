@@ -103,3 +103,10 @@ catch = 1 − d_max / (2·release_lead)
 - 在 SITL 注入 **`release_cmd` 丢包**，验证第 4 节的危险失效模式与冗余修复。
 - 把 `release_lead` 做成 **`d_max` 自适应**（在线估延迟 → 设 lead）。
 - C4（联合机动）与 C5（handover-CBF）随后。
+
+---
+
+## 8. 冗余修复（已实现）
+
+`b_node._on_released`：stack + handshake 下，若 B 收 `/payload/released`（载荷实际分离）时仍在
+`ALIGN/FORMATION`，则**兜底进入 DIVE**（弥补 `release_cmd` 丢失——“已释放但 B 未下潜”的失效模式）。
