@@ -74,6 +74,7 @@ def generate_launch_description():
         'keepout_gain': '1.0',        # keep-out 排斥增益 (1/s)
         'keepout_mode': 'heuristic',  # heuristic | cbf（C5）
         'keepout_alpha': '1.0',       # CBF 指数增益
+        'keepout_delay_s': '0.0',     # T3 延迟鲁棒收紧用的通信延迟 (s)
         'adaptive_dive': 'false',     # 在线自适应下潜
         'adaptive_alt_floor': '0.35', # 自适应下潜：刹停后最小离地 (m)
         'sp_rate_limit': '0.0',       # 速度设定点变化率上限 (m/s²)，0=不限
@@ -208,6 +209,7 @@ def generate_launch_description():
                  'keepout_dist': _f('keepout_dist'), 'keepout_gain': _f('keepout_gain'),
                  'keepout_mode': LaunchConfiguration('keepout_mode'),
                  'keepout_alpha': _f('keepout_alpha'),
+                 'keepout_delay_s': _f('keepout_delay_s'),
                  'sensor_constraints_enable': _b('sensor_constraints_enable'),
                  'sensor_use_ekf_sigma': _b('sensor_use_ekf_sigma'),
                  'sensor_watchdog_enable': _b('sensor_watchdog_enable'),

@@ -68,6 +68,7 @@ T4_cbf    : + CBF 防碰（keepout_mode=cbf，C5）
 
 ```bash
 source ~/drone_payload_catch/env.sh
+MODE=full bash run_m6_sitl.sh 70                                 # 研究特性全开（握手+证书闸+CBF+intent+T3）
 python3 tools/bench_coord.py --grid ablation --reps 3            # 标称
 python3 tools/bench_coord.py --grid ablation --stress --reps 3   # stress（主表）
 python3 tools/coord_optimal.py --n 800000 --sigma0 0.25          # T1

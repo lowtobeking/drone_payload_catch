@@ -392,14 +392,19 @@ python3 tools/coord_cbf.py --n 5000                                  # T3：延�
 
 ### 5.6 全套整合验证（C1 证书闸 + C5 CBF + C2 冗余）
 
+**一键预设（推荐）**：`MODE=full` 开启 握手+证书闸+CBF+intent+延迟鲁棒 CBF（默认仍是 baseline）：
+```bash
+MODE=full bash run_m6_sitl.sh 70          # 研究特性全开（论文主线/演示）
+```
+等价于：
 ```bash
 COORD=handshake FUNNEL_MOUTH=0.30 \
-  LAUNCH_EXTRA="release_gate_mode:=certificate keepout_mode:=cbf" \
+  LAUNCH_EXTRA="release_gate_mode:=certificate keepout_mode:=cbf use_intent:=true keepout_delay_s:=0.05" \
   bash run_m6_sitl.sh 70
 ```
-- `keepout_mode=cbf`：用 C5 速度级 CBF 替代启发式排斥（`heuristic`）。
-- C2 冗余：若 `release_cmd` 丢失，B 收 `/payload/released`（载荷实际分离）也兜底触发 DIVE。
-- 实测：`STACK CAPTURED horiz=0.027m`、双机落地、无 failsafe。
+- `keepout_mode=cbf`：C5 速度级 CBF；`keepout_delay_s`：**T3 延迟鲁棒收紧**（`d_eff=d_safe+(‖v_A‖+‖v_B‖)d`）。
+- C2 冗余：若 `release_cmd` 丢失，B 收 `/payload/released` 也兜底触发 DIVE。
+- 实测（`MODE=full`）：`STACK CAPTURED horiz=0.043m`、双机落地、无 failsafe。
 
 ```bash
 source ~/drone_payload_catch/env.sh

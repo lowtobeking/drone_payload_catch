@@ -25,6 +25,13 @@ fi
 RELEASE_OFFSET="0.0,0.0,$RELEASE_Z"                # 载荷相对 A 的释放偏移（NED，向下）
 LAUNCH_EXTRA="${LAUNCH_EXTRA:-}"                    # 额外 launch 参数（供扫描/试验覆盖）
 
+# 研究特性预设：MODE=full 开启 握手+证书闸+CBF+intent+延迟鲁棒 CBF（默认 baseline 不变）
+MODE="${MODE:-baseline}"
+if [ "$MODE" = "full" ]; then
+  COORD=handshake
+  LAUNCH_EXTRA="release_gate_mode:=certificate keepout_mode:=cbf use_intent:=true keepout_delay_s:=0.05 $LAUNCH_EXTRA"
+fi
+
 # 协同释放握手：COORD=handshake 时 B 报就绪、A 作释放权威并 ack。
 COORD="${COORD:-direct}"
 [ "$COORD" = "handshake" ] && LAUNCH_EXTRA="coord_mode:=handshake $LAUNCH_EXTRA"

@@ -103,6 +103,7 @@ class BNode(Px4Drone):
         self.declare_parameter('keepout_gain', 1.0)    # 排斥增益 (1/s)
         self.declare_parameter('keepout_mode', 'heuristic')  # heuristic | cbf（C5 速度级 CBF）
         self.declare_parameter('keepout_alpha', 1.0)   # CBF 指数增益 α
+        self.declare_parameter('keepout_delay_s', 0.0)  # T3：延迟鲁棒收紧用的通信延迟 (s)
         # 在线自适应下潜：滚动重解 a_dive（抗垂直扰动，如下击暴流）
         self.declare_parameter('adaptive_dive', False)
         self.declare_parameter('adaptive_alt_floor', 0.35)   # 刹停后最小离地 (m)
@@ -187,6 +188,7 @@ class BNode(Px4Drone):
         self.keepout_gain = float(self.get_parameter('keepout_gain').value)
         self.keepout_mode = str(self.get_parameter('keepout_mode').value).lower()
         self.keepout_alpha = float(self.get_parameter('keepout_alpha').value)
+        self.keepout_delay_s = float(self.get_parameter('keepout_delay_s').value)
         self.adaptive_dive = bool(self.get_parameter('adaptive_dive').value)
         self.adaptive_alt_floor = float(self.get_parameter('adaptive_alt_floor').value)
         self._a_adapt = None
@@ -370,12 +372,18 @@ class BNode(Px4Drone):
         return v
 
     def _cbf_velocity(self, v_sp):
-        """C5：速度级 CBF 防碰滤波（B 侧，用 B 对 A 的估计）。"""
+        """C5：速度级 CBF 防碰滤波（B 侧，用 B 对 A 的估计）。
+
+        含 T3 延迟鲁棒：a 相对状态延迟 `keepout_delay_s` 时，把安全半径收紧
+        `d_eff = keepout_dist + (‖v_A‖+‖v_B‖)·keepout_delay_s`（ρ 为延迟内相对位移界）。
+        """
         if self.a_est is None:
             return v_sp
         r = self.a_est - self.pos_world
-        h = float(r @ r) - self.keepout_dist ** 2
         v_A = self.a_vel_est if self.a_vel_est is not None else np.zeros(3)
+        rho = (float(np.linalg.norm(v_A)) + float(np.linalg.norm(self.vel))) * self.keepout_delay_s
+        d_eff = self.keepout_dist + rho
+        h = float(r @ r) - d_eff ** 2
         c = cbf_bound(r, v_A, h, self.keepout_alpha)
         return project_cbf(np.asarray(v_sp, float), r, c, self.v_max)
 

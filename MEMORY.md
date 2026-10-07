@@ -22,7 +22,7 @@
 - **安全约束链（优化 2–5）**：分级安全状态机（`OK/HOLD/PULLBACK/LAND/KILL` + 越界软限幅）、
   传感器/估计器约束（EKF `eph/epv` σ + 健康看门狗 + 限值）、姿态/角速率安全滤波（`report/opt_round2..5.md`）；
 - **研究（协调方向）**：理论 **C1–C5 + T1–T3**（释放证书+最优性 / 协议时序界 / state-vs-intent /
-  联合机动 / handover-CBF / 联合证书 / 延迟 CBF）；**SITL 逐项消融主表**；
+  联合机动 / handover-CBF / 联合证书 / 延迟 CBF）；**SITL 逐项消融主表**；`MODE=full` 一键预设；
   报告 `report/coordination_*.md`、`coordination_theory.md`、`coordination_experiments.md`。
 
 **未做**：真空心漏斗 / 真实夹爪/磁吸；真机；真实相对导航（现为真值+噪声）；平台 failsafe 边界（~4.9 m/s，

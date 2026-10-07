@@ -28,6 +28,7 @@
 - **研究（协调方向）**：理论 **C1–C5 + T1–T3**（释放证书+最优性 / 协议时序界 / state-vs-intent /
   联合机动 / handover-CBF / 联合证书 / 延迟 CBF）→ `report/coordination_*.md`、`coordination_theory.md`；
   **SITL 逐项消融主表** → `report/coordination_experiments.md`；路线图 `research_roadmap.md`；骨架 `paper_outline.md`。
+  一键开启研究特性：`MODE=full bash run_m6_sitl.sh 70`（握手+证书闸+CBF+intent+T3 延迟鲁棒，默认仍 baseline）。
 
 ## 任务与算法
 
