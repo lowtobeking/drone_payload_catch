@@ -364,6 +364,8 @@ colcon build --packages-select payload_catch
 ## 10. 提交历史（git log，自上而下）
 
 ```
+bff54a5 feat(research): 加 MODE=full 预设 + T3 延迟鲁棒 CBF 接入节点
+        （run_m6_sitl.sh MODE=full；b_node.keepout_delay_s；SITL horiz=0.043m）
 3a2619e docs: 同步研究进度到说明/报告文档（README/MEMORY/paper_outline）
 fdf5476 feat(research): 逐项消融实验主表（--grid ablation [--stress]）+ 实验报告
         （应力下释放时延 3.3→0.72→0.42s；report/coordination_experiments.md）
