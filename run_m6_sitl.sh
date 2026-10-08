@@ -86,6 +86,10 @@ if [ "$FUNNEL_TYPE" = "tray" ]; then
   else
     PAYLOAD_MODEL="$HOME/drone_payload_catch/models/payload_100g/model.sdf"
   fi
+  # 主动锁扣：托盘也保留 funnel_link 名，直接复用（100g 版）
+  if [ "$PAYLOAD_LOCK" = "1" ]; then
+    LOCK_EXTRA="lock_to_b:=true lock_model_path:=$HOME/drone_payload_catch/models/payload_lock_100g/model.sdf"
+  fi
 elif [ "$FUNNEL_TYPE" = "cup" ]; then
   FUNNEL_MOUTH="${FUNNEL_MOUTH:-0.30}"
   FUNNEL_SDF="${FUNNEL_SDF:-$HOME/drone_payload_catch/models/x500_funnel_cup/model.sdf}"

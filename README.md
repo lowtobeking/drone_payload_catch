@@ -24,6 +24,9 @@
 - **托盘鲁棒性/编队**：倾斜保持 **~40°**（优于平盘/空心杯）；侧风 0→6m/s 仅 98→93%；
   **编队同速优先大托盘** `x500_tray_big`（内径40cm）→ 0.5/1.0 m/s 捕获+携带落地
   （`report/m6_tray_robustness.md`、`tools/sweep_m6_tray_sitl.sh`）。
+- **托盘主动锁扣**：`PAYLOAD_LOCK=1`（`payload_lock_100g`）→ 捕获即锁定，**运动交接与盘径解耦**
+  （小托盘 30cm 编队 0.5/1.0 m/s 均捕获+携带）；**泡棉 e 实测工具** `tools/foam_drop_test.py` + 虚拟落物台
+  `tools/gz_foam_drop_test.sh`（模型泡棉 e≈0）。
 - **抗扰**：速度前馈 + 预测对正、增广风 KF（`BallisticDragKF`）、A 端迎风预补偿、自适应下潜。
 - **安全**：不确定度 keep-out（`min_ab_gap+kσ`）、**3D 反应式 keep-out**、**分级安全状态机**
   （`OK/HOLD/PULLBACK/LAND/KILL` + 越界回拉）、释放后清场、**飞行终止(kill)** 监督。
@@ -341,6 +344,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `models/x500_tray/` | **真机末端**：x500 + 圆形托盘（围边+泡棉缓冲，`FUNNEL_TYPE=tray` 启用；生成于 `tools/gen_tray.py`） |
 | `models/payload_100g/` | 托盘用载荷：6cm 立方体 / 100g |
 | `models/payload_attached_100g/` | 编队×托盘：100g 挂载型载荷（`DetachableJoint`） |
+| `models/payload_lock_100g/` | 托盘主动锁扣：100g 锁扣型载荷（`PAYLOAD_LOCK=1`） |
 | `models/x500_tray_big/` | 大托盘（内径40cm，`FUNNEL_MOUTH=0.20` 启用；运动交接用） |
 | `models/payload_attached/` | M6-moving：带 `DetachableJoint` 的载荷（挂 A 随飞、分离继承速度） |
 | `launch/catch_stack_launch.py` / `run_m6_sitl.sh` | M6 SITL 启动 / 一键脚本 |
@@ -398,6 +402,8 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `tools/gen_tray.py` | **生成圆形托盘模型**（x500_tray / funnel_tray；`TRAY_R_IN` 生成大托盘） |
 | `tools/sweep_m6_tray_sitl.sh` / `mc_m6_tray_sitl.sh` | 托盘 SITL 难度扫描 / 蒙特卡洛 |
 | `tools/tray_tilt_test.sh` | **托盘倾斜鲁棒性**落物台（托盘 vs 空心杯 vs 平盘） |
+| `tools/foam_drop_test.py` | **泡棉恢复系数 e 实测换算**（H,h → e/TRAY_E/v_retain/最大gap） |
+| `tools/gz_foam_drop_test.sh` | 虚拟落物台（量回弹得模型泡棉 e，验证测量方法） |
 | `models/x500_funnel_cup/` | M6 末端：x500 + 空心导向锥杯（`FUNNEL_TYPE=cup` 启用） |
 | `models/payload_lock/` | M6 主动保持：带 B 侧 `DetachableJoint` 的载荷（`PAYLOAD_LOCK=1`，捕获时就地重生成并锁到 B 漏斗） |
 | `tools/geom_opt.py` | 鲁棒几何网格搜索（成功率 + p10 余量） |

@@ -20,6 +20,9 @@
   6cm/100g 方块 SITL **3/3**（捕获→携带→双机落地，无 failsafe，horiz 0.015–0.049m）；
 - **托盘鲁棒/编队**：倾斜保持 **~40°**（>平盘/空心杯）；侧风 0→6m/s 98→93%；
   **编队同速需大托盘** `x500_tray_big`（内径40cm）→ 0.5/1.0 m/s 捕获+携带落地（`report/m6_tray_robustness.md`）；
+- **托盘主动锁扣**：`FUNNEL_TYPE=tray PAYLOAD_LOCK=1`（`payload_lock_100g`）→ 捕获即锁定，
+  **运动交接与盘径解耦**（小托盘30cm 编队0.5/1.0 均捕获+携带）；泡棉 **e 实测工具** `tools/foam_drop_test.py`
+  + 虚拟落物台 `tools/gz_foam_drop_test.sh`（模型泡棉 e≈0）；
 - **抗扰**：速度前馈/预测对正、增广风 KF、A 端迎风预补偿、自适应下潜；
 - **协同**：释放握手（B 报就绪→A 释放权威→ack）、意图（预测落点）、时钟同步、编队握手、
   **及时释放 + 释放超时中止**；
@@ -102,6 +105,7 @@ drone_payload_catch/
 ├── models/payload_100g/       ← 托盘用载荷：6cm 立方体 / 100g
 ├── models/x500_tray_big/      ← 大托盘（内径40cm，运动交接用；TRAY_R_IN=0.20 生成）
 ├── models/payload_attached_100g/ ← 编队×托盘：100g 挂载型载荷（DetachableJoint）
+├── models/payload_lock_100g/  ← 托盘主动锁扣：100g 锁扣型载荷（PAYLOAD_LOCK=1）
 ├── tools/
 │   ├── offline_run.py         ← 离线体检 CLI（--all/--plot/--sweep-noise/--compare/--controller-compare/--mc）
 │   ├── stack_run.py           ← M6 垂直堆叠投放 CLI（--sweep-dive/--sweep-gap/--sweep-wind/--mc/--lead）
@@ -252,6 +256,8 @@ colcon build --packages-select payload_catch
 | 托盘·释放误差 | 离线 MC（对比大漏斗） | ⚠️ `eff_r=0.12` 是短板：σ=0.05/0.10/0.20 → 98/88/51%；大漏斗 eff_r=0.25 → 100/100/89% |
 | 托盘·编队同速 | `models/payload_attached_100g` + 大托盘 `x500_tray_big`（`FUNNEL_TYPE=tray FORMATION_VEL≠0`） | ✅ 大托盘(40cm) 0.5/1.0 m/s：`STACK CAPTURED`+物理携带落地；⚠️ 小托盘(30cm) 运动中会被滑出（软件仍报 captured） |
 | 托盘 SITL 扫描/MC | `tools/sweep_m6_tray_sitl.sh` / `mc_m6_tray_sitl.sh` | ✅ 扫描 7/8（仅重噪声不滤波❌）；MC：标称3/3、重噪声+LPF 3/3、释放误差0.20 **1/3** |
+| 托盘·主动锁扣 | `FUNNEL_TYPE=tray PAYLOAD_LOCK=1` + `payload_lock_100g`（复用漏斗锁扣机制，托盘保留 funnel_link） | ✅ 小托盘(30cm) 定点/编队0.5/编队1.0 均**捕获→锁定→携带落地**；无 failsafe；运动交接与盘径解耦 |
+| 托盘·泡棉 e 实测 | `tools/foam_drop_test.py`（H,h→e/TRAY_E/v_retain/最大gap）+ `tools/gz_foam_drop_test.sh`（虚拟落物台） | ✅ 虚拟落物台：模型泡棉 e≈0（比真机合格≤0.2 还死→仿真偏乐观）；真机应实测 e 后重算 TRAY_E |
 | 双机协调 | `rendezvous.solve_cooperative` + 协议分析（`report/coordination.md`） | ✅ 现状=单向/A被动；改进=握手/意图/时钟/安全；⚠️**负结果：A 小幅释放偏移与 t_r 冗余（δ*=0）**，协同价值在协议与 A 的速度/高度配合 |
 | 协同释放握手 | `coord_mode=handshake`（`a_node`/`b_node` + `/drone_b/ready` + `/drone_a/release_cmd` + `/drone_a/intent` + 时钟同步 `/coord/ping|pong` + 释放门限）（`report/coordination_handshake.md`） | ✅ **SITL：B 报就绪→A 作释放权威（精确自身状态）→ack→B 下潜→`STACK CAPTURED`**；含往返**时钟同步**(offset≈0/rtt0.5ms 换算 t_rel) 与释放前一致性门限；默认 direct 保留 |
 | 编队握手+意图 | M6-moving FORMATION 握手 + `/drone_a/intent` 升级为**预测落点**（`use_intent`/`WIND_EST`）（`report/coordination_handshake.md`） | ✅ SITL：`/formation/start`→FORMATION→**A 释放权威**→DIVE→`STACK CAPTURED horiz=0.040m`；意图落点(风漂移) SITL no-op 验证；**ack 改为原子事件**（不再依赖瞬时对齐） |

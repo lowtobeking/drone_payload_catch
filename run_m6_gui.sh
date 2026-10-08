@@ -47,6 +47,9 @@ if [ "$FUNNEL_TYPE" = "tray" ]; then
   else
     PAYLOAD_MODEL="$HOME/drone_payload_catch/models/payload_100g/model.sdf"
   fi
+  if [ "${PAYLOAD_LOCK:-0}" = "1" ]; then
+    LOCK_EXTRA="lock_to_b:=true lock_model_path:=$HOME/drone_payload_catch/models/payload_lock_100g/model.sdf"
+  fi
 elif [ "$FUNNEL_TYPE" = "cup" ]; then
   FUNNEL_MOUTH="${FUNNEL_MOUTH:-0.30}"
   FUNNEL_SDF="${FUNNEL_SDF:-$HOME/drone_payload_catch/models/x500_funnel_cup/model.sdf}"
@@ -114,7 +117,7 @@ timeout $((KEEP + 40)) ros2 launch payload_catch catch_stack_launch.py \
   a_hover:="[$A_HOVER]" b_standby:="[$B_STANDBY]" b_offset:="[$B_OFFSET]" \
   release_offset:="[$RELEASE_OFFSET]" payload_release_offset:=$RELEASE_Z \
   formation_vel:="[$FORMATION_VEL]" attach_to_a:=$ATTACH \
-  model_path:=$PAYLOAD_MODEL $FUNNEL_EXTRA > "$D/launch.log" 2>&1 &
+  model_path:=$PAYLOAD_MODEL $FUNNEL_EXTRA ${LOCK_EXTRA:-} > "$D/launch.log" 2>&1 &
 
 for t in 10 20 25 30 40 60 80 100; do
   [ "$t" -ge "$KEEP" ] && break

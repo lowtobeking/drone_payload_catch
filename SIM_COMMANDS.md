@@ -266,6 +266,22 @@ FORMATION_VEL="1.0,0.0,0.0" FUNNEL_TYPE=tray FUNNEL_MOUTH=0.20 bash run_m6_sitl.
 小托盘(30cm)在运动中会被“滑出”（软件仍报 captured）→ 运动交接对盘径要求高于定点。详见
 `report/m6_tray_robustness.md` §5。
 
+**主动锁扣（让运动交接与盘径无关）**：`FUNNEL_TYPE=tray PAYLOAD_LOCK=1`（自动用 `payload_lock_100g`）——
+捕获时在 B 末端就地重生成并建固定关节。实测小托盘(30cm) 定点/编队0.5/编队1.0 均**捕获→锁死→带走**：
+```bash
+FUNNEL_TYPE=tray PAYLOAD_LOCK=1 bash run_m6_sitl.sh 70
+FORMATION_VEL="0.5,0.0,0.0" FUNNEL_TYPE=tray PAYLOAD_LOCK=1 bash run_m6_sitl.sh 75
+FORMATION_VEL="1.0,0.0,0.0" FUNNEL_TYPE=tray PAYLOAD_LOCK=1 bash run_m6_sitl.sh 75
+```
+
+**泡棉恢复系数 e 实测（真机必做）**：
+```bash
+# 真机测量：从高度 H 落 6cm/100g 方块，量回弹 h → e=√(h/H)
+python3 tools/foam_drop_test.py --h-drop 1.0 --rebounds 0.020 0.024 0.018
+# 虚拟落物台（验证方法 + 模型参考；模型泡棉 e≈0）
+bash tools/gz_foam_drop_test.sh
+```
+
 ### 4.1c 大漏斗（末端能力，新增）
 
 用 `FUNNEL_MOUTH` 切换漏斗口半径；≠0.20 时自动用 `models/x500_funnel_big`（口半径 0.30m，
