@@ -3,3 +3,6 @@ __pycache__/
 build/
 install/
 log/
+
+# Word 临时锁文件
+~$*.docx
