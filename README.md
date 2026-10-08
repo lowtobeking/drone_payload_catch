@@ -338,6 +338,9 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `payload_catch/sim_core.py` | 离线闭环仿真（A 恒速飞行 + B 控制 + 捕获判定 + 闭环重规划） |
 | `payload_catch/mpc_terminal.py` | B 的 acados 终端（会合）MPC |
 | `payload_catch/payload_filter.py` | 载荷状态估计（卡尔曼滤波 / 朴素对照） |
+| `payload_catch/relnav.py` | **相对定位纯逻辑**：大地→NED、杆臂补偿、原点无关相对化（自测） |
+| `payload_catch/relnav_node.py` | **相对定位驱动节点**（RTK/px4/sim → `/drone_a/state`），替换真值替身 |
+| `payload_catch/contact_detect.py` | **接触检测**（加速度尖峰/速度反转/外部开关；自测） |
 | `payload_catch/stack_drop.py` | M6 垂直堆叠投放（解析规划 + 漏斗保持判据 + 离线仿真） |
 | `models/x500_funnel/` | M6：x500 + 顶部刚性捕获圆锥（PX4_GZ_MODEL_NAME 附着） |
 | `models/x500_funnel_big/` | M6 末端能力：同构但口半径 0.30m（`FUNNEL_MOUTH=0.30` 启用） |
@@ -348,6 +351,8 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `models/x500_tray_big/` | 大托盘（内径40cm，`FUNNEL_MOUTH=0.20` 启用；运动交接用） |
 | `models/payload_attached/` | M6-moving：带 `DetachableJoint` 的载荷（挂 A 随飞、分离继承速度） |
 | `launch/catch_stack_launch.py` / `run_m6_sitl.sh` | M6 SITL 启动 / 一键脚本 |
+| `launch/catch_real_launch.py` / `run_m6_real.sh` | **真机启动**（无 Gazebo/PX4；relnav 驱动 + 接触检测） |
+| `report/real_hardware_bringup.md` | **真机接入指南**（RTK/感知/机构/标定/bring-up 顺序） |
 | `tools/stack_run.py` | M6 体检 CLI（`--sweep-dive` / `--sweep-gap` / `--sweep-wind` / `--mc` / `--lead`） |
 | `tools/tray_sizing.py` | **真机圆形托盘选型器**（内径/围边/泡棉 e/gap → eff_r、回弹、是否弹出；含 `--sweep-e`/`--measure-drop`） |
 | `tools/make_docx_report.py` | **生成 Word 仿真报告**（相关研究/理论/条件/数据(状态)/分析；实时跑 M1–M4 + M6 MC）→ `report/drone_payload_catch_sim_report.docx` |

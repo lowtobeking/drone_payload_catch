@@ -17,6 +17,7 @@ from std_msgs.msg import Bool, Float64, Float64MultiArray
 from .px4_iface import Px4Drone
 from .rendezvous import RendezvousPlanner
 from .stack_drop import plan_stack_drop, _stack_ref, _adaptive_dive, minimal_dive, retain_speed
+from .contact_detect import ContactDetector
 from .keepout import cbf_bound, project_cbf
 
 
@@ -94,6 +95,11 @@ class BNode(Px4Drone):
         self.declare_parameter('lock_to_b', False)
         self.declare_parameter('lock_request_topic', '/payload/lock_request')
         self.declare_parameter('v_retain', 4.04)          # 刚性漏斗保持速度 m/s
+        # 接触检测（真机）：用真实接触事件触发捕获/锁扣，替代纯软件判据
+        self.declare_parameter('contact_detect', False)        # 开启后以接触事件为准（含超时兜底）
+        self.declare_parameter('contact_accel_thresh', 15.0)   # 冲击加速度阈值 m/s²
+        self.declare_parameter('contact_topic', '/payload/contact')  # 外部接触开关 (Bool)
+        self.declare_parameter('contact_timeout_s', 0.30)      # 进入窗口后多久无接触则兜底
         self.declare_parameter('stack_kp_xy', 1.2)
         self.declare_parameter('stack_kp_z', 1.5)
         self.declare_parameter('a_ff_gain', 1.0)   # 加速度前馈增益（用 _stack_ref 的 ar）
@@ -172,6 +178,15 @@ class BNode(Px4Drone):
         self.dive_anchor_vz = float(self.get_parameter('dive_anchor_vz').value)
         self.capture_min_vz = float(self.get_parameter('capture_min_vz').value)
         self._dive_anchored = False
+        # 接触检测状态
+        self.contact_detect = bool(self.get_parameter('contact_detect').value)
+        self.contact = ContactDetector(
+            accel_thresh=float(self.get_parameter('contact_accel_thresh').value))
+        self.contact_timeout_s = float(self.get_parameter('contact_timeout_s').value)
+        self._contact_last_vz = 0.0
+        self._contact_last_t = 0.0
+        self._ext_contact = False
+        self._near_since = None
         self.auto_land = bool(self.get_parameter('auto_land').value)
         self.land_after_catch_s = float(self.get_parameter('land_after_catch_s').value)
         self.land_xy = np.asarray(self.get_parameter('land_xy').value, float).reshape(2)
@@ -265,6 +280,8 @@ class BNode(Px4Drone):
         self.t_sim = 0.0
 
         self.create_subscription(Float64MultiArray, '/payload/state', self._on_payload, 10)
+        self.create_subscription(Bool, str(self.get_parameter('contact_topic').value),
+                                 self._on_contact, 10)
         self.create_subscription(Bool, '/payload/released', self._on_released, 10)
         self.pub_caught = self.create_publisher(Bool, '/payload/caught', 10)
         self.lock_to_b = bool(self.get_parameter('lock_to_b').value)
@@ -291,6 +308,11 @@ class BNode(Px4Drone):
                                    self.p_pay.copy(), self.v_pay.copy()))
             if len(self._pay_hist) > 4000:
                 self._pay_hist.pop(0)
+
+    def _on_contact(self, msg):
+        """外部接触开关（力/微动/红外对射等）→ 置一次接触标志。"""
+        if bool(msg.data):
+            self._ext_contact = True
 
     def _on_released(self, msg):
         if msg.data and not self.released:
@@ -597,8 +619,31 @@ class BNode(Px4Drone):
         z_mouth = pos[2] - self.px4_z_bias - self.funnel_mount_height
         horiz = float(np.linalg.norm(pos[:2] - self.p_pay[:2]))
         rv = float(np.linalg.norm(self.vel - self.v_pay))
-        if (z_mouth - self.catch_z_tol <= self.p_pay[2] <= z_mouth + self.catch_z_tol
-                and horiz <= self.funnel_eff_radius and rv <= self.v_retain):
+        near = (z_mouth - self.catch_z_tol <= self.p_pay[2] <= z_mouth + self.catch_z_tol
+                and horiz <= self.funnel_eff_radius and rv <= self.v_retain)
+        if self.contact_detect:
+            # 真机：以"接触事件"（加速度尖峰 / 速度反转 / 外部开关）触发；超时兜底
+            now = self.get_clock().now().nanoseconds * 1e-9
+            dt = max(now - self._contact_last_t, 1e-3)
+            az = (float(self.vel[2]) - self._contact_last_vz) / dt
+            self._contact_last_t = now
+            self._contact_last_vz = float(self.vel[2])
+            rel_vz = float(self.v_pay[2] - self.vel[2])
+            if near:
+                if self._near_since is None:
+                    self._near_since = now
+            else:
+                self._near_since = None
+            hit = self.contact.update(now, az, rel_vz, near, external=self._ext_contact)
+            self._ext_contact = False
+            timeout = (self._near_since is not None
+                       and (now - self._near_since) > self.contact_timeout_s)
+            trigger = hit or (near and timeout)
+            if hit:
+                self.get_logger().warn('B: 检测到接触事件 → 捕获')
+        else:
+            trigger = near
+        if trigger:
             self.caught = True
             self.phase = 'DONE'
             self.stack_hover = pos.copy()   # 锁定此刻位置为悬停点

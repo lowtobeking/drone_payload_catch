@@ -29,6 +29,7 @@ setup(
             'a_node       = payload_catch.a_node:main',
             'b_node       = payload_catch.b_node:main',
             'payload_node = payload_catch.payload_node:main',
+            'relnav_node  = payload_catch.relnav_node:main',
         ],
     },
 )

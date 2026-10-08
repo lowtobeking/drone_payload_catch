@@ -577,3 +577,40 @@ B: payload released → rendezvous
    `RELEASE_Z` 要大于 A 起落架、DIVE 等待要原地悬停、横向增益不能太大。
 7. **GUI 偶发 `Failsafe activated`（非收尾）** → Gazebo 渲染负载拖慢实时性→PX4 仿真时间跳变→飞控 failsafe；
    属平台问题，改用无窗口 `run_m6_sitl.sh` 可稳定复现（3/3）。
+
+---
+
+## 8. 真机接入（Bring-up，无 Gazebo/PX4）
+
+> 完整清单见 **`report/real_hardware_bringup.md`**。此处只列命令。
+
+```bash
+# 相对定位驱动：把两机 RTK 换算成 /drone_a/state（替换仿真真值替身）
+#   rtk_type: navsatfix（sensor_msgs/NavSatFix）或 array（Float64MultiArray [lat,lon,alt] 或 [n,e,d]）
+ros2 run payload_catch relnav_node --ros-args \
+  -p source:=rtk -p a_rtk_topic:=/rtk/a -p b_rtk_topic:=/rtk/b \
+  -p rtk_type:=navsatfix -p use_geodetic:=true \
+  -p a_lever:="[0.0,0.0,0.2]" -p b_lever:="[0.0,0.0,-0.21]"
+
+# 相对定位纯逻辑自测 + 接触检测自测
+python3 -m payload_catch.relnav
+python3 -m payload_catch.contact_detect
+
+# 泡棉恢复系数 e 实测换算（真机落物台）
+python3 tools/foam_drop_test.py --h-drop 1.0 --rebounds 0.020 0.024 0.018
+
+# 真机任务启动（无 Gazebo/PX4；A 不广播真值，改由 relnav 发布；接触检测触发捕获）
+A_RTK=/rtk/a B_RTK=/rtk/b B_OFFSET="5.0,0.0,0.0" bash run_m6_real.sh
+# 或直接：
+ros2 launch payload_catch catch_real_launch.py \
+  a_hover:="[0,0,-4.5]" b_standby:="[0,0,-3.5]" b_offset:="[5.0,0,0]" \
+  source:=rtk a_rtk_topic:=/rtk/a b_rtk_topic:=/rtk/b \
+  a_lever:="[0,0,0.2]" b_lever:="[0,0,-0.21]" contact_detect:=true
+
+# SITL 里验证接触检测（默认关，开启后以接触事件触发捕获）
+FUNNEL_TYPE=tray LAUNCH_EXTRA="contact_detect:=true" bash run_m6_sitl.sh 60
+```
+
+**关键前置**：① RTK 相对定位精度 σ ≪ `eff_r`（0.12–0.17m，建议 ≤0.03m）；② 载荷 `/payload/state`
+由真实感知（视觉/动捕/UWB tag 或弹道预测）发布；③ 杆臂/原点/几何**标定回填** `config` 的 `real:` 段；
+④ 泡棉 e 实测（≤0.20）；⑤ 安全员 + RC 接管 + 围栏。

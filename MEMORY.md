@@ -91,6 +91,9 @@ drone_payload_catch/
 │   ├── sim_core.py            ← 离线闭环仿真（A 恒速飞行 + B 控制 + 捕获 + 闭环重规划）
 │   ├── mpc_terminal.py        ← B 的 acados 终端 MPC（含指纹缓存）
 │   ├── payload_filter.py      ← 载荷状态估计（KF / 朴素）
+│   ├── relnav.py              ← **相对定位纯逻辑**：大地→NED/杆臂/原点无关相对化（自测）
+│   ├── relnav_node.py         ← **相对定位驱动**（RTK/px4/sim → /drone_a/state）
+│   ├── contact_detect.py      ← **接触检测**（加速度尖峰/速度反转/外部开关；自测）
 │   ├── stack_drop.py          ← M6 垂直堆叠投放：解析规划 + 漏斗保持判据 + 离线仿真（纯 Python）
 │   ├── px4_iface.py           ← PX4 接口基类（话题/QoS/ARM+OFFBOARD/setpoint/世界系偏移）
 │   ├── a_node.py              ← A：起飞→悬停释放点（M6 额外广播 /drone_a/state 供相对定位）
@@ -258,6 +261,7 @@ colcon build --packages-select payload_catch
 | 托盘 SITL 扫描/MC | `tools/sweep_m6_tray_sitl.sh` / `mc_m6_tray_sitl.sh` | ✅ 扫描 7/8（仅重噪声不滤波❌）；MC：标称3/3、重噪声+LPF 3/3、释放误差0.20 **1/3** |
 | 托盘·主动锁扣 | `FUNNEL_TYPE=tray PAYLOAD_LOCK=1` + `payload_lock_100g`（复用漏斗锁扣机制，托盘保留 funnel_link） | ✅ 小托盘(30cm) 定点/编队0.5/编队1.0 均**捕获→锁定→携带落地**；无 failsafe；运动交接与盘径解耦 |
 | 托盘·泡棉 e 实测 | `tools/foam_drop_test.py`（H,h→e/TRAY_E/v_retain/最大gap）+ `tools/gz_foam_drop_test.sh`（虚拟落物台） | ✅ 虚拟落物台：模型泡棉 e≈0（比真机合格≤0.2 还死→仿真偏乐观）；真机应实测 e 后重算 TRAY_E |
+| **真机接入层** | `relnav.py`/`relnav_node.py`（RTK 驱动→`/drone_a/state`）+ `contact_detect.py`（接触触发）+ `launch/catch_real_launch.py`/`run_m6_real.sh` + `report/real_hardware_bringup.md` | ✅ 纯逻辑自测通过；SITL 验证：`contact_detect:=true` → `检测到接触事件→捕获`；默认关闭无回归（托盘 SITL 仍 3/3） |
 | 双机协调 | `rendezvous.solve_cooperative` + 协议分析（`report/coordination.md`） | ✅ 现状=单向/A被动；改进=握手/意图/时钟/安全；⚠️**负结果：A 小幅释放偏移与 t_r 冗余（δ*=0）**，协同价值在协议与 A 的速度/高度配合 |
 | 协同释放握手 | `coord_mode=handshake`（`a_node`/`b_node` + `/drone_b/ready` + `/drone_a/release_cmd` + `/drone_a/intent` + 时钟同步 `/coord/ping|pong` + 释放门限）（`report/coordination_handshake.md`） | ✅ **SITL：B 报就绪→A 作释放权威（精确自身状态）→ack→B 下潜→`STACK CAPTURED`**；含往返**时钟同步**(offset≈0/rtt0.5ms 换算 t_rel) 与释放前一致性门限；默认 direct 保留 |
 | 编队握手+意图 | M6-moving FORMATION 握手 + `/drone_a/intent` 升级为**预测落点**（`use_intent`/`WIND_EST`）（`report/coordination_handshake.md`） | ✅ SITL：`/formation/start`→FORMATION→**A 释放权威**→DIVE→`STACK CAPTURED horiz=0.040m`；意图落点(风漂移) SITL no-op 验证；**ack 改为原子事件**（不再依赖瞬时对齐） |
