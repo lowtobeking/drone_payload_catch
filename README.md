@@ -17,6 +17,8 @@
 
 - **末端能力**：大漏斗 `x500_funnel_big`（捕获余量×14）、空心导向锥杯 `x500_funnel_cup`、
   **主动保持锁扣** `payload_lock`（接住→刚性携带→落地）。
+- **真机末端：圆形托盘**（塑料围边 + 泡棉缓冲）：`M6_stack_tray*` 工况 + `tools/tray_sizing.py`
+  选型器；6cm/100g 方块离线 MC≈99%（泡棉恢复系数 `e` 是生死线）。
 - **抗扰**：速度前馈 + 预测对正、增广风 KF（`BallisticDragKF`）、A 端迎风预补偿、自适应下潜。
 - **安全**：不确定度 keep-out（`min_ab_gap+kσ`）、**3D 反应式 keep-out**、**分级安全状态机**
   （`OK/HOLD/PULLBACK/LAND/KILL` + 越界回拉）、释放后清场、**飞行终止(kill)** 监督。
@@ -175,7 +177,19 @@ python3 tools/stack_run.py --sweep-dive
 python3 tools/stack_run.py --sweep-gap
 python3 tools/stack_run.py --mc 200
 python3 tools/stack_run.py --sweep-wind   # 侧风干扰鲁棒性（见 report/robustness_wind.md）
+
+# 真机末端：圆形托盘（内径30cm/围边5cm/泡棉e=0.15）接 6cm·100g 方块
+python3 tools/stack_run.py --scenario M6_stack_tray --mc 300        # 99% (296/300)
+python3 tools/stack_run.py --scenario M6_stack_tray_small --mc 300  # 25cm 盘：92%
+python3 tools/stack_run.py --scenario M6_stack_tray_wind --mc 300   # +侧风3m/s：96%
+python3 tools/tray_sizing.py                     # 托盘选型：内径/围边/泡棉e/gap
+python3 tools/tray_sizing.py --sweep-e           # e → 所需围边高度表
+python3 tools/tray_sizing.py --measure-drop 1.0 0.22   # 落物试验反推 e
 ```
+
+**真机末端（圆形托盘）要点**：托盘**没有杯深**，纯平盘不靠深度保持，靠**围边挡横向 + 泡棉消反弹**。
+保持条件 `回弹高度 e²·gap ≤ 有效围挡高度 h（围边+凹垫）`；`eff_r = 盘内半径 − 物半宽`。
+裸塑料盘（e≈0.7）回弹 ~20cm 必飞；软泡棉（e≤0.15）回弹 ~2cm → 30cm 盘 + 5cm 围边即 **99%**。
 
 **干扰鲁棒性（侧风，新增）**：载荷加线性阻力 + 常值侧风后会水平漂移。原始的"PD 追尾"
 （`v_ref,xy=0`）稳态滞后 `e≈kd·v/kp`，侧风容忍仅 ~1 m/s。加**速度前馈**（`v_ref,xy=v̂`）
@@ -322,6 +336,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `models/payload_attached/` | M6-moving：带 `DetachableJoint` 的载荷（挂 A 随飞、分离继承速度） |
 | `launch/catch_stack_launch.py` / `run_m6_sitl.sh` | M6 SITL 启动 / 一键脚本 |
 | `tools/stack_run.py` | M6 体检 CLI（`--sweep-dive` / `--sweep-gap` / `--sweep-wind` / `--mc` / `--lead`） |
+| `tools/tray_sizing.py` | **真机圆形托盘选型器**（内径/围边/泡棉 e/gap → eff_r、回弹、是否弹出；含 `--sweep-e`/`--measure-drop`） |
 | `tools/offline_run.py` | 体检报告 CLI（`--plot` / `--sweep-noise` / `--compare`） |
 | `config/catch_scenarios.yaml` | 单一真值源 |
 | `env.sh` | 环境变量（acados/ROS/RMW/PX4 SITL） |
@@ -390,6 +405,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 - [x] **M4** 更完整鲁棒性（延迟、丢包、估计滤波）+ 指标统计
 - [x] **M6** 垂直堆叠投放（离线 200/200；SITL `STACK CAPTURED` + 双机分开落地）
 - [x] **M6 鲁棒/末端** 侧风鲁棒、KF/增广风、**大漏斗**、**空心杯**、**主动保持锁扣**、鲁棒几何优化
+- [x] **M6 真机末端** 圆形托盘（围边+泡棉）：`M6_stack_tray*` 工况 + `tools/tray_sizing.py`；6cm/100g 方块 MC≈99%
 - [x] **协同/安全** 释放握手 + 意图（预测落点）+ 时钟同步；不确定度 keep-out + **飞行终止(kill)** + 超时中止
 - [x] **M6-moving** 编队同速投放：**支持速度 0.5/1.0 m/s（各 2/2 完美）**；及时释放；2.0 m/s 保留（不再优化）
 - [x] **优化 2–5** 分级安全状态机 + 加速度前馈 + σ 共享 + 释放提交/取消 + 3D keep-out + 自适应下潜

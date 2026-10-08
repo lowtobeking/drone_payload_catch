@@ -100,7 +100,21 @@ python3 tools/stack_run.py --sweep-funnel                      # 扫口半径(ef
 python3 tools/stack_run.py --scenario M6_stack_wind --est kf --lead 1.0
 python3 tools/stack_run.py --scenario M6_stack_wind --est windkf --lead 1.0   # 增广风估计KF(推荐)
 python3 tools/stack_run.py --scenario M6_stack_wind --est windkf --vert adaptive
+
+# 真机末端：圆形托盘（塑料围边 + 泡棉缓冲）；载荷 6cm / 100g 方块
+python3 tools/stack_run.py --scenario M6_stack_tray --mc 300        # 内径30cm：99% (296/300)
+python3 tools/stack_run.py --scenario M6_stack_tray_small --mc 300  # 内径25cm：93%
+python3 tools/stack_run.py --scenario M6_stack_tray_wind --mc 300   # +侧风3m/s：96%
+python3 tools/tray_sizing.py                    # 托盘选型：内径/围边/泡棉e/gap（默认30cm/5cm/0.15）
+python3 tools/tray_sizing.py --e 0.7            # 看裸塑料盘会怎样（FAIL：回弹49cm）
+python3 tools/tray_sizing.py --sweep-e          # e → 所需围边高度表（选泡棉用）
+python3 tools/tray_sizing.py --measure-drop 1.0 0.22   # 落物试验反推恢复系数 e
 ```
+
+> **圆形托盘物理**：托盘没有杯深，靠**围边挡横向 + 泡棉消反弹**。保持条件
+> `回弹高度 e²·gap ≤ 有效围挡高度 h（围边+凹垫）`；落点半径 `eff_r = 盘内半径 − 物半宽`。
+> **恢复系数 `e` 是生死线**：裸塑料 `e≈0.7` → 回弹 ~20cm 必飞（0%）；软泡棉 `e≤0.15` → 回弹 ~2cm
+> （99%）。真机务必先用 `--measure-drop` 实测泡棉的 `e`，要求 ≤ 0.20。
 
 ---
 

@@ -196,6 +196,49 @@ scenarios:
                mount_height: 0.10, object_radius: 0.05}
     description: 大漏斗(口半径0.30m, eff_r=0.25)；末端能力杠杆，配合 SITL x500_funnel_big
 
+  # ── M6 真机末端：圆形托盘（塑料围边 + 泡棉缓冲），6cm/100g 方块载荷 ──
+  # 托盘建模映射（复用 funnel 判据）：
+  #   mouth_radius = 盘内半径；object_radius = 物块半宽（6cm 方块→0.03；保守按半对角 0.042）
+  #   depth        = 有效围挡高度 = 围边高 + 泡棉凹垫深（物体要爬出所需高度）
+  #   restitution  = 泡棉恢复系数 e（软泡棉 ~0.15；裸塑料盘 ~0.7）
+  # 保持条件：e²·gap ≤ depth（回弹高度不超过围挡）；eff_r = mouth_radius − object_radius
+  M6_stack_tray:
+    layout: stack_drop
+    mode: stack_drop
+    vert_mode: minimal                 # 托盘无导向 → 悬停接更稳；gap≤v_retain²/2g 时免下潜
+    stack: {a_dive: 3.0, a_brake: 6.0}
+    payload: {mass: 0.10, drag_mode: none}   # 6cm 方块 / 100g；100g 阻力≈3%重力，忽略
+    capture:
+      # 内径30cm 托盘 + 5cm 围边 + e=0.15 泡棉凹垫；object_radius=0.03(面朝下)
+      funnel: {mouth_radius: 0.15, depth: 0.05, restitution: 0.15,
+               mount_height: 0.10, object_radius: 0.03}
+    description: 圆形托盘(内径30cm/围边5cm/泡棉e=0.15) 接 6cm·100g 方块；真机末端配置（MC≈99%）
+
+  # 更小的 25cm 托盘（eff_r 9.5cm），验证尺寸敏感性
+  M6_stack_tray_small:
+    layout: stack_drop
+    mode: stack_drop
+    vert_mode: minimal
+    stack: {a_dive: 3.0, a_brake: 6.0}
+    payload: {mass: 0.10, drag_mode: none}
+    capture:
+      funnel: {mouth_radius: 0.125, depth: 0.05, restitution: 0.15,
+               mount_height: 0.10, object_radius: 0.03}
+    description: 圆形托盘(内径25cm, eff_r=9.5cm)；对比 30cm 的尺寸敏感性（MC≈92%）
+
+  # 托盘 + 侧风 3 m/s：验证 100g 轻物在风下漂移小（仍 ≈96%）
+  M6_stack_tray_wind:
+    layout: stack_drop
+    mode: stack_drop
+    vert_mode: minimal
+    stack: {a_dive: 3.0, a_brake: 6.0}
+    payload: {mass: 0.10, drag_mode: linear, drag_k: 0.10}   # 100g 方块线性阻力等效 k≈0.09
+    wind: [3.0, 0.0, 0.0]
+    capture:
+      funnel: {mouth_radius: 0.15, depth: 0.05, restitution: 0.15,
+               mount_height: 0.10, object_radius: 0.03}
+    description: 圆形托盘(内径30cm) + 侧风3m/s；100g 物漂移小(~3cm)，仍稳定捕获(≈96%)
+
   # ── M6 主动保持（B 侧锁扣）：捕获后把载荷锁到 B 漏斗，等效去掉 v_retain 限制 ──
   M6_stack_lock:
     layout: stack_drop

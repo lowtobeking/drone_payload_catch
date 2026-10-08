@@ -14,6 +14,8 @@
   **M6-moving 编队同速（支持速度 0.5/1.0 m/s，各 2/2 完美）**；
 - **末端能力**：大漏斗 `x500_funnel_big`（捕获余量×14）、空心导向锥杯 `x500_funnel_cup`、
   **主动保持锁扣** `payload_lock`（接住→刚性携带→落地，绕开 `v_retain`）；
+- **真机末端：圆形托盘**（塑料围边+泡棉缓冲；`M6_stack_tray*` 工况 + `tools/tray_sizing.py`
+  选型器；6cm/100g 方块离线 MC≈99%；缓冲恢复系数 `e` 是生死线）；
 - **抗扰**：速度前馈/预测对正、增广风 KF、A 端迎风预补偿、自适应下潜；
 - **协同**：释放握手（B 报就绪→A 释放权威→ack）、意图（预测落点）、时钟同步、编队握手、
   **及时释放 + 释放超时中止**；
@@ -166,6 +168,14 @@ python3 tools/stack_run.py                      # 单次
 python3 tools/stack_run.py --sweep-dive         # 扫 B 下潜加速度
 python3 tools/stack_run.py --sweep-gap          # 扫 gap
 python3 tools/stack_run.py --mc 200             # 蒙特卡洛，200/200
+
+# 真机末端：圆形托盘（内径30cm/围边5cm/泡棉e=0.15）接 6cm·100g 方块
+python3 tools/stack_run.py --scenario M6_stack_tray --mc 300        # 99% (296/300)
+python3 tools/stack_run.py --scenario M6_stack_tray_small --mc 300  # 25cm 盘：92%
+python3 tools/stack_run.py --scenario M6_stack_tray_wind --mc 300   # +侧风3m/s：96%
+python3 tools/tray_sizing.py                     # 托盘选型（内径/围边/e/gap）
+python3 tools/tray_sizing.py --sweep-e           # e → 所需围边高度表
+python3 tools/tray_sizing.py --measure-drop 1.0 0.22   # 落物试验反推 e
 ```
 
 ### 4.2 SITL（2 机 + Gazebo 载荷）
@@ -227,6 +237,7 @@ colcon build --packages-select payload_catch
 | 抗阻力/风扰 | 二次阻力+阵风；A 端迎风预补偿 `a_wind_comp`（`report/drag_rejection.md`） | ✅ 估计器二阶(阵风良性/载荷低通)；**迎风预补偿(w8:0→40/40, 二次k.5:1→40/40)**，方向必须准、大小±30%宽容 |
 | 空心导向锥杯 | `x500_funnel_cup` + `FUNNEL_TYPE=cup`（`report/hollow_funnel_cup.md`） | ✅ SITL 捕获；⚠️**负结果：敞口杯倾斜 25° 即滚出 vs 平盘摩擦 45°**；杯价值在导向/侧向兜接，保持/倾角需主动锁扣 |
 | 主动保持锁扣 | 离线 `M6_stack_lock`(arm_absorb) + SITL `PAYLOAD_LOCK=1`（`report/active_retention.md`） | ✅ 离线：锁扣=去掉 v_retain，下击暴流 wz=8 仍 100/100；✅ **SITL：捕获时就地重生成载荷到 B 漏斗，锁定→随 B 携带→落地**（根因：`DetachableJoint` configure 即建关节，不可远处 spawn） |
+| 真机末端·圆形托盘 | `M6_stack_tray/_small/_wind` 工况 + `tools/tray_sizing.py` 选型器（塑料围边+泡棉缓冲） | ✅ 离线：6cm/100g 方块，内径30cm/围边5cm/e=0.15 → **MC 99%**；25cm→92%；+侧风3m/s→96%；裸塑料 e≥0.4 → 0%。保持条件 `e²·gap ≤ h` |
 | 双机协调 | `rendezvous.solve_cooperative` + 协议分析（`report/coordination.md`） | ✅ 现状=单向/A被动；改进=握手/意图/时钟/安全；⚠️**负结果：A 小幅释放偏移与 t_r 冗余（δ*=0）**，协同价值在协议与 A 的速度/高度配合 |
 | 协同释放握手 | `coord_mode=handshake`（`a_node`/`b_node` + `/drone_b/ready` + `/drone_a/release_cmd` + `/drone_a/intent` + 时钟同步 `/coord/ping|pong` + 释放门限）（`report/coordination_handshake.md`） | ✅ **SITL：B 报就绪→A 作释放权威（精确自身状态）→ack→B 下潜→`STACK CAPTURED`**；含往返**时钟同步**(offset≈0/rtt0.5ms 换算 t_rel) 与释放前一致性门限；默认 direct 保留 |
 | 编队握手+意图 | M6-moving FORMATION 握手 + `/drone_a/intent` 升级为**预测落点**（`use_intent`/`WIND_EST`）（`report/coordination_handshake.md`） | ✅ SITL：`/formation/start`→FORMATION→**A 释放权威**→DIVE→`STACK CAPTURED horiz=0.040m`；意图落点(风漂移) SITL no-op 验证；**ack 改为原子事件**（不再依赖瞬时对齐） |
@@ -341,7 +352,8 @@ colcon build --packages-select payload_catch
 
 - **支持工况**：M6 垂直堆叠（离线 200/200；SITL 捕获+携带+双机落地）；
   **M6-moving 编队同速 0.5/1.0 m/s（各 2/2 完美）**；侧风容忍（纯风 ~3.5 m/s、加噪 ~1.5 m/s）；
-  大漏斗 `eff_r=0.25m`；主动保持锁扣（下击暴流 8 m/s 离线 100/100）。
+  大漏斗 `eff_r=0.25m`；主动保持锁扣（下击暴流 8 m/s 离线 100/100）；
+  **真机圆形托盘**（内径30cm/围边5cm/泡棉 e≤0.15，接 6cm·100g 方块 MC≈99%；25cm→92%）。
 - **已知边界**：常规下 `v_p≈4.9 m/s` 触发 B failsafe（飞控/传感器，非算法）；
   **2.0 m/s 编队保留、不优化**；敞口杯倾斜 >25° 会滚出（不如高摩擦平盘 45°）。
 - **未做**：真空心漏斗 / 夹爪 / 磁吸；真机；户外/RTK；真实相对导航（现为真值+噪声）。
