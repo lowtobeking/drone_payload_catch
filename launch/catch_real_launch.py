@@ -55,6 +55,10 @@ def generate_launch_description():
         'funnel_restitution': '0.15', 'v_retain': '6.60',
         'px4_z_bias': '0.24', 'catch_z_tol': '0.10',
         'a_dive': '3.0', 'auto_min_dive': 'true', 'a_brake': '6.0',
+        # 相对不确定度模型（真机用 relative + 公共抵消 ρ）
+        'sigma_model': 'relative', 'sigma_rho': '0.8', 'sigma_a': '0.15', 'sigma_sensor': '0.03',
+        'lever_a': '0.2', 'lever_b': '0.21', 'sigma_att_a': '0.05', 'sigma_att_b': '0.05',
+        'gate_use_relative': 'true',
         # 真机接触检测
         'contact_detect': 'true', 'contact_accel_thresh': '15.0',
         'contact_topic': '/payload/contact', 'contact_timeout_s': '0.30',
@@ -88,6 +92,7 @@ def generate_launch_description():
     a = Node(package='payload_catch', executable='a_node', name='a_node', output='screen',
              parameters=[{'drone_id': 0, 'hover_world': a_hover,
                           'publish_state': False,     # 真机：A 不广播真值，改由 relnav
+                          'gate_use_relative': _b('gate_use_relative'),
                           'coord_mode': LaunchConfiguration('coord_mode'),
                           'safety_kill_topic': '/safety/kill_a',
                           'safety_geofence_xy': _f('safety_geofence_xy'),
@@ -112,6 +117,11 @@ def generate_launch_description():
                  'px4_z_bias': _f('px4_z_bias'), 'catch_z_tol': _f('catch_z_tol'),
                  'a_dive': _f('a_dive'), 'auto_min_dive': _b('auto_min_dive'),
                  'a_brake': _f('a_brake'),
+                 'sigma_model': LaunchConfiguration('sigma_model'),
+                 'sigma_a': _f('sigma_a'), 'sigma_rho': _f('sigma_rho'),
+                 'sigma_sensor': _f('sigma_sensor'),
+                 'lever_a': _f('lever_a'), 'lever_b': _f('lever_b'),
+                 'sigma_att_a': _f('sigma_att_a'), 'sigma_att_b': _f('sigma_att_b'),
                  'contact_detect': _b('contact_detect'),
                  'contact_accel_thresh': _f('contact_accel_thresh'),
                  'contact_topic': LaunchConfiguration('contact_topic'),

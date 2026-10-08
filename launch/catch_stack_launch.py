@@ -45,6 +45,11 @@ def generate_launch_description():
         'payload_meas_sigma': '0.0', 'payload_meas_latency': '0.0', 'payload_dropout': '0.0',
         'release_xy_sigma': '0.0', 'release_seed': '0',
         'use_b_sigma': 'true', 'release_sigma_max': '0.15',  # A 余量闸用 B 在线 σ
+        'gate_use_relative': 'false',  # 启发式闸用相对 σ_rel（修绝对 σ 过度保守）
+        'sigma_model': 'legacy',       # legacy | relative（相对不确定度模型）
+        'sigma_a': '0.0', 'sigma_rho': '0.0', 'sigma_sensor': '0.0',
+        'lever_a': '0.0', 'lever_b': '0.0',
+        'sigma_att_a': '0.0', 'sigma_att_b': '0.0',
         'release_gate_mode': 'heuristic',   # heuristic | certificate（C1 证书闸）
         'cert_eps': '0.05', 'cert_sigma_track': '0.02',
         # 传感器/估计器约束（读 PX4 EKF 已有字段）
@@ -143,6 +148,7 @@ def generate_launch_description():
                           'sp_rate_limit': _f('sp_rate_limit'),
                           'use_b_sigma': _b('use_b_sigma'),
                           'release_sigma_max': _f('release_sigma_max'),
+                          'gate_use_relative': _b('gate_use_relative'),
                           'release_gate_mode': LaunchConfiguration('release_gate_mode'),
                           'cert_eps': _f('cert_eps'),
                           'cert_sigma_track': _f('cert_sigma_track'),
@@ -235,6 +241,11 @@ def generate_launch_description():
                  'capture_min_vz': _f('capture_min_vz'),
                  'min_ab_gap': _f('min_ab_gap'), 'approach_alt_tol': _f('approach_alt_tol'),
                  'safety_k': _f('safety_k'), 'rel_sigma_floor': _f('rel_sigma_floor'),
+                 'sigma_model': LaunchConfiguration('sigma_model'),
+                 'sigma_a': _f('sigma_a'), 'sigma_rho': _f('sigma_rho'),
+                 'sigma_sensor': _f('sigma_sensor'),
+                 'lever_a': _f('lever_a'), 'lever_b': _f('lever_b'),
+                 'sigma_att_a': _f('sigma_att_a'), 'sigma_att_b': _f('sigma_att_b'),
                  'payload_release_offset': _f('payload_release_offset'),
                  'lock_to_b': _b('lock_to_b'),
                  'lock_request_topic': LaunchConfiguration('lock_request_topic'),

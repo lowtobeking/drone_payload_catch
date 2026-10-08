@@ -48,6 +48,7 @@ class ANode(Px4Drone):
         self.declare_parameter('release_sigma', 0.03)
         self.declare_parameter('release_sigma_max', 0.15)  # σ 上限（防重噪声把闸门卡死）
         self.declare_parameter('use_b_sigma', True)   # 用 B 上报的在线 σ 做余量闸
+        self.declare_parameter('gate_use_relative', False)  # 启发式闸用 B 上报的【相对 σ_rel】（修绝对 σ 过度保守）
         self.declare_parameter('release_gate_mode', 'heuristic')  # heuristic | certificate
         self.declare_parameter('cert_eps', 0.05)        # 证书保证水平（certificate 模式）
         self.declare_parameter('cert_sigma_track', 0.02)  # 释放后跟踪残差 σ (m)
@@ -95,6 +96,7 @@ class ANode(Px4Drone):
         self.release_sigma = float(self.get_parameter('release_sigma').value)
         self.release_sigma_max = float(self.get_parameter('release_sigma_max').value)
         self.use_b_sigma = bool(self.get_parameter('use_b_sigma').value)
+        self.gate_use_relative = bool(self.get_parameter('gate_use_relative').value)
         self._b_sigma = None
         self._b_sigma_rel = None
         self.release_gate_mode = str(self.get_parameter('release_gate_mode').value).lower()
@@ -240,11 +242,14 @@ class ANode(Px4Drone):
                     gate_ok, reason = False, 'A 未就位'
                 sigma = sigma_m
             else:
-                # 启发式闸：σ 取 A 先验 / B 上报 / A 自身 EKF σ 的较大者，再封顶
-                if self.use_b_sigma and self._b_sigma is not None:
-                    sigma = max(sigma, self._b_sigma)
-                if self.sensor_constraints_enable and self.sensor_use_ekf_sigma:
-                    sigma = max(sigma, self.pos_sigma_h)
+                # 启发式闸：默认绝对 σ 较大者；gate_use_relative 时改用**相对 σ_rel**（不叠加绝对 eph）
+                if self.gate_use_relative and self._b_sigma_rel is not None:
+                    sigma = self._b_sigma_rel
+                else:
+                    if self.use_b_sigma and self._b_sigma is not None:
+                        sigma = max(sigma, self._b_sigma)
+                    if self.sensor_constraints_enable and self.sensor_use_ekf_sigma:
+                        sigma = max(sigma, self.pos_sigma_h)
                 sigma = min(sigma, self.release_sigma_max)
                 pred_miss = float(self._ready[1]) + drift_mag + self.release_sigma_k * sigma
                 if pred_miss > self.funnel_eff_radius - self.min_release_margin:

@@ -18,6 +18,7 @@ from .px4_iface import Px4Drone
 from .rendezvous import RendezvousPlanner
 from .stack_drop import plan_stack_drop, _stack_ref, _adaptive_dive, minimal_dive, retain_speed
 from .contact_detect import ContactDetector
+from .uncertainty import relative_sigma
 from .keepout import cbf_bound, project_cbf
 
 
@@ -60,6 +61,15 @@ class BNode(Px4Drone):
         self.declare_parameter('min_ab_gap', 0.80)        # 横移/对正时 B 至少比 A 低多少 (m)
         self.declare_parameter('safety_k', 2.0)           # 安全层：keep-out 额外 kσ（估计不确定度）
         self.declare_parameter('rel_sigma_floor', 0.0)    # σ 下限 (m)
+        # 相对不确定度模型（修"绝对 σ 当相对 σ"）：legacy=旧行为；relative=用 uncertainty 模型
+        self.declare_parameter('sigma_model', 'legacy')
+        self.declare_parameter('sigma_a', 0.0)            # A 的绝对位置 σ（真机由 relnav 提供）
+        self.declare_parameter('sigma_rho', 0.0)          # 公共误差相关系数 [0,1]
+        self.declare_parameter('sigma_sensor', 0.0)       # 相对传感器自身 σ（>0 时用此，忽略绝对 eph）
+        self.declare_parameter('lever_a', 0.0)            # A 天线→参考点杆臂 (m)
+        self.declare_parameter('lever_b', 0.0)            # B 天线→托盘面杆臂 (m)
+        self.declare_parameter('sigma_att_a', 0.0)        # A 姿态角误差 (rad)
+        self.declare_parameter('sigma_att_b', 0.0)        # B 姿态角误差 (rad)
         self.declare_parameter('release_lead', 0.20)      # 提前广播释放时刻
         # ── M6-moving：编队同速投放 ──
         self.declare_parameter('formation_vel', [0.0, 0.0, 0.0])   # 同向同速巡航速度（世界系 NED 水平）
@@ -156,6 +166,14 @@ class BNode(Px4Drone):
         self.min_ab_gap = float(self.get_parameter('min_ab_gap').value)
         self.safety_k = float(self.get_parameter('safety_k').value)
         self.rel_sigma_floor = float(self.get_parameter('rel_sigma_floor').value)
+        self.sigma_model = str(self.get_parameter('sigma_model').value).lower()
+        self.sigma_a = float(self.get_parameter('sigma_a').value)
+        self.sigma_rho = float(self.get_parameter('sigma_rho').value)
+        self.sigma_sensor = float(self.get_parameter('sigma_sensor').value)
+        self.lever_a = float(self.get_parameter('lever_a').value)
+        self.lever_b = float(self.get_parameter('lever_b').value)
+        self.sigma_att_a = float(self.get_parameter('sigma_att_a').value)
+        self.sigma_att_b = float(self.get_parameter('sigma_att_b').value)
         self._sigma_est = 0.0        # 在线估计的 A 相对位置误差 (m)
         self.release_lead = float(self.get_parameter('release_lead').value)
         self.formation_vel = np.asarray(self.get_parameter('formation_vel').value,
@@ -358,7 +376,22 @@ class BNode(Px4Drone):
         # [ready, rel_xy, spd_xy, stamp, sigma_abs, sigma_rel]
         #   sigma_abs = 在线残差 ⊕ EKF 自身 σ（keep-out/启发式用）
         #   sigma_rel = 纯相对定位残差（证书闸用；与绝对 σ 分离）
-        sigma_rel = float(max(self._sigma_est, self.rel_sigma_floor))
+        sigma_meas = float(max(self._sigma_est, self.rel_sigma_floor))
+        if self.sigma_model == 'relative':
+            if self.sigma_sensor > 0.0:
+                # 相对传感器架构（RTK 双差/UWB/视觉）：用传感器 σ，与两机绝对 eph 无关
+                sigma_rel = relative_sigma(0.0, 0.0,
+                                           lever_a=self.lever_a, sigma_att_a=self.sigma_att_a,
+                                           lever_b=self.lever_b, sigma_att_b=self.sigma_att_b,
+                                           sigma_meas=self.sigma_sensor)
+            else:
+                # 绝对广播架构：两机绝对 σ（含公共抵消 ρ）+ 杆臂×姿态 + 测量残差
+                sigma_rel = relative_sigma(self.sigma_a, self.pos_sigma_h, rho=self.sigma_rho,
+                                           lever_a=self.lever_a, sigma_att_a=self.sigma_att_a,
+                                           lever_b=self.lever_b, sigma_att_b=self.sigma_att_b,
+                                           sigma_meas=sigma_meas)
+        else:
+            sigma_rel = sigma_meas
         sigma_abs = sigma_rel
         if self.sensor_constraints_enable and self.sensor_use_ekf_sigma:
             sigma_abs = float(np.sqrt(sigma_rel ** 2 + self.pos_sigma_h ** 2))

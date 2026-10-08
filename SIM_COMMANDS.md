@@ -614,3 +614,24 @@ FUNNEL_TYPE=tray LAUNCH_EXTRA="contact_detect:=true" bash run_m6_sitl.sh 60
 **关键前置**：① RTK 相对定位精度 σ ≪ `eff_r`（0.12–0.17m，建议 ≤0.03m）；② 载荷 `/payload/state`
 由真实感知（视觉/动捕/UWB tag 或弹道预测）发布；③ 杆臂/原点/几何**标定回填** `config` 的 `real:` 段；
 ④ 泡棉 e 实测（≤0.20）；⑤ 安全员 + RC 接管 + 围栏。
+
+### 8.1 相对不确定度修正（修"绝对 σ 当相对 σ"）
+
+```bash
+python3 -m payload_catch.uncertainty     # 相对不确定度模型自测
+python3 tools/rel_sigma.py               # 量化学 → report/rel_uncertainty.md
+
+# SITL：证书闸在修正 σ 后可放行（相对传感器架构 σ=0.03）
+COORD=handshake FUNNEL_MOUTH=0.20 FUNNEL_TYPE=tray \
+  LAUNCH_EXTRA="sigma_model:=relative sigma_sensor:=0.03 gate_use_relative:=true release_gate_mode:=certificate" \
+  bash run_m6_sitl.sh 50
+
+# 绝对广播架构 + 公共抵消（σ_A=0.15, ρ=0.95）
+COORD=handshake FUNNEL_MOUTH=0.20 FUNNEL_TYPE=tray \
+  LAUNCH_EXTRA="sigma_model:=relative sigma_a:=0.15 sigma_rho:=0.95 gate_use_relative:=true release_gate_mode:=certificate" \
+  bash run_m6_sitl.sh 50
+```
+
+关键旋钮：`sigma_model=legacy|relative`；`sigma_sensor`（相对传感器 σ，>0 时忽略绝对 eph）；
+`sigma_a`/`sigma_rho`（绝对广播架构的 A 误差与公共相关系数）；`lever_a/b`、`sigma_att_a/b`（杆臂×姿态）；
+`gate_use_relative`（A 启发式闸用相对 σ，不再叠加绝对 eph）。
