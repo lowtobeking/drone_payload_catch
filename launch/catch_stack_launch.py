@@ -69,6 +69,7 @@ def generate_launch_description():
         'align_hold_s': '0.6', 'release_lead': '0.20',
         'commit_hold_s': '0.20',      # A 就绪门限需持续多久才提交释放
         'a_dive': '3.0', 'auto_min_dive': 'true', 'a_brake': '6.0',
+        'miss_timeout_s': '4.0',    # DIVE 超时未捕获 → MISS，安全悬停→降落
         'funnel_mouth_radius': '0.20', 'funnel_eff_radius': '0.14',
         'funnel_mount_height': '0.21', 'funnel_depth': '0.30',
         'funnel_restitution': '0.60', 'v_retain': '4.04',
@@ -205,7 +206,7 @@ def generate_launch_description():
                  'safety_hold_escalate': LaunchConfiguration('safety_hold_escalate'),
                  'safety_hold_timeout': _f('safety_hold_timeout'),
                  'a_dive': _f('a_dive'), 'auto_min_dive': _b('auto_min_dive'),
-                 'a_brake': _f('a_brake'),
+                 'a_brake': _f('a_brake'), 'miss_timeout_s': _f('miss_timeout_s'),
                  'funnel_mouth_radius': _f('funnel_mouth_radius'),
                  'funnel_eff_radius': _f('funnel_eff_radius'),
                  'funnel_mount_height': _f('funnel_mount_height'),

@@ -635,3 +635,19 @@ COORD=handshake FUNNEL_MOUTH=0.20 FUNNEL_TYPE=tray \
 关键旋钮：`sigma_model=legacy|relative`；`sigma_sensor`（相对传感器 σ，>0 时忽略绝对 eph）；
 `sigma_a`/`sigma_rho`（绝对广播架构的 A 误差与公共相关系数）；`lever_a/b`、`sigma_att_a/b`（杆臂×姿态）；
 `gate_use_relative`（A 启发式闸用相对 σ，不再叠加绝对 eph）。
+
+### 8.2 动力学限幅 + 接触冲击（控制/安全层加强）
+
+```bash
+python3 -m payload_catch.dynamics        # 四旋翼倾角+推力聚合约束（自测）
+python3 -m payload_catch.impact          # 接触冲击/可恢复性/带载推力余量（自测）
+python3 tools/dynamics_contact.py        # 量化学 → report/dynamics_contact.md
+
+# 接空安全中止（DIVE 超时未捕获 → MISS，安全悬停→降落）
+FUNNEL_TYPE=tray LAUNCH_EXTRA="release_xy_sigma:=3.0 track_payload:=false miss_timeout_s:=2.0" \
+  bash run_m6_sitl.sh 45
+```
+
+关键旋钮：`miss_timeout_s`（默认 4s；超时未捕获 → 发 `/payload/miss` 并安全降落，不盲目追击/砸地）。
+`dynamics.py` 给出 `a_x ≤ (g−a_z)·tanθ_max`（水平权限随下潜衰减）与推力约束；
+`impact.py` 给出冲击可恢复条件 `ω=J·d_off/I_B ≤ τ_max·t/I_B` 与带载悬停条件 `T_max ≥ (m_B+m_p)g`。

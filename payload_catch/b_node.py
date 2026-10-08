@@ -85,6 +85,7 @@ class BNode(Px4Drone):
         self.declare_parameter('formation_timeout_s', 12.0)  # 编队释放超时→中止投放
         self.declare_parameter('formation_min_speed_ratio', 0.8)   # 编队速度达到该比例才允许释放
         self.declare_parameter('a_dive', 3.0)             # B 下潜加速度 m/s²（auto_min_dive=False 时直接用它）
+        self.declare_parameter('miss_timeout_s', 4.0)     # DIVE 超时未捕获 → MISS，安全悬停→降落
         self.declare_parameter('auto_min_dive', True)      # 用最小必要下潜（gap≤v_retain²/2g 时免下潜）
         self.declare_parameter('a_brake', 6.0)            # B 刹车加速度 m/s²
         self.declare_parameter('funnel_mouth_radius', 0.20)
@@ -302,6 +303,9 @@ class BNode(Px4Drone):
                                  self._on_contact, 10)
         self.create_subscription(Bool, '/payload/released', self._on_released, 10)
         self.pub_caught = self.create_publisher(Bool, '/payload/caught', 10)
+        self.pub_miss = self.create_publisher(Bool, '/payload/miss', 10)
+        self.miss_timeout_s = float(self.get_parameter('miss_timeout_s').value)
+        self._dive_t0 = None
         self.lock_to_b = bool(self.get_parameter('lock_to_b').value)
         self._lock_req_pub = None
         if self.lock_to_b:
@@ -922,6 +926,15 @@ class BNode(Px4Drone):
             return
 
         if self.phase == 'DIVE':
+            # 接空安全中止：DIVE 超时未捕获 → MISS，安全悬停→降落（不盲目追击/砸地）
+            if (self._dive_anchored and self._dive_t0 is not None and not self.caught
+                    and (now - self._dive_t0) > self.miss_timeout_s):
+                self.get_logger().error('B: DIVE 超时未捕获 → MISS，安全悬停→降落')
+                self.pub_miss.publish(Bool(data=True))
+                self.stack_hover = pos.copy()
+                self._caught_t = now
+                self.phase = 'DONE'
+                return
             if self.release_ref_t0 is None:
                 self.publish_velocity(np.zeros(3), yaw=self.yaw)
                 return
@@ -942,6 +955,7 @@ class BNode(Px4Drone):
                     self.stack_plan = None
                     self._a_adapt = None
                     self._dive_anchored = True
+                    self._dive_t0 = now
                     tl = 0.0
                     self.get_logger().warn(
                         f'B: DIVE 重锚（载荷开始下落 falling={falling}）')
