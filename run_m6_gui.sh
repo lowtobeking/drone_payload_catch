@@ -34,11 +34,19 @@ FUNNEL_TYPE="${FUNNEL_TYPE:-flat}"
 TRAY_RIM="${TRAY_RIM:-0.05}"; TRAY_E="${TRAY_E:-0.15}"; OBJ_HALF="${OBJ_HALF:-0.03}"
 if [ "$FUNNEL_TYPE" = "tray" ]; then
   FUNNEL_MOUTH="${FUNNEL_MOUTH:-0.15}"
-  FUNNEL_SDF="${FUNNEL_SDF:-$HOME/drone_payload_catch/models/x500_tray/model.sdf}"
+  if [ "$FUNNEL_MOUTH" = "0.15" ]; then
+    FUNNEL_SDF="${FUNNEL_SDF:-$HOME/drone_payload_catch/models/x500_tray/model.sdf}"
+  else
+    FUNNEL_SDF="${FUNNEL_SDF:-$HOME/drone_payload_catch/models/x500_tray_big/model.sdf}"
+  fi
   FUNNEL_EFF=$(python3 -c "print(round(float('$FUNNEL_MOUTH')-float('$OBJ_HALF'),3))")
   V_RETAIN=$(python3 -c "import math;print(round(math.sqrt(2*9.81*float('$TRAY_RIM'))/float('$TRAY_E'),2))")
   FUNNEL_EXTRA="funnel_mouth_radius:=$FUNNEL_MOUTH funnel_eff_radius:=$FUNNEL_EFF funnel_depth:=$TRAY_RIM funnel_restitution:=$TRAY_E v_retain:=$V_RETAIN funnel_mount_height:=0.21"
-  [ "${ATTACH:-false}" = "false" ] && PAYLOAD_MODEL="$HOME/drone_payload_catch/models/payload_100g/model.sdf"
+  if [ "${ATTACH:-false}" = "true" ]; then
+    PAYLOAD_MODEL="$HOME/drone_payload_catch/models/payload_attached_100g/model.sdf"   # 编队：100g 挂载型
+  else
+    PAYLOAD_MODEL="$HOME/drone_payload_catch/models/payload_100g/model.sdf"
+  fi
 elif [ "$FUNNEL_TYPE" = "cup" ]; then
   FUNNEL_MOUTH="${FUNNEL_MOUTH:-0.30}"
   FUNNEL_SDF="${FUNNEL_SDF:-$HOME/drone_payload_catch/models/x500_funnel_cup/model.sdf}"

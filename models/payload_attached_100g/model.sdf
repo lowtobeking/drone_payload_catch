@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<!--
+  payload_attached_100g —— 挂载型载荷（M6-moving 编队同速投放 × 真机圆形托盘）。
+  与 payload_attached 的区别：质量 0.3→0.10 kg（对应真机 6cm/100g 方块）。
+  带 gz DetachableJoint：configure 时与 A(x500_0)/base_link 建关节，随 A 飞；
+  收到 /payload/detach 后解除，载荷以分离瞬间 A 的速度自由下落。
+  载荷 odom 发 /payload/odom（payload_node 转 NED）。
+-->
+<sdf version="1.9">
+  <model name="payload">
+    <link name="link">
+      <inertial>
+        <mass>0.10</mass>
+        <inertia><ixx>6.0e-5</ixx><iyy>6.0e-5</iyy><izz>6.0e-5</izz>
+                 <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry><box><size>0.06 0.06 0.06</size></box></geometry>
+        <surface>
+          <friction><ode><mu>0.8</mu><mu2>0.8</mu2></ode></friction>
+          <bounce><restitution_coefficient>0.10</restitution_coefficient></bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry><box><size>0.06 0.06 0.06</size></box></geometry>
+        <material><ambient>0.9 0.5 0.1 1</ambient><diffuse>0.9 0.5 0.1 1</diffuse></material>
+      </visual>
+    </link>
+
+    <plugin filename="gz-sim-odometry-publisher-system"
+            name="gz::sim::systems::OdometryPublisher">
+      <odom_topic>/payload/odom</odom_topic>
+      <dimensions>3</dimensions>
+    </plugin>
+
+    <!-- 可分离挂载：parent=本载荷 link，child=A(x500_0)/base_link -->
+    <plugin filename="gz-sim-detachable-joint-system"
+            name="gz::sim::systems::DetachableJoint">
+      <parent_link>link</parent_link>
+      <child_model>x500_0</child_model>
+      <child_link>base_link</child_link>
+      <attach_topic>/payload/attach</attach_topic>
+      <detach_topic>/payload/detach</detach_topic>
+      <output_topic>/payload/detach_state</output_topic>
+    </plugin>
+  </model>
+</sdf>

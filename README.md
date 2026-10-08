@@ -21,6 +21,9 @@
   选型器；6cm/100g 方块离线 MC≈99%（泡棉恢复系数 `e` 是生死线）。
 - **真机末端托盘 SITL**：`models/x500_tray` + `models/payload_100g`（`FUNNEL_TYPE=tray`）；
   6cm/100g 方块 SITL **3/3**（捕获→携带→双机落地，无 failsafe，horiz 0.015–0.049m）。
+- **托盘鲁棒性/编队**：倾斜保持 **~40°**（优于平盘/空心杯）；侧风 0→6m/s 仅 98→93%；
+  **编队同速优先大托盘** `x500_tray_big`（内径40cm）→ 0.5/1.0 m/s 捕获+携带落地
+  （`report/m6_tray_robustness.md`、`tools/sweep_m6_tray_sitl.sh`）。
 - **抗扰**：速度前馈 + 预测对正、增广风 KF（`BallisticDragKF`）、A 端迎风预补偿、自适应下潜。
 - **安全**：不确定度 keep-out（`min_ab_gap+kσ`）、**3D 反应式 keep-out**、**分级安全状态机**
   （`OK/HOLD/PULLBACK/LAND/KILL` + 越界回拉）、释放后清场、**飞行终止(kill)** 监督。
@@ -337,6 +340,8 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `models/x500_funnel_big/` | M6 末端能力：同构但口半径 0.30m（`FUNNEL_MOUTH=0.30` 启用） |
 | `models/x500_tray/` | **真机末端**：x500 + 圆形托盘（围边+泡棉缓冲，`FUNNEL_TYPE=tray` 启用；生成于 `tools/gen_tray.py`） |
 | `models/payload_100g/` | 托盘用载荷：6cm 立方体 / 100g |
+| `models/payload_attached_100g/` | 编队×托盘：100g 挂载型载荷（`DetachableJoint`） |
+| `models/x500_tray_big/` | 大托盘（内径40cm，`FUNNEL_MOUTH=0.20` 启用；运动交接用） |
 | `models/payload_attached/` | M6-moving：带 `DetachableJoint` 的载荷（挂 A 随飞、分离继承速度） |
 | `launch/catch_stack_launch.py` / `run_m6_sitl.sh` | M6 SITL 启动 / 一键脚本 |
 | `tools/stack_run.py` | M6 体检 CLI（`--sweep-dive` / `--sweep-gap` / `--sweep-wind` / `--mc` / `--lead`） |
@@ -352,6 +357,8 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `report/robustness_wind.md` | **侧风干扰鲁棒性优化**：速度前馈 + 预测式对正，侧风容忍 1→3.5 m/s |
 | `report/m6_robustness_opt.md` | **鲁棒性优化 II**：KF 估计 / 自适应下潜 / 漏斗几何扫掠（几何是主杠杆） |
 | `report/end_effector_bigfunnel.md` | **末端能力**：大漏斗 0.20→0.30m，离线余量×14 + SITL `STACK CAPTURED` |
+| `report/m6_tray_robustness.md` | **真机托盘**：倾斜保持~40° + 侧风 + 编队同速（小/大盘对比）|
+| `report/m6_tray_sitl_results.md` / `m6_tray_sitl_mc.md` | 托盘 SITL 难度扫描 / 蒙特卡洛结果 |
 | `report/robust_geometry_and_retention.md` | **鲁棒几何 + 末端机构**：风下免下潜规则 `gap≤v_retain²/2g`；空心锥/主动保持对比 |
 | `report/hover_first_control.md` | **悬停优先控制**：`minimal_dive` 落到 b_node（`auto_min_dive`），SITL `a_dive=0` 捕获 |
 | `report/drag_rejection.md` | **抗阻力/风扰**：二次阻力 + 阵风；**A 端迎风预补偿**（w=8: 0→40/40） |
@@ -388,7 +395,9 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `tools/coord_optimal.py` | **T1 最优性**：验证释放域最优为中心球（离线） |
 | `tools/drag_reject.py` | 阻力/风扰 × 估计器对比 |
 | `tools/gen_funnel_cup.py` | 生成空心导向锥杯模型（x500_funnel_cup / funnel_cup / funnel_flat） |
-| `tools/gen_tray.py` | **生成圆形托盘模型**（x500_tray / funnel_tray：围边+泡棉） |
+| `tools/gen_tray.py` | **生成圆形托盘模型**（x500_tray / funnel_tray；`TRAY_R_IN` 生成大托盘） |
+| `tools/sweep_m6_tray_sitl.sh` / `mc_m6_tray_sitl.sh` | 托盘 SITL 难度扫描 / 蒙特卡洛 |
+| `tools/tray_tilt_test.sh` | **托盘倾斜鲁棒性**落物台（托盘 vs 空心杯 vs 平盘） |
 | `models/x500_funnel_cup/` | M6 末端：x500 + 空心导向锥杯（`FUNNEL_TYPE=cup` 启用） |
 | `models/payload_lock/` | M6 主动保持：带 B 侧 `DetachableJoint` 的载荷（`PAYLOAD_LOCK=1`，捕获时就地重生成并锁到 B 漏斗） |
 | `tools/geom_opt.py` | 鲁棒几何网格搜索（成功率 + p10 余量） |

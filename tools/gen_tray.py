@@ -26,9 +26,9 @@ import os
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 
-# ── 托盘几何/材料参数（改这里即可）───────────────────────────────────────
-R_IN = 0.15         # 盘内半径 (m)  → 内径 30cm
-RIM_H = 0.05        # 围边高度 (m)
+# ── 托盘几何/材料参数（可用环境变量覆盖，便于生成不同盘径变体）─────────────
+R_IN = float(os.environ.get('TRAY_R_IN', 0.15))   # 盘内半径 (m)  → 默认内径 30cm
+RIM_H = float(os.environ.get('TRAY_RIM_H', 0.05))  # 围边高度 (m)
 RIM_T = 0.008       # 围边壁厚 (m)
 CUSHION_T = 0.03    # 泡棉厚 (m)
 BASE_T = 0.02       # 底板厚 (m)
@@ -38,6 +38,8 @@ CUSHION_E = 0.05    # 泡棉恢复系数（低回弹）
 CUSHION_MU = 1.5    # 泡棉摩擦
 RIM_E = 0.10
 RIM_MU = 0.80
+_OUT_X500 = os.environ.get('TRAY_OUT_X500', 'x500_tray')
+_OUT_TRAY = os.environ.get('TRAY_OUT_TRAY', 'funnel_tray')
 
 
 def _rim_boxes():
@@ -137,13 +139,13 @@ def _write(dirname, content, desc):
 
 def main():
     ztop = LINK_Z + BASE_T + CUSHION_T
-    _write('x500_tray',
+    _write(_OUT_X500,
            X500_TMPL.format(z=LINK_Z, body=_tray_body('    '),
                             rin=R_IN, dia=int(R_IN * 200), rim=RIM_H, e=CUSHION_E,
-                            ztop=ztop),
+                            ztop=ztop).replace("name='x500_tray'", f"name='{_OUT_X500}'"),
            'x500 + circular tray with rim and cushion (real-hardware end effector)')
-    _write('funnel_tray',
-           STANDALONE_TMPL.format(name='funnel_tray', link='tray',
+    _write(_OUT_TRAY,
+           STANDALONE_TMPL.format(name=_OUT_TRAY, link='tray',
                                   body=_tray_body('    ')),
            'standalone circular tray with rim and cushion')
 

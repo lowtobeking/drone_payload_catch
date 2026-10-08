@@ -254,6 +254,18 @@ px4_0/px4_1: 无 Failsafe；min|A−B|≥1.08m
 ```
 离线对应工况 `M6_stack_tray*`（见 §3）：`python3 tools/stack_run.py --scenario M6_stack_tray --mc 300`。
 
+**大托盘（内径40cm，eff_r=0.17）**：`FUNNEL_MOUTH=0.20` 自动选用 `models/x500_tray_big`
+（由 `TRAY_R_IN=0.20 ... python3 tools/gen_tray.py` 生成）。用于**运动交接**（见下）。
+
+**编队同速投放 × 托盘**（`FORMATION_VEL` 非零 + `FUNNEL_TYPE=tray`，载荷自动切 100g 挂载型）：
+```bash
+FORMATION_VEL="0.5,0.0,0.0" FUNNEL_TYPE=tray FUNNEL_MOUTH=0.20 bash run_m6_sitl.sh 75
+FORMATION_VEL="1.0,0.0,0.0" FUNNEL_TYPE=tray FUNNEL_MOUTH=0.20 bash run_m6_sitl.sh 75
+```
+实测（大托盘 40cm）：0.5 与 1.0 m/s 均 `STACK CAPTURED`（horiz 0.065–0.108m）→ 载荷随托盘携带落地；
+小托盘(30cm)在运动中会被“滑出”（软件仍报 captured）→ 运动交接对盘径要求高于定点。详见
+`report/m6_tray_robustness.md` §5。
+
 ### 4.1c 大漏斗（末端能力，新增）
 
 用 `FUNNEL_MOUTH` 切换漏斗口半径；≠0.20 时自动用 `models/x500_funnel_big`（口半径 0.30m，
@@ -471,6 +483,13 @@ COORD=handshake FUNNEL_MOUTH=0.30 \
 source ~/drone_payload_catch/env.sh
 bash tools/sweep_m6_sitl.sh      # 10 档难度扫描 → report/m6_sitl_results.md
 NREP=5 bash tools/mc_m6_sitl.sh  # 蒙特卡洛 → report/m6_sitl_mc.md
+
+# 圆形托盘（真机末端）扫描 / 蒙特卡洛 → report/m6_tray_sitl_results.md / m6_tray_sitl_mc.md
+bash tools/sweep_m6_tray_sitl.sh            # 8 档难度扫描（FUNNEL_TYPE=tray）
+NREP=3 bash tools/mc_m6_tray_sitl.sh        # 蒙特卡洛（N=3/档）
+
+# 托盘倾斜鲁棒性：倾斜落物台（gz 物理，秒级）→ report/m6_tray_robustness.md
+bash tools/tray_tilt_test.sh                # 托盘 vs 空心杯 vs 平盘，扫倾角 0–50°
 ```
 
 ---
