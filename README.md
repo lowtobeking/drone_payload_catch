@@ -337,6 +337,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `launch/catch_stack_launch.py` / `run_m6_sitl.sh` | M6 SITL 启动 / 一键脚本 |
 | `tools/stack_run.py` | M6 体检 CLI（`--sweep-dive` / `--sweep-gap` / `--sweep-wind` / `--mc` / `--lead`） |
 | `tools/tray_sizing.py` | **真机圆形托盘选型器**（内径/围边/泡棉 e/gap → eff_r、回弹、是否弹出；含 `--sweep-e`/`--measure-drop`） |
+| `tools/make_docx_report.py` | **生成 Word 仿真报告**（相关研究/理论/条件/数据(状态)/分析；实时跑 M1–M4 + M6 MC）→ `report/drone_payload_catch_sim_report.docx` |
 | `tools/offline_run.py` | 体检报告 CLI（`--plot` / `--sweep-noise` / `--compare`） |
 | `config/catch_scenarios.yaml` | 单一真值源 |
 | `env.sh` | 环境变量（acados/ROS/RMW/PX4 SITL） |

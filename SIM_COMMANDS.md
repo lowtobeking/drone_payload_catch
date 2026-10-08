@@ -118,6 +118,25 @@ python3 tools/tray_sizing.py --measure-drop 1.0 0.22   # 落物试验反推恢�
 
 ---
 
+## 3b. 生成 Word 仿真报告（`tools/make_docx_report.py`）
+
+> 需 `python-docx`（`pip install --break-system-packages python-docx`）。
+> 报告内容：相关研究（引言）/ 理论分析 / 仿真条件 / 仿真数据（含状态数据）/ 仿真分析。
+> 数据为**实时运行** M1–M4 离线 + M6 蒙特卡洛采集，保证与当前代码一致。
+
+```bash
+cd ~/drone_payload_catch
+export ACADOS_SOURCE_DIR=/home/caolihao/drone_package_20260908/acados
+export LD_LIBRARY_PATH=$ACADOS_SOURCE_DIR/lib:$LD_LIBRARY_PATH
+python3 tools/make_docx_report.py                 # → report/drone_payload_catch_sim_report.docx
+python3 tools/make_docx_report.py --fast          # 缩小 MC 次数，快速预览
+python3 tools/make_docx_report.py --out /tmp/x.docx
+```
+
+> Word 中打开后按 **F9** 更新目录/页码。
+
+---
+
 ## 4. 可视化仿真（Gazebo）
 
 > 本项目「可视化仿真」= **Gazebo 3D 仿真（SITL）**，Gazebo 窗口经 WSLg 显示到 Windows 桌面。
