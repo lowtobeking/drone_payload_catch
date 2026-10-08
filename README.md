@@ -19,6 +19,8 @@
   **主动保持锁扣** `payload_lock`（接住→刚性携带→落地）。
 - **真机末端：圆形托盘**（塑料围边 + 泡棉缓冲）：`M6_stack_tray*` 工况 + `tools/tray_sizing.py`
   选型器；6cm/100g 方块离线 MC≈99%（泡棉恢复系数 `e` 是生死线）。
+- **真机末端托盘 SITL**：`models/x500_tray` + `models/payload_100g`（`FUNNEL_TYPE=tray`）；
+  6cm/100g 方块 SITL **3/3**（捕获→携带→双机落地，无 failsafe，horiz 0.015–0.049m）。
 - **抗扰**：速度前馈 + 预测对正、增广风 KF（`BallisticDragKF`）、A 端迎风预补偿、自适应下潜。
 - **安全**：不确定度 keep-out（`min_ab_gap+kσ`）、**3D 反应式 keep-out**、**分级安全状态机**
   （`OK/HOLD/PULLBACK/LAND/KILL` + 越界回拉）、释放后清场、**飞行终止(kill)** 监督。
@@ -333,6 +335,8 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `payload_catch/stack_drop.py` | M6 垂直堆叠投放（解析规划 + 漏斗保持判据 + 离线仿真） |
 | `models/x500_funnel/` | M6：x500 + 顶部刚性捕获圆锥（PX4_GZ_MODEL_NAME 附着） |
 | `models/x500_funnel_big/` | M6 末端能力：同构但口半径 0.30m（`FUNNEL_MOUTH=0.30` 启用） |
+| `models/x500_tray/` | **真机末端**：x500 + 圆形托盘（围边+泡棉缓冲，`FUNNEL_TYPE=tray` 启用；生成于 `tools/gen_tray.py`） |
+| `models/payload_100g/` | 托盘用载荷：6cm 立方体 / 100g |
 | `models/payload_attached/` | M6-moving：带 `DetachableJoint` 的载荷（挂 A 随飞、分离继承速度） |
 | `launch/catch_stack_launch.py` / `run_m6_sitl.sh` | M6 SITL 启动 / 一键脚本 |
 | `tools/stack_run.py` | M6 体检 CLI（`--sweep-dive` / `--sweep-gap` / `--sweep-wind` / `--mc` / `--lead`） |
@@ -384,6 +388,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `tools/coord_optimal.py` | **T1 最优性**：验证释放域最优为中心球（离线） |
 | `tools/drag_reject.py` | 阻力/风扰 × 估计器对比 |
 | `tools/gen_funnel_cup.py` | 生成空心导向锥杯模型（x500_funnel_cup / funnel_cup / funnel_flat） |
+| `tools/gen_tray.py` | **生成圆形托盘模型**（x500_tray / funnel_tray：围边+泡棉） |
 | `models/x500_funnel_cup/` | M6 末端：x500 + 空心导向锥杯（`FUNNEL_TYPE=cup` 启用） |
 | `models/payload_lock/` | M6 主动保持：带 B 侧 `DetachableJoint` 的载荷（`PAYLOAD_LOCK=1`，捕获时就地重生成并锁到 B 漏斗） |
 | `tools/geom_opt.py` | 鲁棒几何网格搜索（成功率 + p10 余量） |
@@ -407,6 +412,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 - [x] **M6** 垂直堆叠投放（离线 200/200；SITL `STACK CAPTURED` + 双机分开落地）
 - [x] **M6 鲁棒/末端** 侧风鲁棒、KF/增广风、**大漏斗**、**空心杯**、**主动保持锁扣**、鲁棒几何优化
 - [x] **M6 真机末端** 圆形托盘（围边+泡棉）：`M6_stack_tray*` 工况 + `tools/tray_sizing.py`；6cm/100g 方块 MC≈99%
+- [x] **M6 托盘 SITL** `FUNNEL_TYPE=tray`（`x500_tray` + `payload_100g`）：捕获→携带→落地，3/3、无 failsafe
 - [x] **协同/安全** 释放握手 + 意图（预测落点）+ 时钟同步；不确定度 keep-out + **飞行终止(kill)** + 超时中止
 - [x] **M6-moving** 编队同速投放：**支持速度 0.5/1.0 m/s（各 2/2 完美）**；及时释放；2.0 m/s 保留（不再优化）
 - [x] **优化 2–5** 分级安全状态机 + 加速度前馈 + σ 共享 + 释放提交/取消 + 3D keep-out + 自适应下潜

@@ -164,7 +164,9 @@ bash run_m6_gui.sh [观察秒数，默认 110]
 | `RELEASE_Z` | `0.15` | 释放点竖直偏移标量（与 `payload_release_offset` 对应） |
 | `FORMATION_VEL` | `0.0,0.0,0.0` | **非零即启用「编队同速投放」**（见 §4.1b） |
 | `FUNNEL_MOUTH` | `0.20` | 漏斗口半径；≠0.20 自动选用大漏斗模型 `x500_funnel_big`（见 §4.1c） |
-| `FUNNEL_TYPE` | `flat` | `flat`=实心盘；`cup`=空心导向锥杯 `x500_funnel_cup`（见 §4.1d） |
+| `FUNNEL_TYPE` | `flat` | `flat`=实心盘；`cup`=空心导向锥杯 `x500_funnel_cup`（§4.1d）；`tray`=**圆形托盘**（围边+泡棉，§4.1e） |
+| `TRAY_RIM` | `0.05` | `tray` 围边高（m，=有效围挡高度，决定 `v_retain`） |
+| `TRAY_E` | `0.15` | `tray` 泡棉恢复系数（低回弹；v_retain=√(2gh)/e） |
 | `PAYLOAD_LOCK` | `0` | `1`=主动保持：捕获时在 B 漏斗处重生成带 `DetachableJoint` 的载荷并锁定（见 `report/active_retention.md`） |
 
 ```bash
@@ -225,6 +227,32 @@ bash tools/funnel_drop_test.sh               # 倾斜平台投放：杯 vs 平�
 
 结果与结论见 `report/hollow_funnel_cup.md`：SITL 可捕获，但**敞口杯在倾斜 >25° 时不如高摩擦平盘（45°）**——
 杯的价值在“导向/侧向兜接”，保持/倾角需主动锁扣。
+
+### 4.1e 圆形托盘（真机末端，新增 ✅）
+
+把末端换成**塑料圆形托盘（围边 + 泡棉缓冲）**，载荷用 **6cm / 100g 方块**（`models/payload_100g`）。
+物理保持靠"围边挡横向 + 泡棉消反弹"（`h ≥ e²·gap`）；落点半径 `eff_r = 盘内半径 − 物半宽`；
+保持速度 `v_retain = √(2·g·h)/e`（h=围边高）。
+
+```bash
+cd ~/drone_payload_catch
+FUNNEL_TYPE=tray bash run_m6_sitl.sh 60      # 无窗口（内径30cm/围边5cm/泡棉e=0.15）
+FUNNEL_TYPE=tray bash run_m6_gui.sh 110      # GUI
+# 改盘径/围边/泡棉：
+FUNNEL_TYPE=tray FUNNEL_MOUTH=0.125 TRAY_RIM=0.06 TRAY_E=0.12 bash run_m6_sitl.sh 60
+```
+
+模型由 `python3 tools/gen_tray.py` 生成（`models/x500_tray` = x500 + 托盘；独立 `models/funnel_tray`）。
+
+**实测（`~/payload_catch_m6/launch.log`，3/3 成功）**：
+```
+end-effector: type=tray mouth(盘内半径)=0.15 eff=0.12 v_retain=6.6
+B: DIVE plan a_dive=0.00(auto=True) t_c≈0.40s v_rel≈3.9 v_retain=6.603 feasible=True
+*** STACK CAPTURED *** horiz=0.015–0.049m rel_v≈2.7–2.8m/s
+B phase=LAND caught=True （载荷随托盘携带到落点）
+px4_0/px4_1: 无 Failsafe；min|A−B|≥1.08m
+```
+离线对应工况 `M6_stack_tray*`（见 §3）：`python3 tools/stack_run.py --scenario M6_stack_tray --mc 300`。
 
 ### 4.1c 大漏斗（末端能力，新增）
 

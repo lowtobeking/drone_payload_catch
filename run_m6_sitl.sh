@@ -57,13 +57,28 @@ if [ "$PAYLOAD_LOCK" = "1" ]; then
   LOCK_EXTRA="lock_to_b:=true lock_model_path:=$HOME/drone_payload_catch/models/payload_lock/model.sdf"
 fi
 
-# 末端能力：FUNNEL_TYPE=flat(默认)/cup(空心导向锥杯)；FUNNEL_MOUTH 指定口半径。
+# 末端能力：FUNNEL_TYPE=flat(默认)/cup(空心导向锥杯)/tray(圆形托盘)；FUNNEL_MOUTH 指定口/盘半径。
 #   flat + 0.20   → x500_funnel（实心平顶盘）
 #   flat + >0.20  → x500_funnel_big（大平顶盘）
 #   cup           → x500_funnel_cup（空心锥杯：导向+保持）
-#   例：FUNNEL_TYPE=cup bash run_m6_sitl.sh 70
+#   tray          → x500_tray（圆形托盘：围边+泡棉缓冲），载荷 6cm/100g
+#   例：FUNNEL_TYPE=cup  bash run_m6_sitl.sh 70
+#       FUNNEL_TYPE=tray bash run_m6_sitl.sh 70
 FUNNEL_TYPE="${FUNNEL_TYPE:-flat}"
-if [ "$FUNNEL_TYPE" = "cup" ]; then
+TRAY_RIM="${TRAY_RIM:-0.05}"    # 围边高 (m)：有效围挡高度
+TRAY_E="${TRAY_E:-0.15}"        # 泡棉恢复系数（低回弹）
+OBJ_HALF="${OBJ_HALF:-0.03}"    # 物块半宽（6cm 方块 → 0.03）
+if [ "$FUNNEL_TYPE" = "tray" ]; then
+  # FUNNEL_MOUTH = 盘内半径（默认 0.15 → 内径 30cm）；eff_r = 盘内半径 − 物半宽
+  FUNNEL_MOUTH="${FUNNEL_MOUTH:-0.15}"
+  FUNNEL_SDF="${FUNNEL_SDF:-$HOME/drone_payload_catch/models/x500_tray/model.sdf}"
+  FUNNEL_DEPTH="$TRAY_RIM"
+  FUNNEL_REST="$TRAY_E"
+  FUNNEL_EFF=$(python3 -c "print(round(float('$FUNNEL_MOUTH')-float('$OBJ_HALF'),3))")
+  V_RETAIN=$(python3 -c "import math;print(round(math.sqrt(2*9.81*float('$FUNNEL_DEPTH'))/float('$FUNNEL_REST'),2))")
+  FUNNEL_EXTRA="funnel_mouth_radius:=$FUNNEL_MOUTH funnel_eff_radius:=$FUNNEL_EFF funnel_depth:=$FUNNEL_DEPTH funnel_restitution:=$FUNNEL_REST v_retain:=$V_RETAIN funnel_mount_height:=0.21"
+  [ "$ATTACH" = "false" ] && PAYLOAD_MODEL="$HOME/drone_payload_catch/models/payload_100g/model.sdf"
+elif [ "$FUNNEL_TYPE" = "cup" ]; then
   FUNNEL_MOUTH="${FUNNEL_MOUTH:-0.30}"
   FUNNEL_SDF="${FUNNEL_SDF:-$HOME/drone_payload_catch/models/x500_funnel_cup/model.sdf}"
 elif [ "${FUNNEL_MOUTH:-0.20}" = "0.20" ]; then
@@ -72,7 +87,9 @@ elif [ "${FUNNEL_MOUTH:-0.20}" = "0.20" ]; then
 else
   FUNNEL_SDF="${FUNNEL_SDF:-$HOME/drone_payload_catch/models/x500_funnel_big/model.sdf}"
 fi
-if [ "$FUNNEL_MOUTH" = "0.20" ]; then
+if [ "$FUNNEL_TYPE" = "tray" ]; then
+  :    # tray 分支已装配 FUNNEL_EXTRA / FUNNEL_EFF
+elif [ "$FUNNEL_MOUTH" = "0.20" ]; then
   FUNNEL_EFF="0.14"
   FUNNEL_EXTRA=""
 else
@@ -131,7 +148,7 @@ timeout $((RUN_S + 40)) ros2 launch payload_catch catch_stack_launch.py \
   release_offset:="[$RELEASE_OFFSET]" payload_release_offset:=$RELEASE_Z \
   formation_vel:="[$FORMATION_VEL]" attach_to_a:=$ATTACH model_path:=$PAYLOAD_MODEL \
   $FUNNEL_EXTRA $LOCK_EXTRA $LAUNCH_EXTRA > "$D/launch.log" 2>&1 &
-echo "  funnel: mouth=$FUNNEL_MOUTH eff=$FUNNEL_EFF" >&2
+echo "  end-effector: type=$FUNNEL_TYPE mouth(盘内半径)=$FUNNEL_MOUTH eff=$FUNNEL_EFF v_retain=${V_RETAIN:-4.04}" >&2
 sleep "$RUN_S"
 
 echo "### 结果"

@@ -27,10 +27,19 @@ else
 fi
 RELEASE_OFFSET="0.0,0.0,$RELEASE_Z"
 
-# 末端能力：FUNNEL_TYPE=flat(默认)/cup(空心导向锥杯)；FUNNEL_MOUTH 指定口半径。
+# 末端能力：FUNNEL_TYPE=flat(默认)/cup(空心导向锥杯)/tray(圆形托盘)；FUNNEL_MOUTH 指定口/盘半径。
 #   例：FUNNEL_TYPE=cup bash run_m6_gui.sh 110   /   FUNNEL_MOUTH=0.30 bash run_m6_gui.sh 110
+#       FUNNEL_TYPE=tray bash run_m6_gui.sh 110（圆形托盘：围边+泡棉，载荷 6cm/100g）
 FUNNEL_TYPE="${FUNNEL_TYPE:-flat}"
-if [ "$FUNNEL_TYPE" = "cup" ]; then
+TRAY_RIM="${TRAY_RIM:-0.05}"; TRAY_E="${TRAY_E:-0.15}"; OBJ_HALF="${OBJ_HALF:-0.03}"
+if [ "$FUNNEL_TYPE" = "tray" ]; then
+  FUNNEL_MOUTH="${FUNNEL_MOUTH:-0.15}"
+  FUNNEL_SDF="${FUNNEL_SDF:-$HOME/drone_payload_catch/models/x500_tray/model.sdf}"
+  FUNNEL_EFF=$(python3 -c "print(round(float('$FUNNEL_MOUTH')-float('$OBJ_HALF'),3))")
+  V_RETAIN=$(python3 -c "import math;print(round(math.sqrt(2*9.81*float('$TRAY_RIM'))/float('$TRAY_E'),2))")
+  FUNNEL_EXTRA="funnel_mouth_radius:=$FUNNEL_MOUTH funnel_eff_radius:=$FUNNEL_EFF funnel_depth:=$TRAY_RIM funnel_restitution:=$TRAY_E v_retain:=$V_RETAIN funnel_mount_height:=0.21"
+  [ "${ATTACH:-false}" = "false" ] && PAYLOAD_MODEL="$HOME/drone_payload_catch/models/payload_100g/model.sdf"
+elif [ "$FUNNEL_TYPE" = "cup" ]; then
   FUNNEL_MOUTH="${FUNNEL_MOUTH:-0.30}"
   FUNNEL_SDF="${FUNNEL_SDF:-$HOME/drone_payload_catch/models/x500_funnel_cup/model.sdf}"
 elif [ "${FUNNEL_MOUTH:-0.20}" = "0.20" ]; then
@@ -39,7 +48,9 @@ elif [ "${FUNNEL_MOUTH:-0.20}" = "0.20" ]; then
 else
   FUNNEL_SDF="${FUNNEL_SDF:-$HOME/drone_payload_catch/models/x500_funnel_big/model.sdf}"
 fi
-if [ "$FUNNEL_MOUTH" = "0.20" ]; then
+if [ "$FUNNEL_TYPE" = "tray" ]; then
+  :
+elif [ "$FUNNEL_MOUTH" = "0.20" ]; then
   FUNNEL_EFF="0.14"; FUNNEL_EXTRA=""
 else
   FUNNEL_EFF=$(python3 -c "print(round(float('$FUNNEL_MOUTH')-0.05,3))")

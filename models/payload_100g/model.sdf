@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<!--
+  payload_100g —— 真机末端（圆形托盘）用载荷：6cm 立方体 / 100g。
+  与 models/payload 的区别：质量 0.3→0.10 kg、尺寸 6cm（与真机物块一致）。
+  OdometryPublisher 发 /payload/odom（payload_node 转成世界系 NED）。
+-->
+<sdf version="1.9">
+  <model name="payload">
+    <link name="link">
+      <inertial>
+        <mass>0.10</mass>
+        <inertia><ixx>6.0e-5</ixx><iyy>6.0e-5</iyy><izz>6.0e-5</izz>
+                 <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry><box><size>0.06 0.06 0.06</size></box></geometry>
+        <surface>
+          <friction><ode><mu>0.8</mu><mu2>0.8</mu2></ode></friction>
+          <bounce><restitution_coefficient>0.10</restitution_coefficient></bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry><box><size>0.06 0.06 0.06</size></box></geometry>
+        <material><ambient>0.9 0.5 0.1 1</ambient><diffuse>0.9 0.5 0.1 1</diffuse></material>
+      </visual>
+    </link>
+    <plugin filename="gz-sim-odometry-publisher-system"
+            name="gz::sim::systems::OdometryPublisher">
+      <odom_topic>/payload/odom</odom_topic>
+      <dimensions>3</dimensions>
+    </plugin>
+  </model>
+</sdf>
