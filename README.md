@@ -402,6 +402,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `report/opt_round5.md` | **优化第五轮（姿态约束）**：IMU 倾角/角速率 → 安全滤波（水平指令衰减 + 加速度限额），对标姿态 failsafe 边界 |
 | `report/research_roadmap.md` | **研究路线图（协调方向）**：目标/UAV协调研究地图 + 核心贡献 C1–C5 + 现状差距 + 理论工具 + 分阶段实验 + 代码映射 + 最小可发表单元 |
 | `report/paper_outline.md` | **论文骨架（协调方向）**：题目/摘要/贡献 C1–C5/问题形式化/方法/实验协议/相关工作定位/真机需求/时间线/待定决策 |
+| `report/paper_tasks.md` | **论文任务追踪（活文档）**：D1–D4 决策 / 理论 / 实验 / 真机(H1–H7) / 写作(P1–P8) / 风险 / 变更日志 |
 | `report/coordination_probability.md` | **C1 概率证书（v2 精确 Rice）**：二维脱靶模型 + 精确 `P(capture)≥1−ε` 证书 + exact/Chernoff/heuristic 对比 + EMA 标定（“标准漏斗 rel_σ≥0.10 无法认证”）|
 | `report/coordination_information.md` | **C3 信息：state vs intent**：延迟下 intent 延迟不变、保留保证；state 随 `v_A·d` 崩并破坏证书 |
 | `report/coordination_protocol.md` | **C2 协议时序界**：`release_lead= d_max/(2(1−catch))`、丢包失败模式（丢 cmd→未下潜）、设计建议 |

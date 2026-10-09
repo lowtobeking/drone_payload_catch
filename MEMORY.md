@@ -151,6 +151,7 @@ drone_payload_catch/
     ├── opt_round5.md          ← **优化第五轮（姿态约束）**：倾角/角速率→安全滤波(水平衰减+加速度限额)
     ├── research_roadmap.md    ← **研究路线图（协调方向）**：C1–C5 贡献 + 现状差距 + 实验/代码映射 + MPU
     ├── paper_outline.md       ← **论文骨架（协调方向）**：题目/摘要/贡献/形式化/实验/相关工作/真机/时间线
+    ├── paper_tasks.md         ← **论文任务追踪（活文档）**：D1–D4 / 理论 / 实验 / 真机 H1–H7 / 写作 P1–P8 / 风险 / 变更日志
     ├── coordination_probability.md ← **C1 概率证书**：二维脱靶模型 + `P(capture)≥1−ε` + 离线验证
     ├── coordination_information.md ← **C3 信息**：state vs intent（延迟容忍；intent 保留证书）
     ├── coordination_protocol.md ← **C2 协议时序界**：取消窗口/设计表/丢包失效模式
