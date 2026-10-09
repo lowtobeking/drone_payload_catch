@@ -98,6 +98,7 @@ drone_payload_catch/
 │   ├── dynamics.py            ← **四旋翼聚合约束**（倾角+推力；替代裸双积分器；自测）
 │   ├── impact.py              ← **接触冲击**（冲量/峰值力/可恢复性/带载推力余量/柔性接触；自测）
 │   ├── perception.py          ← **视觉载荷感知**（相机 FOV 门控 + 距离相关误差 + 深度 + 丢帧；自测）
+│   ├── stats.py               ← **统计工具**（Wilson CI + 配对 McNemar；自测）
 │   ├── stack_drop.py          ← M6 垂直堆叠投放：解析规划 + 漏斗保持判据 + 离线仿真（纯 Python）
 │   ├── px4_iface.py           ← PX4 接口基类（话题/QoS/ARM+OFFBOARD/setpoint/世界系偏移）
 │   ├── a_node.py              ← A：起飞→悬停释放点（M6 额外广播 /drone_a/state 供相对定位）
@@ -269,6 +270,7 @@ colcon build --packages-select payload_catch
 | **相对不确定度修正** | `uncertainty.py`（σ_rel=√(σ_A²+σ_B²−2ρσ_Aσ_B+(lσθ)²+σ_meas²)）+ `tools/rel_sigma.py` + b_node `sigma_model`/a_node `gate_use_relative` | ✅ 量化：绝对 σ（0.212）证书**不可行**；相对传感器 σ=0.03 可行、释放率 52%/条件捕获 0.999；SITL：证书闸修正后放行（`STACK CAPTURED horiz 0.045/0.056m`）；`report/rel_uncertainty.md` |
 | **动力学/接触加强** | `dynamics.py`（倾角+推力约束）+ `impact.py`（冲击/可恢复性/带载余量）+ `tools/dynamics_contact.py` + b_node `miss_timeout_s`（接空安全中止） | ✅ 量化：`a_max=6`↔~31.5°倾角、水平权限随下潜衰减；100g 冲击可恢复、≥1kg 超权限；SITL 接空 → `MISS 安全悬停→降落`（`safe=OK`，无 failsafe）；`report/dynamics_contact.md` |
 | **感知/接触/风 保真** | `perception.py`（相机模型）+ `impact.compliant_contact`（柔性接触）+ `tools/perception_study.py` + `tools/make_wind_world.py`（SITL 风场） | ✅ 相机模型替换真值替身（好相机近场更优、差相机大释放误差 14%）；柔性接触峰值力 1170→37N（30×）；SITL `WIND=6` 带风跑通；`report/perception_study.md` |
+| **统计+基线** | `stats.py`（Wilson CI + McNemar）+ `tools/stats_report.py` | ✅ M6 大 N（每格 N=2000，CI）；感知(camera 100% vs 替身 98.7%, p<1e-3)、预测对正(lead=1 反而 79%<89%, p<1e-40)、闭环(0/30→28/30, p=3e-7)、释放误差敏感性、参数不确定性；`report/statistics.md` |
 | 双机协调 | `rendezvous.solve_cooperative` + 协议分析（`report/coordination.md`） | ✅ 现状=单向/A被动；改进=握手/意图/时钟/安全；⚠️**负结果：A 小幅释放偏移与 t_r 冗余（δ*=0）**，协同价值在协议与 A 的速度/高度配合 |
 | 协同释放握手 | `coord_mode=handshake`（`a_node`/`b_node` + `/drone_b/ready` + `/drone_a/release_cmd` + `/drone_a/intent` + 时钟同步 `/coord/ping|pong` + 释放门限）（`report/coordination_handshake.md`） | ✅ **SITL：B 报就绪→A 作释放权威（精确自身状态）→ack→B 下潜→`STACK CAPTURED`**；含往返**时钟同步**(offset≈0/rtt0.5ms 换算 t_rel) 与释放前一致性门限；默认 direct 保留 |
 | 编队握手+意图 | M6-moving FORMATION 握手 + `/drone_a/intent` 升级为**预测落点**（`use_intent`/`WIND_EST`）（`report/coordination_handshake.md`） | ✅ SITL：`/formation/start`→FORMATION→**A 释放权威**→DIVE→`STACK CAPTURED horiz=0.040m`；意图落点(风漂移) SITL no-op 验证；**ack 改为原子事件**（不再依赖瞬时对齐） |

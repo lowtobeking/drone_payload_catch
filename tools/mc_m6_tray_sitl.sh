@@ -56,7 +56,8 @@ for c in "${configs[@]}"; do
   hzm=$(python3 -c "import statistics as s; v=[float(x) for x in '$hz_all'.split()]; print(f'{s.mean(v):.3f}' if v else '—')" 2>/dev/null)
   rvm=$(python3 -c "import statistics as s; v=[float(x) for x in '$rv_all'.split()]; print(f'{s.mean(v):.3f}' if v else '—')" 2>/dev/null)
   mrm=$(python3 -c "import statistics as s; v=[float(x) for x in '$mr_all'.split()]; print(f'{min(v):.3f}' if v else '—')" 2>/dev/null)
-  printf '| %s | %s/%s | %s m | %s m/s | %s m |\n' "$name" "$ok" "$NREP" "$hzm" "$rvm" "$mrm" >> "$OUT"
+  ci=$(cd "$REPO" 2>/dev/null && python3 -c "from payload_catch.stats import wilson_ci as w; p,lo,hi=w($ok,$NREP); print(f'{100*p:.0f}% [{100*lo:.0f},{100*hi:.0f}]')" 2>/dev/null)
+  printf '| %s | %s/%s %s | %s m | %s m/s | %s m |\n' "$name" "$ok" "$NREP" "${ci:-}" "$hzm" "$rvm" "$mrm" >> "$OUT"
   echo "== $name: $ok/$NREP mean_hz=$hzm mean_rv=$rvm min_minrelA=$mrm" >> "$OUT"
 done
 echo "MC-DONE" >> "$OUT"

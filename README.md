@@ -347,10 +347,12 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `payload_catch/contact_detect.py` | **接触检测**（加速度尖峰/速度反转/外部开关；自测） |
 | `payload_catch/uncertainty.py` | **相对不确定度模型**（公共抵消 ρ + 杆臂×姿态 + 残差；修"绝对 σ 当相对 σ"；自测） |
 | `payload_catch/perception.py` | **视觉载荷感知**（相机模型：FOV 门控 + 距离相关误差 + 深度 + 丢帧；自测） |
+| `payload_catch/stats.py` | **统计工具**：Wilson 95% CI + 配对 McNemar（消融显著性；自测） |
 | `payload_catch/dynamics.py` | **四旋翼聚合动力学**（倾角+推力约束，替代裸双积分器；自测） |
 | `payload_catch/impact.py` | **接触冲击**（冲量/峰值力/偏心角速度/可恢复性/带载推力余量；自测） |
 | `tools/dynamics_contact.py` | 量化学：动力学限幅 + 接触冲击/柔顺 + 接空中止（`report/dynamics_contact.md`） |
 | `tools/perception_study.py` | 视觉感知影响量化（标称/大释放误差/编队；`report/perception_study.md`） |
+| `tools/stats_report.py` | **统计+基线**：大 N 离线 MC + Wilson CI + 配对检验 + 参数不确定性 → `report/statistics.md` |
 | `tools/make_wind_world.py` | 生成带风 SITL world（`WIND=..` 启用，载荷 `enable_wind`） |
 | `tools/rel_sigma.py` | 量化学：naive vs 相对模型 → 释放阈值/释放率/证书可行性（`report/rel_uncertainty.md`） |
 | `payload_catch/stack_drop.py` | M6 垂直堆叠投放（解析规划 + 漏斗保持判据 + 离线仿真） |
@@ -368,6 +370,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `report/rel_uncertainty.md` | **相对不确定度**：naive（绝对 σ）证书不可行 → 相对模型可行；SITL 验证 |
 | `report/dynamics_contact.md` | **动力学限幅 + 接触冲击**：水平权限随下潜衰减、冲击可恢复性、柔性接触、接空安全中止 |
 | `report/perception_study.md` | **视觉感知**：相机模型 vs 真值替身（好相机近场更优、差相机大幅退化） |
+| `report/statistics.md` | **统计+基线**：M6 大 N（Wilson CI）+ 感知/预测对正/闭环消融（配对 McNemar）+ 参数不确定性 |
 | `tools/stack_run.py` | M6 体检 CLI（`--sweep-dive` / `--sweep-gap` / `--sweep-wind` / `--mc` / `--lead`） |
 | `tools/tray_sizing.py` | **真机圆形托盘选型器**（内径/围边/泡棉 e/gap → eff_r、回弹、是否弹出；含 `--sweep-e`/`--measure-drop`） |
 | `tools/make_docx_report.py` | **生成 Word 仿真报告**（相关研究/理论/条件/数据(状态)/分析；实时跑 M1–M4 + M6 MC）→ `report/drone_payload_catch_sim_report.docx` |

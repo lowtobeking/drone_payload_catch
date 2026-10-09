@@ -54,6 +54,8 @@ for c in "${configs[@]}"; do
     echo "  rep$rep: captured=$cap ready=$ready hz=$hz rel_v=$rv min_relA=$mr" >> "$OUT"
   done
   rate="$ok/$NREP"
+  ci=$(cd "$REPO" 2>/dev/null && python3 -c "from payload_catch.stats import wilson_ci as w; p,lo,hi=w($ok,$NREP); print(f'{100*p:.0f}% [{100*lo:.0f},{100*hi:.0f}]')" 2>/dev/null)
+  rate="$rate ${ci:-}"
   hzm=$(python3 -c "import sys,statistics as s; v=[float(x) for x in '$hz_all'.split()]; print(f'{s.mean(v):.3f}' if v else '—')" 2>/dev/null)
   rvm=$(python3 -c "import sys,statistics as s; v=[float(x) for x in '$rv_all'.split()]; print(f'{s.mean(v):.3f}' if v else '—')" 2>/dev/null)
   mrm=$(python3 -c "import statistics as s; v=[float(x) for x in '$mr_all'.split()]; print(f'{min(v):.3f}' if v else '—')" 2>/dev/null)

@@ -675,3 +675,14 @@ SITL_WORLD=/tmp/default_wind.sdf bash run_m6_sitl.sh 60
 要点：相机误差**距离相关**（近场好、远场差、有 FOV/丢帧）——好相机近场优于固定 σ=0.05 替身，
 差相机（窄 FOV/高丢帧）在大释放误差/编队下大幅退化；柔性接触峰值力 ~30× 降低（需行程在围边内）；
 SITL 风对 100g 致密方块漂移很小（与离线一致）。
+
+### 8.4 统计 + 基线（离线 · Wilson CI · 配对检验）
+
+```bash
+python3 -m payload_catch.stats                 # 统计工具自测（Wilson CI / McNemar）
+python3 tools/stats_report.py --n 2000 --rv-n 30   # → report/statistics.md
+```
+
+输出：M6 末端机构/感知成功率 + **Wilson 95% CI**；感知、预测对正、闭环重规划消融的
+**配对 McNemar** p 值；释放误差敏感性；参数不确定性。SITL 蒙特卡洛脚本
+（`mc_m6_sitl.sh` / `mc_m6_tray_sitl.sh`）也已附 Wilson CI。
