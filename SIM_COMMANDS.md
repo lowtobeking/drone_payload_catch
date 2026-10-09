@@ -651,3 +651,27 @@ FUNNEL_TYPE=tray LAUNCH_EXTRA="release_xy_sigma:=3.0 track_payload:=false miss_t
 关键旋钮：`miss_timeout_s`（默认 4s；超时未捕获 → 发 `/payload/miss` 并安全降落，不盲目追击/砸地）。
 `dynamics.py` 给出 `a_x ≤ (g−a_z)·tanθ_max`（水平权限随下潜衰减）与推力约束；
 `impact.py` 给出冲击可恢复条件 `ω=J·d_off/I_B ≤ τ_max·t/I_B` 与带载悬停条件 `T_max ≥ (m_B+m_p)g`。
+
+### 8.3 感知 / 接触 / 风 保真（补充）
+
+```bash
+# 视觉载荷感知模型（相机：FOV/距离相关误差/深度/丢帧）
+python3 -m payload_catch.perception            # 自测
+python3 tools/perception_study.py              # 相机 vs 真值替身 → report/perception_study.md
+python3 tools/stack_run.py --scenario M6_stack_tray_cam --mc 100   # 相机感知工况
+
+# 柔性接触（弹簧-阻尼：把峰值力降一个量级）
+python3 -m payload_catch.impact                # 自测（含 complanit_contact）
+python3 tools/dynamics_contact.py              # 含 §3b 柔性接触表
+
+# SITL 风场（载荷 enable_wind=true，注入 gz WindEffects 插件）
+WIND=6.0 WIND_DIR=0 FUNNEL_TYPE=tray FUNNEL_MOUTH=0.20 bash run_m6_sitl.sh 60
+WIND=6.0 FUNNEL_TYPE=tray bash run_m6_gui.sh 110     # GUI
+# 或先生成带风 world 再跑：
+python3 tools/make_wind_world.py --src "$SITL_WORLD" --out /tmp/default_wind.sdf --wind 6 --dir-deg 0
+SITL_WORLD=/tmp/default_wind.sdf bash run_m6_sitl.sh 60
+```
+
+要点：相机误差**距离相关**（近场好、远场差、有 FOV/丢帧）——好相机近场优于固定 σ=0.05 替身，
+差相机（窄 FOV/高丢帧）在大释放误差/编队下大幅退化；柔性接触峰值力 ~30× 降低（需行程在围边内）；
+SITL 风对 100g 致密方块漂移很小（与离线一致）。

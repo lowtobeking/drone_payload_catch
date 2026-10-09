@@ -30,6 +30,7 @@ import numpy as np
 
 from .payload_model import PayloadModel, PayloadParams
 from .payload_filter import BallisticKF, BallisticDragKF
+from .perception import CameraModel
 
 Vec3 = np.ndarray
 
@@ -337,6 +338,16 @@ def simulate_stack(defaults: Dict, layout: Dict, scenario: Dict,
     stk = {**defaults.get('stack', {}), **scenario.get('stack', {})}
     pay = {**defaults['payload'], **scenario.get('payload', {})}
     vert_mode = str(scenario.get('vert_mode', vert_mode))   # 允许 scenario 覆盖
+    # 视觉感知（可选）：用相机模型替换"真值+高斯噪声"的载荷测量
+    perc = scenario.get('perception')
+    cam = None
+    if perc:
+        cam = CameraModel(fov_deg=float(perc.get('fov_deg', 60.0)),
+                          lateral_k=float(perc.get('lateral_k', 0.005)),
+                          depth_sigma=float(perc.get('depth_sigma', 0.02)),
+                          dropout=float(perc.get('dropout', 0.0)),
+                          boresight=perc.get('boresight', (0.0, 0.0, -1.0)),
+                          rng=np.random.default_rng(noise.seed + 7))
 
     a_init = np.asarray(scenario.get('a_init', layout.get('a_init')), float).reshape(3)
     b0 = np.asarray(scenario.get('b_standby', layout['b_standby']), float).reshape(3)
@@ -440,7 +451,12 @@ def simulate_stack(defaults: Dict, layout: Dict, scenario: Dict,
         if released and p_hist:
             j = max(0, len(p_hist) - 1 - lat_steps)
             z_meas = p_hist[j].copy()
-            if noise.rel_pos_sigma > 0:
+            if cam is not None:
+                # 相机感知：FOV 门控 + 距离相关误差 + 丢帧。
+                # 无效时保持上一帧；**从未捕获 → 无信息**（B 按"载荷在自己位置"行动，会漏接）。
+                z_meas = cam.track(p_hist[j], p_b)
+                z_meas = p_b.copy() if z_meas is None else z_meas.copy()
+            elif noise.rel_pos_sigma > 0:
                 # raw 模式只对 xy 加噪（与旧行为/随机流一致）；kf 需 3D 观测。
                 if est_mode == 'kf':
                     z_meas = z_meas + rng.normal(0.0, noise.rel_pos_sigma, 3)

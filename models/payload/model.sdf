@@ -2,6 +2,7 @@
 <sdf version="1.9">
   <model name="payload">
     <link name="link">
+      <enable_wind>true</enable_wind>
       <inertial>
         <mass>0.3</mass>
         <inertia><ixx>0.00018</ixx><iyy>0.00018</iyy><izz>0.00018</izz>

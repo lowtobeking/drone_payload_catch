@@ -71,6 +71,14 @@ D="$HOME/payload_catch_m6_gui"; mkdir -p "$D"; rm -f "$D"/*.log
 source "$HOME/drone_payload_catch/env.sh"
 export LIBGL_ALWAYS_SOFTWARE="${LIBGL_ALWAYS_SOFTWARE:-1}"   # WSLg 兼容兜底
 
+# SITL 风场：WIND>0 时生成带风 world（载荷 enable_wind=true → 受风漂移）
+if [ "${WIND:-0}" != "0" ]; then
+  python3 "$HOME/drone_payload_catch/tools/make_wind_world.py" \
+    --src "$SITL_WORLD" --out /tmp/default_wind.sdf \
+    --wind "$WIND" --dir-deg "${WIND_DIR:-0}" >&2
+  export SITL_WORLD=/tmp/default_wind.sdf
+fi
+
 echo "### cleanup"
 for p in 'px4 -d -i' 'gz sim' MicroXRCEAgent 'catch_stack_launch|a_node|b_node|payload_node'; do pkill -9 -f "$p" 2>/dev/null; done
 sleep 3

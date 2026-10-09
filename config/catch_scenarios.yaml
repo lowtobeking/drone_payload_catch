@@ -239,6 +239,23 @@ scenarios:
                mount_height: 0.10, object_radius: 0.03}
     description: 圆形托盘(内径30cm) + 侧风3m/s；100g 物漂移小(~3cm)，仍稳定捕获(≈96%)
 
+  # ── M6 圆形托盘 + 视觉感知（相机模型替换"真值+高斯"替身）──
+  M6_stack_tray_cam:
+    layout: stack_drop
+    mode: stack_drop
+    vert_mode: minimal
+    stack: {a_dive: 3.0, a_brake: 6.0}
+    payload: {mass: 0.10, drag_mode: none}
+    perception:                 # 相机：FOV 门控 + 距离相关误差 + 深度 + 丢帧
+      fov_deg: 60
+      lateral_k: 0.005          # 横向误差 ≈ lateral_k · 距离（rad）
+      depth_sigma: 0.02
+      dropout: 0.1
+    capture:
+      funnel: {mouth_radius: 0.15, depth: 0.05, restitution: 0.15,
+               mount_height: 0.10, object_radius: 0.03}
+    description: 圆形托盘 + 相机感知；对比真值替身（见 report/perception_study.md）
+
   # ── M6 主动保持（B 侧锁扣）：捕获后把载荷锁到 B 漏斗，等效去掉 v_retain 限制 ──
   M6_stack_lock:
     layout: stack_drop

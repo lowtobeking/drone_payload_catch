@@ -49,6 +49,21 @@ def recoverable(m_p: float, v_rel: float, d_off: float, I_b: float,
                 ok=(w <= min(w_cap, omega_max)))
 
 
+def compliant_contact(m_p: float, v_rel: float, k: float,
+                      c: float, g: float = G) -> dict:
+    """线性弹簧-阻尼柔顺接触：最大压缩行程、无阻尼峰值力、阻尼比、吸能。
+
+    · 无阻尼最大压缩 s = v·√(m/k)；峰值力 F ≈ k·s = v·√(m·k)（下界）；
+    · 阻尼比 ζ = c / (2√(m·k))；阻尼越大，行程越小但峰值力越高（脉冲变短）。
+    """
+    k = max(k, 1e-9)
+    s = v_rel * math.sqrt(m_p / k)
+    F = k * s
+    zeta = c / (2.0 * math.sqrt(k * m_p))
+    return dict(stroke=s, peak_force=F, zeta=zeta,
+                energy=0.5 * m_p * v_rel * v_rel)
+
+
 def thrust_margin(m_b: float, m_p: float, tmax: float, g: float = G) -> float:
     """带载推力余量 (N)：T_max − (m_B+m_p)g；≥0 才能悬停。"""
     return tmax - (m_b + m_p) * g
@@ -84,6 +99,14 @@ def _selftest():
     print(f'[5] 带载悬停: +0.1kg={can_hover_carry(m_b,0.1,tmax)} +5kg={can_hover_carry(m_b,5.0,tmax)}  '
           f'{"OK" if ok5 else "FAIL"}')
     ok &= ok5
+
+    # 6) 柔顺 vs 刚性：弹簧-阻尼把峰值力降一个量级
+    rig = compliant_contact(0.1, 3.7, k=1e6, c=0.0)
+    soft = compliant_contact(0.1, 3.7, k=1000.0, c=20.0)
+    ok6 = soft['peak_force'] < rig['peak_force'] / 10.0
+    print(f'[6] 柔性接触 峰值力 刚={rig["peak_force"]:.0f}N → 柔={soft["peak_force"]:.0f}N'
+          f'（行程 {soft["stroke"]*100:.1f}cm, ζ={soft["zeta"]:.2f}）  {"OK" if ok6 else "FAIL"}')
+    ok &= ok6
 
     print('impact 自测', '通过 ✅' if ok else '失败 ❌')
     return ok
