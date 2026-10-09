@@ -1,6 +1,6 @@
 # MEMORY.md — 项目记忆（给下一个 AI / 未来的自己）
 
-> 最后更新：2026-10-05。**新对话请先读本文件**，再按需读 `README.md`、`report/`。
+> 最后更新：2026-10-09。**新对话请先读本文件**，再按需读 `README.md`、`report/`。
 > 目标读者：接手本项目的 AI 助手。读完应能直接继续干活，不必重跑全部排查。
 
 ---
@@ -409,6 +409,19 @@ colcon build --packages-select payload_catch
 ## 10. 提交历史（git log，自上而下）
 
 ```
+bfe0ac0 feat(research): 统计 + 基线（Wilson CI + 配对检验 + 参数不确定性）
+4a8a1cf feat(research): 感知/接触/风 保真（补 sim-to-real 缺口）
+380c7f5 docs(skill): 补充在 pi 中使用该 skill 的接入说明
+d4e2dca feat(skill): 提取 Agent Skill aerial-payload-handover（SKILL.md + references + scripts）
+7293881 feat(research): 动力学/接触纳入保证（控制层/安全层加强）+ 接空安全中止
+6fafc62 feat(research): 相对不确定度模型——修'绝对 σ 当相对 σ'的过度保守（C1 证书）
+3c6b020 feat(real): 真机接入层——相对定位(RTK)驱动 + 接触检测 + 真机 launch/文档
+e5ad53d feat(M6): 托盘主动锁扣（运动交接去盘径化）+ 泡棉 e 实测工具
+a06ef60 feat(M6): 托盘 SITL 难度扫描/MC + 倾斜/侧风鲁棒 + 编队同速接入
+62b248c chore: 移除误提交的 Word 临时锁文件 + gitignore ~$*.docx
+4c769f4 feat(M6-SITL): 真机末端圆形托盘接入 SITL（FUNNEL_TYPE=tray）
+115823f feat(report): Word 仿真报告生成器 + 报告
+        （report/make_docx_report.py；report/drone_payload_catch_sim_report.docx）
 bff54a5 feat(research): 加 MODE=full 预设 + T3 延迟鲁棒 CBF 接入节点
         （run_m6_sitl.sh MODE=full；b_node.keepout_delay_s；SITL horiz=0.043m）
 3a2619e docs: 同步研究进度到说明/报告文档（README/MEMORY/paper_outline）

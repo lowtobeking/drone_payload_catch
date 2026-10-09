@@ -17,16 +17,24 @@
 
 ---
 
-## 0.5 进度快照（2026-10-05）
+## 0.5 进度快照（2026-10-09）
 
 | 章节 | 状态 | 产出 |
 |---|---|---|
 | **理论 C1–C5** | ✅ | 概率证书（精确 Rice）/ 协议时序界 / state-vs-intent / 联合机动 / handover-CBF |
 | **理论 T1–T3** | ✅ | 释放域最优性（中心球）/ 联合 handover 证书 / 延迟 CBF 鲁棒界（`coordination_theory.md`） |
 | **系统实现** | ✅ | 证书闸 + CBF(`keepout_mode=cbf`) + C2 冗余触发，均已接入 SITL |
+| **相对不确定度模型** | ✅ | 修“绝对 σ 当相对 σ”：`σ_rel²=σ_A²+σ_B²−2ρσ_Aσ_B+(lσθ)²+σ_meas²`；证书由不可行→可行（`rel_uncertainty.md`） |
+| **动力学/接触** | ✅ | 倾角+推力聚合约束、冲击可恢复性/柔顺接触、带载推力余量（`dynamics_contact.md`） |
+| **感知/风保真** | ✅ | 相机感知模型（FOV/距离相关误差/丢帧）、SITL 风场（`perception_study.md`） |
 | **SITL 实验** | ✅ | 逐项消融主表（baseline→+权威→+证书→+intent→+CBF）；stress 下时延 3.3→0.72→0.42s（`coordination_experiments.md`） |
+| **统计+基线** | ✅ | 大 N（Wilson CI）+ 配对 McNemar 消融 + 参数不确定性（`statistics.md`） |
+| **真机接入层** | ✅ | `relnav`(RTK) + `contact_detect` + `catch_real_launch.py` + `real_hardware_bringup.md`（**待真机验证**） |
 | **真机** | ❌ | 未做（**唯一投稿硬门槛**） |
 | **写作** | ⏳ | 本骨架待展开为初稿 |
+
+> 自 2026-10-05 起补齐了“理论—真机”之间的三块薄弱环节（相对不确定度 / 动力学接触 / 感知）、
+> 统计与基线、真机接入层，并提取了 Agent Skill。**核心缺口仍为真机与写作。**
 
 ---
 

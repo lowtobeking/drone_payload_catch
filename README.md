@@ -460,6 +460,13 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 - [x] **研究·协调理论** C1–C5 + T1–T3（证书/最优性/协议/信息/机动/CBF/联合证书/延迟 CBF）
   → `report/coordination_*.md`、`coordination_theory.md`
 - [x] **研究·实验** 逐项消融主表（标称 + stress，含 CI）→ `report/coordination_experiments.md`
+- [x] **研究·真机接入层** 相对定位(RTK)驱动 `relnav` + 接触检测 `contact_detect` + 真机 launch
+  （`report/real_hardware_bringup.md`）
+- [x] **研究·相对不确定度** 修“绝对 σ 当相对 σ”（C1 证书输入修正；`report/rel_uncertainty.md`）
+- [x] **研究·动力学/接触** 倾角推力约束 + 冲击可恢复性/柔顺接触 + 接空安全中止（`report/dynamics_contact.md`）
+- [x] **研究·感知/风保真** 相机感知模型 + SITL 风场（`report/perception_study.md`）
+- [x] **研究·统计+基线** 大 N + Wilson CI + 配对检验 + 参数不确定性（`report/statistics.md`）
+- [x] **Agent Skill** `skills/aerial-payload-handover/`（SKILL.md + references + scripts）
 - [~] **研究·真机 & 写作**：真机方案（平台+相对导航）+ 论文初稿（`report/paper_outline.md`）
 - [~] **M5** 真空心漏斗（现为 primitive 杯 / 实心盘）+ 真夹爪/磁吸 + 真机化
 
