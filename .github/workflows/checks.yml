@@ -1,0 +1,30 @@
+name: offline-checks
+
+# 离线自检（纯 Python，不需要 ROS/PX4/acados）。
+# SITL / acados / 真机检查在本地跑（见 tools/run_checks.sh 全量模式与 report/）。
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: 安装依赖
+        run: python -m pip install --upgrade pip numpy scipy pyyaml pytest
+
+      - name: 一键离线自检（quick：纯模块 + tools/test_*.py）
+        run: bash tools/run_checks.sh --quick
+
+      - name: pytest
+        run: python -m pytest -q
