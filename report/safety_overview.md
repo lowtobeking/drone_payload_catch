@@ -61,7 +61,7 @@
 | 硬碰撞地板 | `safety_filter` 缺口 2（实测邻居） | `keepout.hard_floor`+HOLD | ✅ 相当 |
 | 失联自动降落 | 三层（FC offboard/RC/leader 丢失） | FC 层 + `peer_loss` 冻结→LAND | ✅ 相当 |
 | 估计健康门 | `est_ok`→HOLD→RELINQUISH | eph/epv/dead_reckoning/reset→HOLD | ✅ 相当 |
-| 姿态/加加速度限幅 | max_speed/climb/accel+jerk | `_attitude_govern`+`sp_rate_limit`（无显式 jerk） | 🟡 略逊 |
+| 姿态/加加速度限幅 | max_speed/climb/accel+jerk | `_attitude_govern`+`sp_rate_limit`+`limit_jerk`（jerk 默认关） | ✅ 相当 |
 | 故障注入验证 | S27–S33 清单 | `sitl_safety_matrix.py` 5 场景 | ✅ 相当 |
 | 形式化保证（证书/CBF） | 无 | C1 证书 + C5 CBF | ✅ **更强** |
 | 可测性/CI | 纯函数+自测 | 纯函数+32 项+pytest+CI | ✅ 更强 |
@@ -73,7 +73,7 @@
 
 1. **真机 / HIL 验证**（硬门槛；本工程仅 SITL）。
 2. **多机规模 / 跨机冗余**（单估计器、单链路）。
-3. **显式 jerk 硬帽**（现有指令加速度限额，无 jerk）。
+3. jerk 硬帽**已实现**（`safety_logic.limit_jerk`），默认关，可 `jerk_max:=N` 开启。
 4. **接空失败载荷砸地物理防护/告警**（仅记录 MISS）。
 5. `RELINQUISH`（停流交还 PX4）语义未做——我们以 HOLD/LAND/KILL 替代，`HOLD` 期间仍发 offboard 心跳（参考工程指出这会阻止 PX4 接管，是刻意取舍）。
 

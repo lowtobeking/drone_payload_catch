@@ -38,7 +38,7 @@
 | G3 | **接不住的 abort / go-around** | ✅ 释放前余量闸 + 编队超时 abort + 接空 `MISS`→悬停→降落 | `a_node._abort_release`/`b_node._abort_formation`/`miss_timeout_s` |
 | G4 | **反应式避碰（非静态规则）** | ✅ 3D keep-out + CBF(opt-in) + **硬碰撞地板**→HOLD | `b_node._keepout_velocity`/`_cbf_velocity`/`keepout.hard_floor`；矩阵 PASS |
 | G5 | **低电/超时保护** | ✅ **电池 warning≥2/remaining<0.07→LAND** + 起飞前电池门 | `safety_logic.battery_*`+`px4_iface`；`fcu_safety.md` |
-| G6 | **姿态/倾角/jerk 限制** | 🟡 倾角/角速率/指令加速度 ✅；**显式 jerk 未做** | `px4_iface._attitude_govern`+`sp_rate_limit`；`opt_round5` |
+| G6 | **姿态/倾角/jerk 限制** | ✅ 倾角/角速率/指令加速度 + **jerk 硬帽**（`safety_logic.limit_jerk`，默认 0=关） | `px4_iface._attitude_govern`+`sp_rate_limit`+`jerk_max`；`opt_round5` |
 | G7 | **捕获失败后处置** | 🟡 接空 `MISS`→悬停→降落 ✅；**载荷砸地物理防护/告警未做** | `b_node` MISS；物理防护待真机 |
 | G8 | **B 的加速度/推力约束显式化** | ✅ 四旋翼聚合约束 + 指令加速度限额 | `payload_catch/dynamics.py`；`dynamics_contact.md` |
 | G9 | **通信/时钟异常保护** | 🟡 时钟 ping/pong + `peer_loss` ✅；消息乱序未专门处理 | `a_node/b_node` clock_sync；`companion_safety.md` |

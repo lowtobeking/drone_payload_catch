@@ -72,6 +72,8 @@ bash run_m6_real.sh                        # 真机：默认跑 --live --gps；P
 LAUNCH_EXTRA="peer_loss_hold_s:=1.0 peer_loss_land_s:=4.0" bash run_m6_sitl.sh 55
 # 硬碰撞地板：太近 → 去掉朝 A 分量 + 持续→HOLD（抬阈值可诱发）
 LAUNCH_EXTRA="collide_warn:=1.7 collide_emerg:=1.5" bash run_m6_sitl.sh 45
+# jerk 硬帽（吸收参考巨跳；0=关）
+LAUNCH_EXTRA="jerk_max:=2.0" bash run_m6_sitl.sh 45
 ```
 
 **安全层故障注入矩阵**（对标参考 S27–S33；每道保护单独诱发 + 零误触发基线）：

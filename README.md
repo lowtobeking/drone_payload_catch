@@ -46,6 +46,24 @@
   **SITL 逐项消融主表** → `report/coordination_experiments.md`；路线图 `research_roadmap.md`；骨架 `paper_outline.md`。
   一键开启研究特性：`MODE=full bash run_m6_sitl.sh 70`（握手+证书闸+CBF+intent+T3 延迟鲁棒，默认仍 baseline）。
 
+## 安全速览
+
+> 完整清单/对照/缺口见 [`report/safety_overview.md`](report/safety_overview.md)。
+
+| 阶段 | 关键机制 | 验证 |
+|---|---|---|
+| **飞行前** | 静态环境 + `--live`（EKF/failsafe/磁/IMU/电池）+ 日志门 + **飞控参数体检**（THR_MIN<THR_HOVER/失效保护/围栏/EKF 源）+ GPS(opt) + 上行链路 | `PREFLIGHT=1` / `PREFLIGHT_PARAMS=1` SITL 实测 fail=0 |
+| **飞行中** | 分级状态机 `OK/HOLD/PULLBACK/LAND/KILL`、围栏回拉、3D keep-out+CBF+**硬碰撞地板**、姿态/传感器约束、释放证书闸+abort、**失联看门狗**、**电池→Land**、kill | 故障注入矩阵 **5/5 PASS** |
+| **飞后** | 遥测有效性 `STALE/OVERFLOW/SILENCE/HOVER` | 真实日志零假阳性 |
+| 仍缺 | 真机/HIL、多机规模、显式 jerk（已可开）、砸地防护、RELINQUISH 交还 | — |
+
+一键：
+```bash
+bash tools/run_checks.sh                                  # 离线 32 项 + pytest
+PREFLIGHT=1 PREFLIGHT_PARAMS=1 bash run_m6_sitl.sh 70     # 起飞前全门
+python3 tools/sitl_safety_matrix.py                       # 故障注入矩阵 5/5
+```
+
 ## 任务与算法
 
 **A 的运动**（第一版）：恒速直线 `p_A(t)=a_init + a_vel·t`；`a_vel=0` 即悬停释放。

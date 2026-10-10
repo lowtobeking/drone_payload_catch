@@ -126,6 +126,28 @@ def sensor_health_reasons(*, watchdog_enable: bool, reset_counters,
     return out
 
 
+# --------------------------------------------------------------- jerk 硬帽
+def limit_jerk(v_sp, v_prev, v_prev2, *, jerk_max: float, dt: float):
+    """jerk（加速度变化率）硬帽：吸收参考巨跳/指令突变。
+
+    a_prev=(v_prev−v_prev2)/dt，a_des=(v_sp−v_prev)/dt；限 |a_des−a_prev| ≤ jerk_max·dt，
+    再还原 v。返回 `(v, limited)`。`jerk_max≤0` 或缺历史 → 原样返回。
+    """
+    v = np.asarray(v_sp, float)
+    if jerk_max <= 0.0 or v_prev is None or v_prev2 is None or dt <= 0.0:
+        return v, False
+    v_prev = np.asarray(v_prev, float)
+    v_prev2 = np.asarray(v_prev2, float)
+    a_prev = (v_prev - v_prev2) / dt
+    da = (v - v_prev) / dt - a_prev
+    n = float(np.linalg.norm(da))
+    max_da = jerk_max * dt
+    if n > max_da and n > 1e-12:
+        a_lim = a_prev + da * (max_da / n)
+        return v_prev + a_lim * dt, True
+    return v, False
+
+
 # --------------------------------------------------------------- 失联看门狗
 def peer_loss_action(since_last_rx, *, hold_s: float, land_s: float,
                      received_once: bool = True) -> str:

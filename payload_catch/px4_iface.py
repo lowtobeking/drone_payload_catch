@@ -27,7 +27,7 @@ from rclpy.qos import (DurabilityPolicy, HistoryPolicy, QoSProfile,
                        ReliabilityPolicy)
 
 from .safety_logic import (attitude_govern, battery_land_reason,
-                           clip_to_estimator_limits, fence_velocity,
+                           clip_to_estimator_limits, fence_velocity, limit_jerk,
                            safety_decision, scale01, sensor_health_reasons)
 
 PREFIX = {0: 'out/vehicle_status_v1', 1: 'out/vehicle_status_v1'}   # 1.16
@@ -74,6 +74,7 @@ class Px4Drone(Node):
         self.declare_parameter('auto_arm', auto_arm)
         self.declare_parameter('world_offset', [0.0, 0.0, 0.0])   # 本机 PX4 原点在世界 NED 中的位置
         self.declare_parameter('sp_rate_limit', 0.0)   # 速度设定点变化率上限 (m/s²)，0=不限
+        self.declare_parameter('jerk_max', 0.0)        # 加速度变化率上限 (m/s³)，0=不限
         # ── 安全监督（可 kill / 飞行终止）──
         self.declare_parameter('safety_lock', True)          # 启用安全监督
         self.declare_parameter('safety_kill_topic', '/safety/kill')   # 外部 kill（Bool）
@@ -116,7 +117,9 @@ class Px4Drone(Node):
         self.world_offset = np.asarray(self.get_parameter('world_offset').value,
                                        float).reshape(3)
         self.sp_rate_limit = float(self.get_parameter('sp_rate_limit').value)
+        self.jerk_max = float(self.get_parameter('jerk_max').value)   # jerk 硬帽 (m/s³)
         self._last_vsp = None          # 上一次速度设定点（用于速率限幅）
+        self._prev_vsp = None          # 上上次（用于 jerk 限幅）
         _v = str(self.get_parameter('px4_version').value)
         self._vs_topic = ('out/vehicle_status_v1' if _v.startswith('1.16')
                           else 'out/vehicle_status_v4' if _v.startswith('main')
@@ -457,8 +460,13 @@ class Px4Drone(Node):
         # 姿态/角速率约束（安全滤波）：只在正常态生效，不改安全指令
         if self._safety_state == 'OK':
             vel_ned, self._att_gov = self._attitude_govern(np.asarray(vel_ned, float))
+            # jerk 硬帽：吸收参考巨跳/指令突变（0=不限）
+            vel_ned, _ = limit_jerk(np.asarray(vel_ned, float), self._last_vsp,
+                                    self._prev_vsp, jerk_max=self.jerk_max,
+                                    dt=1.0 / max(self.hz, 1e-6))
         else:
             self._att_gov = 1.0
+        self._prev_vsp = self._last_vsp
         self._last_vsp = np.asarray(vel_ned, float).copy()
         m = TrajectorySetpoint()
         m.position = [float('nan')] * 3

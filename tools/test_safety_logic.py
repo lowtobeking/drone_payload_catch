@@ -211,6 +211,19 @@ check('land_reason 正常→空', sl.battery_land_reason(connected=True, warning
 check('land_reason 未连接→空', sl.battery_land_reason(connected=False, warning=3, remaining=0.0) == '')
 check('warn_reason low', sl.battery_warn_reason(connected=True, warning=1, remaining=0.5) != '')
 
+print('\n=== jerk 硬帽 ===')
+vp, lim = sl.limit_jerk(np.array([1.0, 0, 0]), None, None, jerk_max=5, dt=0.02)
+check('无历史 → 原样', np.allclose(vp, [1, 0, 0]) and not lim)
+vp, lim = sl.limit_jerk(np.array([9.0, 0, 0]), np.zeros(3), np.zeros(3), jerk_max=0, dt=0.02)
+check('jerk_max=0 → 关', np.allclose(vp, [9, 0, 0]) and not lim)
+vp, lim = sl.limit_jerk(np.array([9.0, 0, 0]), np.zeros(3), np.zeros(3), jerk_max=5, dt=0.02)
+check('巨跳被限到 jerk_max', lim and abs(vp[0] - 0.002) < 1e-9, f'v={vp[0]:.4f}')
+vp, lim = sl.limit_jerk(np.array([0.001, 0, 0]), np.zeros(3), np.zeros(3), jerk_max=5, dt=0.02)
+check('小变化不触发', not lim and np.allclose(vp, [0.001, 0, 0]))
+vp, lim = sl.limit_jerk(np.array([0.1, 0, 0]), np.array([0.05, 0, 0]), np.zeros(3),
+                        jerk_max=5, dt=0.02)
+check('匀加速不触发', not lim)
+
 print('\n=== clip_to_estimator_limits ===')
 v = sl.clip_to_estimator_limits([10.0, 0.0, 5.0], 2.0, 1.0)
 check('水平裁到 vxy_max', abs(np.linalg.norm(v[:2]) - 2.0) < 1e-9)

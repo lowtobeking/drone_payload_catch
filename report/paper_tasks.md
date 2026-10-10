@@ -144,6 +144,7 @@
 | 2026-10-09 | **飞控安全**（对标参考 `fc_configure.py`）：`payload_catch/fcu_params.py`（参数判据/预置）+ `tools/preflight_params.py`（--file/--mavlink）+ `tools/fcu_configure.py`（dry-run）+ `test_fcu_params.py`；**电池低电→Land**（`safety_logic`+`px4_iface`+`live_probe`）；SITL 验证参数读取与电池无误报；`report/fcu_safety.md`；全量自检 30/30（pytest 12） |
 | 2026-10-09 | **companion 安全网**（对标参考 `safety_filter.py`）：失联看门狗（`peer_loss_action`+b_node：丢 A 状态→就地冻结→AUTO.LAND）+ 硬碰撞地板（`keepout.hard_floor`+`external_safety_reasons`→HOLD）；纯逻辑单测 + **SITL 诱发验证**（kill A → 1s 冻结/4s LAND；collide_emerg:=1.5 → collision_floor HOLD）；`report/companion_safety.md` |
 | 2026-10-09 | **安全层故障注入 SITL 矩阵**（对标参考 S27–S33）：`payload_catch/safety_matrix.py`（场景规格+verdict）+ `tools/sitl_safety_matrix.py`（编排）+ `test_safety_matrix.py`；5 场景（零误触发/围栏PULLBACK/碰撞地板HOLD/失联冻结→LAND/kill）**5/5 PASS**；`report/safety_injection_matrix.md`；全量自检 32/32（pytest 13） |
+| 2026-10-09 | **jerk 硬帽**（对标参考 `safety_filter` 缺口5）：`safety_logic.limit_jerk`（纯逻辑）+ `px4_iface.jerk_max`（默认 0=关）；launch 透传；单测全绿 |
 | （下次） | 更新 D1–D4 决策、文献基线复现、SITL 大 N、真机/HIL |
 
 ---

@@ -91,6 +91,7 @@ def generate_launch_description():
         'adaptive_dive': 'false',     # 在线自适应下潜
         'adaptive_alt_floor': '0.35', # 自适应下潜：刹停后最小离地 (m)
         'sp_rate_limit': '0.0',       # 速度设定点变化率上限 (m/s²)，0=不限
+        'jerk_max': '0.0',            # 加速度变化率上限 (m/s³)，0=不限
         'px4_z_bias': '0.24', 'catch_z_tol': '0.10',
         'min_ab_gap': '0.80', 'approach_alt_tol': '0.15', 'payload_release_offset': '0.15',
         'safety_k': '2.0', 'rel_sigma_floor': '0.0',
@@ -152,6 +153,7 @@ def generate_launch_description():
                           'safety_hold_escalate': LaunchConfiguration('safety_hold_escalate'),
                           'safety_hold_timeout': _f('safety_hold_timeout'),
                           'sp_rate_limit': _f('sp_rate_limit'),
+                          'jerk_max': _f('jerk_max'),
                           'use_b_sigma': _b('use_b_sigma'),
                           'release_sigma_max': _f('release_sigma_max'),
                           'gate_use_relative': _b('gate_use_relative'),
@@ -224,6 +226,7 @@ def generate_launch_description():
                  'b_max_speed': _f('b_max_speed'), 'b_max_accel': _f('b_max_accel'),
                  'stack_kp_xy': _f('stack_kp_xy'), 'stack_kp_z': _f('stack_kp_z'),
                  'a_ff_gain': _f('a_ff_gain'), 'sp_rate_limit': _f('sp_rate_limit'),
+                 'jerk_max': _f('jerk_max'),
                  'keepout_dist': _f('keepout_dist'), 'keepout_gain': _f('keepout_gain'),
                  'keepout_mode': LaunchConfiguration('keepout_mode'),
                  'keepout_alpha': _f('keepout_alpha'),
