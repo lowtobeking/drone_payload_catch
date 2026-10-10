@@ -72,10 +72,32 @@ J = w_time·t_r + w_accel·(峰值加速度/a_max) + w_vel·|Δv|²
 ```bash
 cd ~/drone_payload_catch
 
-# 单元自测
+# 一键自检（推荐，改代码后必跑；自动 source env.sh）
+make check-quick                   # 等价 bash tools/run_checks.sh --quick（秒级）
+make check                         # 等价 bash tools/run_checks.sh（全量）
+bash tools/run_checks.sh --quick   # 秒级：纯模块 + tools/test_*.py
+bash tools/run_checks.sh           # 全量：+ acados 冒烟 + offline_run.py --all + pytest
+
+# （可选）装 git pre-commit 钩子：提交前自动跑秒级自检
+git config core.hooksPath .githooks
+
+# 逐模块自测
 python3 -m payload_catch.payload_model
 python3 -m payload_catch.rendezvous
 python3 -m payload_catch.sim_core
+python3 -m payload_catch.safety_logic   # 安全层纯逻辑（围栏/姿态/看门狗/状态机）
+
+# 纯逻辑单元测试（✅/❌ + 退出码）
+python3 tools/test_coord_cert.py    # C1 概率证书
+python3 tools/test_keepout.py       # C5 handover-CBF
+python3 tools/test_safety_logic.py  # 安全层（围栏/姿态/看门狗/状态机）
+python3 tools/test_config.py        # 单一真值源 yaml 契约
+python3 tools/test_purity.py        # 纯算法层“无 ROS 依赖”守卫
+python3 tools/test_compileall.py    # 全仓 .py 语法编译守卫
+python3 -m pytest -q                # 收进标准测试框架（与上面同一批脚本）
+
+# SITL 端到端验收（需完整 SITL 环境，耗时数分钟）
+source env.sh && bash tools/sitl_check.sh 70   # STACK CAPTURED 且无 failsafe ⇒ 退出 0
 
 # 体检报告
 python3 tools/offline_run.py                    # M1 悬停
@@ -349,6 +371,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `payload_catch/perception.py` | **视觉载荷感知**（相机模型：FOV 门控 + 距离相关误差 + 深度 + 丢帧；自测） |
 | `payload_catch/stats.py` | **统计工具**：Wilson 95% CI + 配对 McNemar（消融显著性；自测） |
 | `payload_catch/dynamics.py` | **四旋翼聚合动力学**（倾角+推力约束，替代裸双积分器；自测） |
+| `payload_catch/safety_logic.py` | **安全层纯函数**（软围栏/姿态滤波/EKF 看门狗/分级状态机；从 `px4_iface` 抽出以便离线单测） |
 | `payload_catch/impact.py` | **接触冲击**（冲量/峰值力/偏心角速度/可恢复性/带载推力余量；自测） |
 | `tools/dynamics_contact.py` | 量化学：动力学限幅 + 接触冲击/柔顺 + 接空中止（`report/dynamics_contact.md`） |
 | `tools/perception_study.py` | 视觉感知影响量化（标称/大释放误差/编队；`report/perception_study.md`） |
@@ -376,6 +399,15 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `tools/make_docx_report.py` | **生成 Word 仿真报告**（相关研究/理论/条件/数据(状态)/分析；实时跑 M1–M4 + M6 MC）→ `report/drone_payload_catch_sim_report.docx` |
 | `skills/aerial-payload-handover/` | **Agent Skill**（SKILL.md + references + scripts + examples）：把本工程封装成 Agent 可调用的“空中载荷交接仿真”技能 |
 | `tools/offline_run.py` | 体检报告 CLI（`--plot` / `--sweep-noise` / `--compare`） |
+| `tools/run_checks.sh` | **一键离线自检**（`--quick`/全量；纯模块 + `tools/test_*.py` + acados + `offline_run --all`） |
+| `tools/test_coord_cert.py` / `test_keepout.py` / `test_safety_logic.py` | **纯逻辑单元测试**（C1 证书 / C5 CBF / 安全层；无需 ROS） |
+| `tools/test_config.py` / `test_purity.py` | **契约守卫**：yaml 单一真值源自洽 / 纯算法层不得依赖 ROS |
+| `tools/test_compileall.py` | 全仓 `.py` 语法编译守卫（含 ROS 节点/launch，无需依赖） |
+| `tools/sitl_check.sh` | **SITL 端到端验收**（委托 `run_m6_sitl.sh`，按 `STACK CAPTURED`/failsafe 给退出码） |
+| `Makefile` / `.githooks/pre-commit` | `make check[-quick]` / 提交前自动跑秒级自检 |
+| `tools/smoke_acados.py` | acados MPC 链冒烟（codegen+编译+求解+耗时） |
+| `tests/` + `pytest.ini` | 把 `tools/test_*.py` 收进标准 pytest（`pytest -q` / `colcon test`） |
+| `.github/workflows/checks.yml` | **CI**：push/PR 跑 `run_checks.sh --quick` + pytest（纯 Python，多 Python 版本） |
 | `config/catch_scenarios.yaml` | 单一真值源 |
 | `env.sh` | 环境变量（acados/ROS/RMW/PX4 SITL） |
 | `report/env_bringup.md` | B 阶段环境打通记录（含 PX4 检出问题与回滚清单） |

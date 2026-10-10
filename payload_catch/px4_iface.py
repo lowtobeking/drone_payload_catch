@@ -26,6 +26,10 @@ from rclpy.node import Node
 from rclpy.qos import (DurabilityPolicy, HistoryPolicy, QoSProfile,
                        ReliabilityPolicy)
 
+from .safety_logic import (attitude_govern, clip_to_estimator_limits,
+                           fence_velocity, safety_decision, scale01,
+                           sensor_health_reasons)
+
 PREFIX = {0: 'out/vehicle_status_v1', 1: 'out/vehicle_status_v1'}   # 1.16
 
 
@@ -293,199 +297,101 @@ class Px4Drone(Node):
         self.land()
 
     def _fence_velocity(self, v_sp) -> np.ndarray:
-        """软围栏（世界系 NED）：在任务速度上**剔除继续向外**的分量，越界时叠加回拉。
-
-        相比“直接替换为纯回拉速度”，保留沿围栏的切向机动，避免安全层与任务互相顶。
-        """
-        v = np.asarray(v_sp, float).copy()
-        gx = self.safety_geofence_xy
-        k = self.safety_pullback_k
-        vmax = self.safety_pullback_speed
-        pw = self.pos_world
-        for i in (0, 1):
-            p = float(pw[i])
-            if p > gx:
-                v[i] = min(v[i], -k * (p - gx))        # 越界：强制向内
-            elif p < -gx:
-                v[i] = max(v[i], k * (-gx - p))
-            elif p > 0.0:
-                v[i] = min(v[i], 0.0)                  # 界内：禁止继续向外
-            elif p < 0.0:
-                v[i] = max(v[i], 0.0)
-        alt = -float(pw[2])
+        """软围栏（世界系 NED）——纯逻辑见 `safety_logic.fence_velocity`。"""
         alt_floor = self.safety_alt_min
         if (self.sensor_constraints_enable and self.sensor_use_est_limits
                 and math.isfinite(self._est_hagl_min)):
             alt_floor = max(alt_floor, self._est_hagl_min)   # 估计器最小离地约束
-        if alt > self.safety_geofence_alt:
-            v[2] = max(v[2], k * (alt - self.safety_geofence_alt))    # 下压
-        elif alt < alt_floor:
-            v[2] = min(v[2], -k * (alt_floor - alt))                  # 上拉
-        n = float(np.linalg.norm(v[:2]))
-        if n > vmax and n > 1e-9:
-            v[:2] *= vmax / n
-        v[2] = float(np.clip(v[2], -vmax, vmax))
-        return v
+        return fence_velocity(v_sp, self.pos_world,
+                              geofence_xy=self.safety_geofence_xy,
+                              pullback_k=self.safety_pullback_k,
+                              pullback_speed=self.safety_pullback_speed,
+                              alt_floor=alt_floor,
+                              geofence_alt=self.safety_geofence_alt)
 
     @staticmethod
     def _scale01(x: float, soft: float, hard: float) -> float:
-        """软/硬限之间的线性缩放：x≤soft→1，x≥hard→0。"""
-        if hard <= soft:
-            return 1.0 if x <= soft else 0.0
-        return float(np.clip((hard - x) / (hard - soft), 0.0, 1.0))
+        """软/硬限之间的线性缩放——纯逻辑见 `safety_logic.scale01`。"""
+        return scale01(x, soft, hard)
 
     def _attitude_govern(self, v: np.ndarray):
-        """姿态/角速率约束（安全滤波）：用当前倾角/角速率衰减水平速度指令。
-
-        - 倾角越接近硬限，水平指令衰减越多（到硬限=0，让姿态控制器回正）；
-        - 角速率高时同样衰减；
-        - 水平指令的**变化率**（即指令加速度）限额，且姿态越差额度越小。
-        仅作用于水平方向，不改垂直；返回 (v, scale)。
-        """
-        v = v.copy()
-        if (not self.attitude_constraint_enable) or (not self._att_ok):
-            return v, 1.0
-        tilt = max(abs(self._roll), abs(self._pitch))
-        s_tilt = self._scale01(tilt, self.tilt_soft, self.tilt_hard)
-        s_rate = self._scale01(self._ang_rate, self.rate_soft, self.rate_hard)
-        s = min(s_tilt, s_rate)
-        if s < 1.0:
-            v[:2] *= s
-        # 水平指令加速度限额（姿态越差额度越小）
-        if self.accel_h_max > 0.0 and self._last_vsp is not None:
-            dv = v[:2] - np.asarray(self._last_vsp, float)[:2]
-            n = float(np.linalg.norm(dv))
-            max_dv = self.accel_h_max / max(self.hz, 1e-6) * max(s_tilt, 0.15)
-            if n > max_dv and n > 1e-9:
-                v[:2] = np.asarray(self._last_vsp, float)[:2] + dv * (max_dv / n)
-        return v, s
+        """姿态/角速率约束（安全滤波）——纯逻辑见 `safety_logic.attitude_govern`。"""
+        return attitude_govern(v, self._last_vsp,
+                               roll=self._roll, pitch=self._pitch,
+                               ang_rate=self._ang_rate,
+                               tilt_soft=self.tilt_soft, tilt_hard=self.tilt_hard,
+                               rate_soft=self.rate_soft, rate_hard=self.rate_hard,
+                               accel_h_max=self.accel_h_max, hz=self.hz,
+                               enable=self.attitude_constraint_enable,
+                               att_ok=self._att_ok)
 
     def _sensor_health_reasons(self, now: float) -> list:
-        """基于 PX4 已有 EKF 字段的健康/一致性约束（返回异常原因）。
-
-        只用已订阅的 `vehicle_local_position`，不需新硬件。
-        """
-        if (not self.sensor_watchdog_enable) or self._reset_counters is None:
-            return []
-        out = []
-        if not self._lpos_valid:
-            out.append('lpos_invalid')
-        if self._dead_reckoning:
-            out.append('dead_reckoning')
-        if not self._heading_good and self.sensor_watchdog_heading:
-            out.append('heading_good_for_control=false')
-        if self._eph > self.sensor_eph_max:
-            out.append(f'eph={self._eph:.2f}>{self.sensor_eph_max:.2f}')
-        if self._epv > self.sensor_epv_max:
-            out.append(f'epv={self._epv:.2f}>{self.sensor_epv_max:.2f}')
-        if (self._reset_seen_t is not None
-                and (now - self._reset_seen_t) < self.sensor_reset_hold_s):
-            out.append('estimator_reset')
-        return out
+        """基于 PX4 已有 EKF 字段的健康/一致性约束——纯逻辑见
+        `safety_logic.sensor_health_reasons`。"""
+        return sensor_health_reasons(
+            watchdog_enable=self.sensor_watchdog_enable,
+            reset_counters=self._reset_counters,
+            lpos_valid=self._lpos_valid, dead_reckoning=self._dead_reckoning,
+            heading_good=self._heading_good,
+            heading_check=self.sensor_watchdog_heading,
+            eph=self._eph, epv=self._epv,
+            eph_max=self.sensor_eph_max, epv_max=self.sensor_epv_max,
+            reset_seen_t=self._reset_seen_t, now=now,
+            reset_hold_s=self.sensor_reset_hold_s)
 
     def _safety_update(self, now: float) -> None:
         """分级安全响应：OK → (HOLD | PULLBACK) → LAND → KILL。
 
-        检测：姿态超限(临界) / 位置越界(回拉) / 位置状态超时(悬停)。
-        临界异常持续 kill_hold_s：safety_auto_kill=True 则飞行终止，否则按
-        safety_hold_escalate 升级（none=保持 HOLD，land=降落）。
-
-        HOLD/PULLBACK 只覆盖速度指令（见 publish_velocity），任务逻辑仍运行以
-        继续广播状态；LAND/KILL 则直接终止 offboard。
+        决策纯逻辑见 `safety_logic.safety_decision`；本方法只负责读取状态、
+        应用决策并打日志/发指令。HOLD/PULLBACK 只覆盖速度指令（见
+        publish_velocity），任务逻辑仍运行以继续广播状态；LAND/KILL 则直接
+        终止 offboard。
         """
-        if not self.safety_lock or self._killed or self._landing:
-            return
-        if not self._armed:
-            if self._safety_state != 'OK':
-                self._safety_state = 'OK'
-                self._safety_reason = ''
-            self._bad_since = None
-            self._hold_since = None
-            return
-
-        reasons = []
-        critical = False
-        if self._att_ok and (abs(self._roll) > self.safety_tilt_max
-                             or abs(self._pitch) > self.safety_tilt_max):
-            reasons.append(f'tilt(r={math.degrees(self._roll):.0f},'
-                           f'p={math.degrees(self._pitch):.0f})')
-            critical = True
-        pw = self.pos_world
-        # 滞环：已处于 PULLBACK 时，需回到围栏内 safety_pullback_clear 才恢复
-        _clr = self.safety_pullback_clear if self._safety_state == 'PULLBACK' else 0.0
-        out_xy = (abs(float(pw[0])) > self.safety_geofence_xy - _clr
-                  or abs(float(pw[1])) > self.safety_geofence_xy - _clr)
-        alt = -float(pw[2])
         alt_floor = self.safety_alt_min
         if (self.sensor_constraints_enable and self.sensor_use_est_limits
                 and math.isfinite(self._est_hagl_min)):
             alt_floor = max(alt_floor, self._est_hagl_min)
-        out_hi = alt > self.safety_geofence_alt - _clr
-        out_lo = alt < alt_floor + _clr
-        if out_xy or out_hi or out_lo:
-            reasons.append(f'geofence(xy={pw[:2].round(1)},alt={alt:.1f})')
         stale = (now - self._last_pos_t) > self.safety_state_timeout
-        if stale:
-            reasons.append(f'pos_stale={now - self._last_pos_t:.1f}s')
-        # 传感器/估计器健康约束
-        health_bad = False
-        if self.sensor_constraints_enable:
-            hr = self._sensor_health_reasons(now)
-            if hr:
-                reasons.extend(hr)
-                health_bad = True
-
-        if not reasons:
-            self._bad_since = None
-            self._hold_since = None
-            if self._safety_state != 'OK':
-                self.get_logger().warn(f'[{self.drone_id}] SAFETY 恢复 → OK')
-            self._safety_state = 'OK'
-            self._safety_reason = ''
+        stale_reason = (f'pos_stale={now - self._last_pos_t:.1f}s' if stale else '')
+        health = (self._sensor_health_reasons(now)
+                  if self.sensor_constraints_enable else [])
+        d = safety_decision(
+            now, self._safety_state, self._safety_reason,
+            self._bad_since, self._hold_since,
+            armed=self._armed, killed=self._killed, landing=self._landing,
+            safety_lock=self.safety_lock, att_ok=self._att_ok,
+            roll=self._roll, pitch=self._pitch,
+            safety_tilt_max=self.safety_tilt_max,
+            safety_kill_hold_s=self.safety_kill_hold_s,
+            safety_auto_kill=self.safety_auto_kill,
+            safety_hold_escalate=self.safety_hold_escalate,
+            safety_hold_timeout=self.safety_hold_timeout,
+            pos_world=self.pos_world,
+            safety_geofence_xy=self.safety_geofence_xy,
+            safety_pullback_clear=self.safety_pullback_clear,
+            alt_floor=alt_floor, safety_geofence_alt=self.safety_geofence_alt,
+            safety_pullback_enable=self.safety_pullback_enable,
+            stale_reason=stale_reason, health_reasons=health,
+            sensor_constraints_enable=self.sensor_constraints_enable)
+        self._safety_state = d.state
+        self._safety_reason = d.reason
+        self._bad_since = d.bad_since
+        self._hold_since = d.hold_since
+        if d.action == 'kill':
+            self.kill(d.reason)
             return
-
-        msg = '; '.join(reasons)
-
-        if critical:
-            # 临界异常（姿态）：持续 kill_hold_s 后按策略终止/升级
-            if self._bad_since is None:
-                self._bad_since = now
-            if (now - self._bad_since) >= self.safety_kill_hold_s:
-                self._bad_since = now        # 避免刷屏
-                if self.safety_auto_kill:
-                    self.kill(msg)
-                    return
-                if self.safety_hold_escalate == 'land':
-                    self.request_land(msg)
-                    return
-                self._safety_state = 'HOLD'
-                self._safety_reason = msg
-                self.get_logger().error(
-                    f'[{self.drone_id}] SAFETY 临界异常(未自动kill) → HOLD: {msg}')
-            else:
-                self._safety_state = 'HOLD'
-                self._safety_reason = msg
+        if d.action == 'land':
+            self.request_land(d.reason)
             return
-
-        # 可恢复异常：越界 → 回拉；仅状态超时 → 悬停
-        self._bad_since = None
-        if ((out_xy or out_hi or out_lo) and self.safety_pullback_enable
-                and not stale and not health_bad):
-            if self._safety_state != 'PULLBACK':
-                self.get_logger().warn(f'[{self.drone_id}] SAFETY PULLBACK: {msg}')
-            self._safety_state = 'PULLBACK'
-            self._safety_reason = msg
-            self._hold_since = None
-            return
-        if self._hold_since is None:
-            self._hold_since = now
-            self.get_logger().warn(f'[{self.drone_id}] SAFETY HOLD: {msg}')
-        if (self.safety_hold_escalate == 'land'
-                and (now - self._hold_since) >= self.safety_hold_timeout):
-            self.request_land(msg)
-            return
-        self._safety_state = 'HOLD'
-        self._safety_reason = msg
+        if d.event == 'recover':
+            self.get_logger().warn(f'[{self.drone_id}] SAFETY 恢复 → OK')
+        elif d.event == 'pullback':
+            self.get_logger().warn(f'[{self.drone_id}] SAFETY PULLBACK: {d.reason}')
+        elif d.event == 'hold':
+            self.get_logger().warn(f'[{self.drone_id}] SAFETY HOLD: {d.reason}')
+        elif d.event == 'hold_critical':
+            self.get_logger().error(
+                f'[{self.drone_id}] SAFETY 临界异常(未自动kill) → HOLD: {d.reason}')
 
     # ------------------------------------------------------------------ 发布
     def broadcast_offboard_mode(self):
@@ -521,14 +427,8 @@ class Px4Drone(Node):
             vel_ned = v
         # 估计器限值约束：水平/垂直速度不超过 PX4 EKF 给出的限值
         if self.sensor_constraints_enable and self.sensor_use_est_limits:
-            v = np.asarray(vel_ned, float)
-            if math.isfinite(self._est_vxy_max):
-                vh = float(np.linalg.norm(v[:2]))
-                if vh > self._est_vxy_max and vh > 1e-9:
-                    v[:2] *= self._est_vxy_max / vh
-            if math.isfinite(self._est_vz_max):
-                v[2] = float(np.clip(v[2], -self._est_vz_max, self._est_vz_max))
-            vel_ned = v
+            vel_ned = clip_to_estimator_limits(vel_ned, self._est_vxy_max,
+                                               self._est_vz_max)
         # 姿态/角速率约束（安全滤波）：只在正常态生效，不改安全指令
         if self._safety_state == 'OK':
             vel_ned, self._att_gov = self._attitude_govern(np.asarray(vel_ned, float))

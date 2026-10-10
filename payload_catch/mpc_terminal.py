@@ -165,7 +165,8 @@ class TerminalMPC:
 
 
 if __name__ == '__main__':
-    # 自测：让 B 从静止走到 (p_c,v_c)，看 u0 是否合理
+    import sys
+    # 自测：让 B 从静止走到 (p_c,v_c)，看 u0 是否合理（并校验状态/返回值）
     mpc = TerminalMPC(N=20, dt=0.05, a_max=6.0, v_max=5.0)
     ref_t = np.linspace(0.0, 0.5, 26)
     ref_p = np.zeros((26, 3)); ref_v = np.zeros((26, 3))
@@ -175,5 +176,11 @@ if __name__ == '__main__':
         ref_v[k] = [2.0, 0, -1.0]
     p_c = np.array([1.0, 0.0, -0.5]); v_c = np.array([2.0, 0.0, -1.0])
     x0 = np.zeros(6)
-    u0, st = mpc.solve(x0, ref_t, ref_p, ref_v, p_c, v_c)
-    print(f'status={st} u0={np.round(u0,3)}  (期望大致朝 +x/-z 加速)')
+    u0, st, v_next = mpc.solve(x0, ref_t, ref_p, ref_v, p_c, v_c)
+    u0 = np.asarray(u0, float)
+    ok = (int(st) == 0 and np.all(np.isfinite(u0))
+          and u0[0] > 0.0 and u0[2] < 0.0)
+    print(f'status={st} u0={np.round(u0, 3)} v_next={np.round(v_next, 3)}  '
+          f'(期望大致朝 +x/-z 加速)')
+    print('✅ mpc_terminal 自测通过' if ok else '❌ mpc_terminal 自测失败（状态非 0 或方向不对）')
+    sys.exit(0 if ok else 1)

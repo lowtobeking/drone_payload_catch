@@ -580,20 +580,52 @@ def simulate_stack(defaults: Dict, layout: Dict, scenario: Dict,
 
 
 if __name__ == '__main__':
+    import sys
+    g, depth, e = 9.81, 0.30, 0.60
+    ok = True
+
+    def chk(name, cond, detail=''):
+        global ok
+        print(f'  {"✅" if cond else "❌"} {name}' + (f'  {detail}' if detail else ''))
+        ok = ok and bool(cond)
+
+    # 1) v_retain 公式 + 标称规划
+    vr = retain_speed(depth, e, g)
+    chk('v_retain = √(2g·depth)/e', abs(vr - math.sqrt(2 * g * depth) / e) < 1e-9,
+        f'{vr:.4f}')
     p = plan_stack_drop(a_height=4.5, b_height=3.5, a_dive=3.0)
-    print('plan:', p.feasible, p.reason)
-    print(f'  gap={p.gap:.2f} a_dive={p.a_dive} t_c={p.t_c:.3f}s v_rel={p.v_rel:.3f} '
-          f'接触高度={p.z_c:.2f}m 刹停后={p.post_brake_alt:.2f}m v_retain={p.v_retain:.3f}')
-    defaults = {'g': 9.81, 'control_hz': 50.0, 'duration_s': 10.0,
+    vrel_expect = math.sqrt(2.0 * (g - 3.0) * 1.0)
+    chk('标称规划 feasible', p.feasible, p.reason)
+    chk('v_rel = √(2(g−a_dive)gap)', abs(p.v_rel - vrel_expect) < 1e-6, f'{p.v_rel:.4f}')
+    chk('v_rel ≤ v_retain', p.v_rel <= p.v_retain + 1e-9,
+        f'{p.v_rel:.3f} ≤ {p.v_retain:.3f}')
+
+    # 2) 最小下潜：风下应尽量不下潜，且仍满足保持条件
+    p_min = plan_stack_drop(a_height=4.5, b_height=3.5, a_dive=None)
+    chk('自动最小下潜 feasible', p_min.feasible)
+    chk('最小下潜 < 固定 3.0', p_min.a_dive < 3.0, f'a_dive={p_min.a_dive:.3f}')
+    chk('最小下潜后 v_rel ≤ v_retain', p_min.v_rel <= p_min.v_retain + 1e-9)
+
+    # 3) 反例：B 不能用 ≥g 去迎载荷 / A 必须在 B 上方
+    chk('a_dive ≥ g 不可行', not plan_stack_drop(4.5, 3.5, a_dive=g).feasible)
+    chk('A 在 B 下方不可行', not plan_stack_drop(3.5, 4.5, a_dive=3.0).feasible)
+
+    # 4) 闭环仿真（刚性漏斗保持条件）
+    defaults = {'g': g, 'control_hz': 50.0, 'duration_s': 10.0,
                 'planner': {'ground_margin': 0.30},
                 'drone_b': {'max_speed': 5.0, 'max_accel': 6.0},
                 'capture': {'radius': 0.30, 'rel_speed': 1.5,
-                            'funnel': {'mouth_radius': 0.20, 'depth': 0.30, 'restitution': 0.60,
-                                       'mount_height': 0.10, 'object_radius': 0.05,
-                                       'mount_height': 0.10, 'object_radius': 0.05}},
+                            'funnel': {'mouth_radius': 0.20, 'depth': depth,
+                                       'restitution': e, 'mount_height': 0.10,
+                                       'object_radius': 0.05,
+                                       'arm_reach': 0.0, 'arm_absorb': 0.0}},
                 'payload': {'mass': 0.30, 'drag_mode': 'none', 'drag_k': 0.0},
                 'stack': {'a_dive': 3.0, 'a_brake': 6.0}}
     layout = {'a_init': [0, 0, -4.5], 'b_standby': [0, 0, -3.5]}
     r, _ = simulate_stack(defaults, layout, {})
-    print('sim:', r.success, f't_cap={r.t_capture:.3f}s miss={r.miss_dist:.3f}m '
-          f'rel_v={r.rel_speed_at_capture:.3f} B最低={r.b_min_alt:.2f}m')
+    chk('标称闭环捕获', r.success, f't_cap={r.t_capture:.3f}s')
+    chk('捕获余量 > 0', r.capture_margin > 0.0, f'margin={r.capture_margin:.4f}m')
+    chk('B 未踩地', r.b_min_alt > 0.0, f'b_min_alt={r.b_min_alt:.3f}m')
+
+    print('✅ stack_drop 自测通过' if ok else '❌ stack_drop 自测失败')
+    sys.exit(0 if ok else 1)

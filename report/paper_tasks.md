@@ -114,7 +114,7 @@
 | R2 | 一键复现（离线/SITL/报告） | ✅ | `SIM_COMMANDS.md`、`tools/*` |
 | R3 | Word 仿真报告生成 | ✅ | `tools/make_docx_report.py` |
 | R4 | Agent Skill 封装 | ✅ | `skills/aerial-payload-handover/` |
-| R5 | 回归 CI（把 `offline_run --all` / 自测固化） | ⏳ | 未做 |
+| R5 | 回归自检 + CI（把 `offline_run --all` / 自测固化） | ✅ | **`tools/run_checks.sh`**（`--quick`/全量，自动 source env，失败非 0；23/23）；`tests/`+`pytest.ini`；`Makefile` + pre-commit；`tools/sitl_check.sh`（SITL 验收）；`.github/workflows/checks.yml`（push/PR + 多 Python 版本；待首个 PR 验证） |
 | R6 | 开源仓库同步 | ✅ | GitHub `lowtobeking/drone_payload_catch` |
 
 ---
@@ -137,6 +137,7 @@
 |---|---|
 | 2026-10-05 | 进度快照 v1（理论 C1–C5/T1–T3、系统、SITL 消融、基准）|
 | 2026-10-09 | 补齐：相对不确定度模型、动力学/接触、感知/风保真、统计+基线、真机接入层、Agent Skill；建立本追踪文档 |
+| 2026-10-09 | **离线自检套件**（参考 `drone_package_20260908`）：抽 `safety_logic.py`、`tools/test_{coord_cert,keepout,safety_logic,config,purity,compileall}.py`、`tools/smoke_acados.py`、`tools/sitl_check.sh`、一键 `tools/run_checks.sh`+`Makefile`+pre-commit（23/23，pytest 7）、`tests`+GitHub CI；修 `mpc_terminal` 自测解包 bug + 硬化 `sim_core`/`stack_drop` 自测 |
 | （下次） | 更新 D1–D4 决策、文献基线复现、SITL 大 N、真机/HIL |
 
 ---

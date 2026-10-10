@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# git pre-commit：提交前跑秒级离线自检（不通过则拒绝提交）。
+# 启用一次即可：git config core.hooksPath .githooks
+set -e
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+echo "[pre-commit] 离线快速自检（bash tools/run_checks.sh --quick）..."
+bash "$REPO/tools/run_checks.sh" --quick
+echo "[pre-commit] 通过 ✅"

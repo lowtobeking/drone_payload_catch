@@ -16,6 +16,9 @@
 | `payload_catch/coord_cert.py` | C1 捕获概率证书（Rice/Marcum-Q） |
 | `payload_catch/relnav.py` | 相对定位纯逻辑（大地→NED、杆臂、原点无关相对化） |
 | `payload_catch/contact_detect.py` | 接触检测（加速度尖峰/速度反转/外部开关） |
+| `payload_catch/keepout.py` | C5 handover-CBF（速度级防碰投影 + 不变集） |
+| `payload_catch/stats.py` | 统计（Wilson CI + 配对 McNemar） |
+| `payload_catch/safety_logic.py` | 安全层**纯函数**（软围栏/姿态滤波/EKF 看门狗/分级状态机；从 `px4_iface` 抽出以便离线单测） |
 
 ## ROS 节点（SITL/真机）
 
@@ -49,6 +52,12 @@
 | `rel_sigma.py` | 相对不确定度量化 |
 | `dynamics_contact.py` | 动力学+接触量化 |
 | `make_docx_report.py` | Word 仿真报告 |
+| `run_checks.sh` | **一键离线自检**（`--quick`/全量；纯模块 + `test_*.py` + acados + `offline_run --all`） |
+| `test_coord_cert.py` / `test_keepout.py` / `test_safety_logic.py` | **纯逻辑单元测试**（C1 证书 / C5 CBF / 安全层） |
+| `test_config.py` / `test_purity.py` / `test_compileall.py` | 契约守卫（yaml 单一真值源 / 纯算法层不得依赖 ROS / 全仓语法） |
+| `smoke_acados.py` | acados MPC 链冒烟 |
+| `sitl_check.sh` | M6 SITL 端到端验收（委托 `run_m6_sitl.sh`，按事件给退出码） |
+| `pytest.ini` + `tests/` | 把 `tools/test_*.py` 收进 `pytest -q`（同步 `.github/workflows/checks.yml` CI） |
 
 ## SITL 脚本（无窗口 / GUI）
 

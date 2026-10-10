@@ -1,6 +1,6 @@
 # MEMORY.md — 项目记忆（给下一个 AI / 未来的自己）
 
-> 最后更新：2026-10-09。**新对话请先读本文件**，再按需读 `README.md`、`report/`。
+> 最后更新：2026-10-09（新增离线自检套件）。**新对话请先读本文件**，再按需读 `README.md`、`report/`。
 > 目标读者：接手本项目的 AI 助手。读完应能直接继续干活，不必重跑全部排查。
 
 ---
@@ -84,6 +84,11 @@ drone_payload_catch/
 ├── MEMORY.md                  ← 本文件
 ├── README.md                  ← 设计/用法/路线图
 ├── env.sh                     ← source 它进入正确环境
+├── pytest.ini                 ← pytest 配置（testpaths=tests）
+├── tests/test_offline_suite.py← 把 tools/test_*.py 收进 pytest（`pytest -q`）
+├── .github/workflows/checks.yml ← CI：push/PR 跑 quick 自检 + pytest
+├── Makefile                   ← `make check` / `make check-quick` / `make test`
+├── .githooks/pre-commit       ← 提交前自动跑秒级自检（`git config core.hooksPath .githooks`）
 ├── config/catch_scenarios.yaml← 单一真值源（defaults/layouts/scenarios/thresholds）
 ├── payload_catch/
 │   ├── payload_model.py       ← 载荷抛体模型（解析；可选阻力/风）
@@ -96,6 +101,7 @@ drone_payload_catch/
 │   ├── contact_detect.py      ← **接触检测**（加速度尖峰/速度反转/外部开关；自测）
 │   ├── uncertainty.py         ← **相对不确定度模型**（公共抵消 ρ + 杆臂×姿态 + 残差；自测）
 │   ├── dynamics.py            ← **四旋翼聚合约束**（倾角+推力；替代裸双积分器；自测）
+│   ├── safety_logic.py        ← **安全层纯函数**（软围栏/姿态滤波/EKF 看门狗/分级状态机；从 px4_iface 抽出以便离线单测）
 │   ├── impact.py              ← **接触冲击**（冲量/峰值力/可恢复性/带载推力余量/柔性接触；自测）
 │   ├── perception.py          ← **视觉载荷感知**（相机 FOV 门控 + 距离相关误差 + 深度 + 丢帧；自测）
 │   ├── stats.py               ← **统计工具**（Wilson CI + 配对 McNemar；自测）
@@ -125,7 +131,16 @@ drone_payload_catch/
 │   ├── prebuild_mpc.py        ← 预热 acados MPC（消除 SITL 启动期编译尖峰）
 │   ├── sweep_sitl_difficulty.sh ← SITL 难度扫描
 │   ├── sweep_m6_sitl.sh       ← M6 SITL 难度扫描（10 档，输出 report/m6_sitl_results.md）
-│   └── mc_m6_sitl.sh          ← M6 SITL 蒙特卡洛（每档 N 次换种子，输出 report/m6_sitl_mc.md）
+│   ├── mc_m6_sitl.sh          ← M6 SITL 蒙特卡洛（每档 N 次换种子，输出 report/m6_sitl_mc.md）
+│   ├── run_checks.sh          ← **一键离线自检**（--quick / 全量；纯模块 + tools/test_*.py + acados + offline --all）
+│   ├── test_coord_cert.py     ← C1 证书纯逻辑单测（Rice/阈值/单调性/MC）
+│   ├── test_keepout.py        ← C5 handover-CBF 纯逻辑单测（投影可行性/不变性）
+│   ├── test_safety_logic.py   ← 安全层纯逻辑单测（围栏/姿态/看门狗/状态机）
+│   ├── test_config.py         ← yaml 单一真值源契约（layout 引用/几何/真机段）
+│   ├── test_purity.py         ← 纯算法层“无 ROS 依赖”守卫
+│   ├── test_compileall.py     ← 全仓 .py 语法编译守卫
+│   ├── sitl_check.sh          ← M6 SITL 端到端验收（委托 run_m6_sitl.sh，按事件给退出码）
+│   └── smoke_acados.py        ← acados MPC 链冒烟（codegen+编译+求解+耗时）
 ├── run_m1_sitl.sh             ← M1 一键 SITL（gz + 2×PX4 + agent + 节点；可传 CTRL/A_HOVER/...）
 ├── run_m6_sitl.sh            ← M6 一键 SITL（B 带漏斗模型、5m 起飞、A 正上方释放）
 └── report/
@@ -180,6 +195,9 @@ drone_payload_catch/
 cd ~/drone_payload_catch
 python3 -m payload_catch.payload_model          # 自测
 python3 -m payload_catch.rendezvous
+bash tools/run_checks.sh --quick                # 一键自检（纯模块 + tools/test_*.py，秒级）
+bash tools/run_checks.sh                        # 全量（+acados +offline --all +pytest）
+bash tools/sitl_check.sh 70                     # SITL 端到端验收（需完整 SITL）
 python3 tools/offline_run.py --all              # 13 个工况，全部 PASS
 python3 tools/offline_run.py --scenario M4_high_kf --mc       # 蒙特卡洛
 python3 tools/offline_run.py --scenario M2_line_v10 --compare # 开环 vs 闭环
@@ -272,6 +290,7 @@ colcon build --packages-select payload_catch
 | **动力学/接触加强** | `dynamics.py`（倾角+推力约束）+ `impact.py`（冲击/可恢复性/带载余量）+ `tools/dynamics_contact.py` + b_node `miss_timeout_s`（接空安全中止） | ✅ 量化：`a_max=6`↔~31.5°倾角、水平权限随下潜衰减；100g 冲击可恢复、≥1kg 超权限；SITL 接空 → `MISS 安全悬停→降落`（`safe=OK`，无 failsafe）；`report/dynamics_contact.md` |
 | **感知/接触/风 保真** | `perception.py`（相机模型）+ `impact.compliant_contact`（柔性接触）+ `tools/perception_study.py` + `tools/make_wind_world.py`（SITL 风场） | ✅ 相机模型替换真值替身（好相机近场更优、差相机大释放误差 14%）；柔性接触峰值力 1170→37N（30×）；SITL `WIND=6` 带风跑通；`report/perception_study.md` |
 | **统计+基线** | `stats.py`（Wilson CI + McNemar）+ `tools/stats_report.py` | ✅ M6 大 N（每格 N=2000，CI）；感知(camera 100% vs 替身 98.7%, p<1e-3)、预测对正(lead=1 反而 79%<89%, p<1e-40)、闭环(0/30→28/30, p=3e-7)、释放误差敏感性、参数不确定性；`report/statistics.md` |
+| **离线自检/回归/CI** | 抽 `payload_catch/safety_logic.py`（纯函数）；`tools/test_*`（C1 证书 / C5 CBF / 安全层 / **yaml 契约** / **无 ROS 守卫** / **全仓编译**）；`tools/smoke_acados.py`；`tools/sitl_check.sh`（SITL 验收）；一键 `tools/run_checks.sh` + `Makefile` + pre-commit；`tests/`+`pytest.ini`；`.github/workflows/checks.yml` | ✅ **23/23 通过**（pytest 7）；顺带修好 `mpc_terminal` 自测三元组解包 bug + 硬化 `sim_core`/`stack_drop` 自测为带断言；CI 待首个 PR 验证 |
 | 双机协调 | `rendezvous.solve_cooperative` + 协议分析（`report/coordination.md`） | ✅ 现状=单向/A被动；改进=握手/意图/时钟/安全；⚠️**负结果：A 小幅释放偏移与 t_r 冗余（δ*=0）**，协同价值在协议与 A 的速度/高度配合 |
 | 协同释放握手 | `coord_mode=handshake`（`a_node`/`b_node` + `/drone_b/ready` + `/drone_a/release_cmd` + `/drone_a/intent` + 时钟同步 `/coord/ping|pong` + 释放门限）（`report/coordination_handshake.md`） | ✅ **SITL：B 报就绪→A 作释放权威（精确自身状态）→ack→B 下潜→`STACK CAPTURED`**；含往返**时钟同步**(offset≈0/rtt0.5ms 换算 t_rel) 与释放前一致性门限；默认 direct 保留 |
 | 编队握手+意图 | M6-moving FORMATION 握手 + `/drone_a/intent` 升级为**预测落点**（`use_intent`/`WIND_EST`）（`report/coordination_handshake.md`） | ✅ SITL：`/formation/start`→FORMATION→**A 释放权威**→DIVE→`STACK CAPTURED horiz=0.040m`；意图落点(风漂移) SITL no-op 验证；**ack 改为原子事件**（不再依赖瞬时对齐） |
@@ -343,6 +362,8 @@ colcon build --packages-select payload_catch
 11. **`mpc_terminal.solve` 返回三元组 `(u0, status, v_next)`，`sim_core` 曾按二元组解包** →
     `--all` 跑到 MPC 工况会 `ValueError: too many values to unpack`。已修为 `_out[0], _out[1]`。
     （`v_next` 供 PX4 速度接口当前馈设定点，离线仿真忽略。）
+    ⚠️ **同一 bug 也藏在 `mpc_terminal.__main__` 自测里**（长期未暴露，因为没人聚合跑退出码）——
+    已修，并被 `tools/run_checks.sh` 覆盖。教训：自测带断言 + 聚合跑退出码，否则等于没有。
 12. **PX4 `pos_world.z` 比模型绝对高度低 0.24m**（x500 `base_link` 在模型 z=0.24）。
     载荷 odom 是绝对高度，所以漏斗口判据必须带 `px4_z_bias=0.24`，否则永远不触发捕获。
 13. **给单台载机加自定义模型不改 PX4 树**：先 `gz service create` 成 `x500_funnel_1`，

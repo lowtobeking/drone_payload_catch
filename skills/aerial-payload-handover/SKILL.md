@@ -46,6 +46,7 @@ description: 空中载荷交接（无人机 A 抛投、无人机 B 在空中接�
 | `measure_foam_e.sh <args>` | 泡棉恢复系数 e 换算 | 推荐 TRAY_E / v_retain |
 | `check_release_cert.sh` | 相对不确定度 + C1 证书 | 释放阈值 T、证书可行性 |
 | `analyze_dynamics_contact.sh` | 动力学限幅 + 接触冲击 | 倾角/权限、可恢复性、推力余量 |
+| `run_checks.sh [--quick]` | **一键离线自检**（改代码后必跑） | 各模块自测 / C1 证书 / C5 CBF / 安全层 / acados 是否全绿 |
 | `make_report.sh` | 生成 Word 仿真报告 | `report/*.docx` |
 | `run_sitl_tray.sh [vel]` | SITL：M6-moving + 托盘（可选） | `STACK CAPTURED` |
 
@@ -55,6 +56,7 @@ description: 空中载荷交接（无人机 A 抛投、无人机 B 在空中接�
 bash scripts/size_tray.sh --diameter 0.30 --rim 0.05 --e 0.15 --obj 0.06 --gap 1.0
 bash scripts/run_m6_mc.sh M6_stack_tray 300
 bash scripts/check_release_cert.sh
+bash scripts/run_checks.sh --quick     # 改代码后必跑：全绿才算没回归
 ```
 
 ## 关键物理（速查）

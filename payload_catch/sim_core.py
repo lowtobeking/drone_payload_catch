@@ -329,11 +329,32 @@ def simulate(defaults: Dict, layout: Dict, scenario: Dict,
 
 
 if __name__ == '__main__':
-    import yaml, os
+    import sys, yaml, os
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     cfg = yaml.safe_load(open(os.path.join(here, 'config', 'catch_scenarios.yaml')))
+    thr = cfg.get('thresholds', {})
+    miss_max = float(thr.get('miss_dist', 0.30))
+    rel_max = float(thr.get('rel_speed', 1.5))
+    ok = True
     for name in ('M1_basic', 'M2_line_v10'):
-        lay = cfg['layouts'][cfg['scenarios'][name]['layout']]
-        res, plan = simulate(cfg['defaults'], lay, cfg['scenarios'][name])
-        print(f'{name}: success={res.success} t_cap={res.t_capture:.3f}s '
-              f'miss={res.miss_dist:.4f}m rel_v={res.rel_speed_at_capture:.3f}')
+        scen = cfg['scenarios'][name]
+        lay = cfg['layouts'][scen['layout']]
+        res, plan = simulate(cfg['defaults'], lay, scen)
+        good = (bool(res.success) and res.miss_dist <= miss_max
+                and res.rel_speed_at_capture <= rel_max)
+        ok = ok and good
+        print(f'{"✅" if good else "❌"} {name}: success={res.success} '
+              f't_cap={res.t_capture:.3f}s miss={res.miss_dist:.4f}m '
+              f'rel_v={res.rel_speed_at_capture:.3f}')
+    # 回归：M3 关键结论——风+阻力失配下开环失败、闭环成功（确定性单次）
+    name = 'M3_wind_drag'
+    scen = cfg['scenarios'][name]
+    lay = cfg['layouts'][scen['layout']]
+    res_ol, _ = simulate(cfg['defaults'], lay, scen, closed_loop=False)
+    res_cl, _ = simulate(cfg['defaults'], lay, scen, closed_loop=True)
+    good = (not res_ol.success) and bool(res_cl.success)
+    ok = ok and good
+    print(f'{"✅" if good else "❌"} {name}: 开环 success={res_ol.success} → '
+          f'闭环 success={res_cl.success} (miss={res_cl.miss_dist:.4f}m)')
+    print('✅ sim_core 自测通过' if ok else '❌ sim_core 自测失败')
+    sys.exit(0 if ok else 1)

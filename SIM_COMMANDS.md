@@ -16,8 +16,9 @@ source ~/drone_payload_catch/env.sh
 ```
 
 > **注意**：离线仿真（纯 Python）不需要 `source env.sh`；
-> 但**涉及 acados MPC 的工况**（`M3p_*`）需要手动补 acados 路径，否则报
-> `OSError: libqpOASES_e.so: cannot open shared object file`：
+> 但**涉及 acados MPC 的工况**（`M3p_*` / `mpc_terminal` / `smoke_acados`）需要 acados 路径，否则报
+> `OSError: libqpOASES_e.so: cannot open shared object file`。
+> **推荐直接用 `bash tools/run_checks.sh`（会自动 source env.sh），或手动补：**
 
 ```bash
 export ACADOS_SOURCE_DIR=/home/caolihao/drone_package_20260908/acados
@@ -28,10 +29,63 @@ export LD_LIBRARY_PATH=/home/caolihao/drone_package_20260908/acados/lib:$LD_LIBR
 
 ## 1. 离线单元自测（不需要 ROS / SITL）
 
+### 1.1 一键自检（推荐，改代码后必跑）
+
 ```bash
-python3 -m payload_catch.payload_model   # 载荷抛体模型
+make check-quick                   # = bash tools/run_checks.sh --quick（秒级）
+make check                         # = bash tools/run_checks.sh（全量）
+bash tools/run_checks.sh --quick   # 秒级：纯模块自测 + tools/test_*.py（pre-commit）
+bash tools/run_checks.sh           # 全量：再加 acados 链 + offline_run.py --all + pytest
+```
+
+> `run_checks.sh` 会**自动 `source env.sh`**（存在时），无需手动 export acados 路径；
+> 失败时退出码非 0 并列出失败项。风格参考 `~/drone_package_20260908` 的 `*_check.sh`。
+> 可选装提交钩子：`git config core.hooksPath .githooks`（提交前跑 `--quick`）。
+
+### 1.2 逐模块自测
+
+```bash
+python3 -m payload_catch.payload_model   # 载荷抛体模型（解析 vs 积分）
 python3 -m payload_catch.rendezvous      # 会合规划
 python3 -m payload_catch.sim_core        # 离线闭环仿真
+python3 -m payload_catch.payload_filter  # KF / 增广风 KF 估计
+python3 -m payload_catch.stack_drop      # M6 垂直堆叠解析规划
+python3 -m payload_catch.relnav          # 相对定位纯逻辑（大地→NED/杆臂/相对化）
+python3 -m payload_catch.contact_detect  # 接触检测
+python3 -m payload_catch.uncertainty     # 相对不确定度模型
+python3 -m payload_catch.dynamics        # 四旋翼倾角/推力约束
+python3 -m payload_catch.impact          # 接触冲击/可恢复性
+python3 -m payload_catch.perception      # 视觉感知模型
+python3 -m payload_catch.stats           # Wilson CI / McNemar
+python3 -m payload_catch.safety_logic    # 安全层纯逻辑（围栏/姿态/看门狗/状态机）
+```
+
+### 1.3 `tools/test_*.py`（纯逻辑单元测试，✅/❌ + 退出码）
+
+```bash
+python3 tools/test_coord_cert.py     # C1 概率证书（Rice/阈值/单调性/MC 校核）
+python3 tools/test_keepout.py        # C5 handover-CBF（投影可行性 + 不变性）
+python3 tools/test_safety_logic.py   # 安全状态机/围栏/姿态滤波/传感器看门狗
+python3 tools/test_config.py         # yaml 单一真值源契约（layout 引用/几何/真机段）
+python3 tools/test_purity.py         # 纯算法层“无 ROS 依赖”守卫
+python3 tools/test_compileall.py     # 全仓 .py 语法编译守卫（含 ROS 节点/launch）
+
+python3 -m pytest -q                 # 收进标准测试框架（与上面同一批脚本）
+```
+
+> **CI**：`.github/workflows/checks.yml` 在 push/PR 时跑 `run_checks.sh --quick` + `pytest`
+> （纯 Python，不需要 ROS/acados）。SITL/acados 检查在本地全量模式跑。
+>
+> **SITL 端到端验收**（需完整 SITL 环境，耗时数分钟，不进 CI）：
+> ```bash
+> source env.sh && bash tools/sitl_check.sh 70    # STACK CAPTURED 且无 failsafe ⇒ 退出 0
+> ```
+
+### 1.4 acados 链冒烟
+
+```bash
+source env.sh && python3 tools/smoke_acados.py   # codegen+编译+求解+50 次耗时
+python3 -m payload_catch.mpc_terminal            # MPC 求解器自测（需 acados）
 ```
 
 ---
