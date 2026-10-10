@@ -126,6 +126,31 @@ def sensor_health_reasons(*, watchdog_enable: bool, reset_counters,
     return out
 
 
+# --------------------------------------------------------------- 电池保护
+def battery_land_reason(*, connected: bool, warning: int, remaining: float,
+                        critical_remaining: float = 0.07) -> str:
+    """低电→必须 Land 的原因（无则 ''）。warning≥2(critical/emergency) 或剩余<阈值。"""
+    if not connected:
+        return ''
+    if warning >= 2:
+        return f'battery warning={warning} remaining={remaining:.2f}'
+    if 0.0 <= remaining < critical_remaining:
+        return f'battery remaining={remaining:.2f} < {critical_remaining}'
+    return ''
+
+
+def battery_warn_reason(*, connected: bool, warning: int, remaining: float,
+                        low_remaining: float = 0.15) -> str:
+    """低电预警（仅告警，不改状态）。"""
+    if not connected:
+        return ''
+    if warning == 1:
+        return f'battery low warning (remaining={remaining:.2f})'
+    if 0.0 <= remaining < low_remaining:
+        return f'battery remaining={remaining:.2f} < {low_remaining}'
+    return ''
+
+
 # --------------------------------------------------------------- 分级状态机
 class SafetyDecision(NamedTuple):
     state: str                    # OK | HOLD | PULLBACK | LAND | KILL
@@ -146,7 +171,8 @@ def safety_decision(now: float, state: str, reason: str,
                     safety_pullback_clear: float, alt_floor: float,
                     safety_geofence_alt: float, safety_pullback_enable: bool,
                     stale_reason: str, health_reasons: Sequence[str],
-                    sensor_constraints_enable: bool) -> SafetyDecision:
+                    sensor_constraints_enable: bool,
+                    battery_land_reason: str = '') -> SafetyDecision:
     """分级安全响应：OK → (HOLD | PULLBACK) → LAND → KILL（纯函数，不改外部状态）。
 
     检测：姿态超限(临界) / 位置越界(回拉) / 位置状态超时(悬停)。
@@ -158,6 +184,11 @@ def safety_decision(now: float, state: str, reason: str,
     if not armed:
         # 未解锁：复位到 OK，清计时器（不刷日志）
         return SafetyDecision('OK', '', 'none', None, None, '')
+
+    # 低电：优先级高——直接 Land（参考工程：低电动作 = Land）
+    if battery_land_reason:
+        return SafetyDecision(state, battery_land_reason, 'land', bad_since,
+                              hold_since, '')
 
     reasons = []
     critical = False

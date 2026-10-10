@@ -12,7 +12,7 @@ from contextlib import redirect_stdout
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tools.preflight_check import (LIVE_TOPICS, Res, _print,   # noqa: E402
                                    check_environment, check_px4_logs,
-                                   live_checks, probe_live)
+                                   live_checks, probe_live, probe_params)
 
 FAIL = []
 
@@ -170,6 +170,16 @@ check('解析 JSON → 合并为 d0/d1', r is not None and len(r) == 2
       and r[0].name == 'd0: lpos 发布' and r[1].status == 'fail')
 r = probe_live(runner=lambda cmd, timeout=8: (2, '❌ live_probe 需要 ROS'))
 check('无 ROS（非 JSON）→ None 回退', r is None)
+
+print('\n=== probe_params ===')
+check('无来源 → None', probe_params() is None)
+pp = json.dumps({'issues': [{'name': 'MPC_THR_MIN < MPC_THR_HOVER', 'status': 'ok',
+                             'detail': ''},
+                            {'name': 'COM_RCL_EXCEPT 不豁免 OFFBOARD', 'status': 'fail',
+                             'detail': '=4'}]})
+r = probe_params(runner=lambda cmd, timeout=8: (1, pp), param_file='/tmp/p.txt')
+check('合并参数检查结果', r is not None and len(r) == 2
+      and r[0].name == 'fcu: MPC_THR_MIN < MPC_THR_HOVER' and r[1].status == 'fail')
 
 print()
 if FAIL:

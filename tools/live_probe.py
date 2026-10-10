@@ -25,8 +25,8 @@ try:
     from rclpy.node import Node
     from rclpy.qos import (DurabilityPolicy, HistoryPolicy, QoSProfile,
                            ReliabilityPolicy)
-    from px4_msgs.msg import (EstimatorStatusFlags, FailsafeFlags, SensorGps,
-                              VehicleLocalPosition)
+    from px4_msgs.msg import (BatteryStatus, EstimatorStatusFlags, FailsafeFlags,
+                              SensorGps, VehicleLocalPosition)
     HAVE_ROS = True
 except Exception:                                             # noqa: BLE001
     HAVE_ROS = False
@@ -67,6 +67,10 @@ class Snapshot:
     gps_max_eph: float = 0.0
     gps_max_epv: float = 0.0
     gps_min_sats: int = 999
+    n_batt: int = 0
+    batt_connected: bool = False
+    batt_warning_max: int = 0
+    batt_remaining_min: float = 1.0
 
 
 def evaluate(snap: Snapshot, *, require_gps: bool = False, eph_max: float = EPH_MAX,
@@ -147,6 +151,21 @@ def evaluate(snap: Snapshot, *, require_gps: bool = False, eph_max: float = EPH_
             add(f'GPS sats ≥ {gps_sats_min}',
                 'ok' if snap.gps_min_sats >= gps_sats_min else 'fail',
                 str(snap.gps_min_sats))
+
+    # ── 电池（低电不能起飞）──
+    if snap.n_batt == 0:
+        add('battery_status', 'warn', '未收到')
+    elif not snap.batt_connected:
+        add('电池已连接', 'warn', 'connected=false')
+    else:
+        add('电池 warning ≤ low',
+            'fail' if snap.batt_warning_max >= 2
+            else ('warn' if snap.batt_warning_max == 1 else 'ok'),
+            f'max warning={snap.batt_warning_max}')
+        add('电池 remaining ≥ 0.15',
+            'fail' if snap.batt_remaining_min < 0.07
+            else ('warn' if snap.batt_remaining_min < 0.15 else 'ok'),
+            f'min remaining={snap.batt_remaining_min:.2f}')
     return R
 
 
@@ -206,6 +225,14 @@ if HAVE_ROS:
             self.s.gps_max_epv = max(self.s.gps_max_epv, float(m.epv))
             self.s.gps_min_sats = min(self.s.gps_min_sats, int(m.satellites_used))
 
+        def batt(self, m):
+            self.s.n_batt += 1
+            self.s.batt_connected = self.s.batt_connected or bool(m.connected)
+            self.s.batt_warning_max = max(self.s.batt_warning_max, int(m.warning))
+            if m.remaining >= 0:
+                self.s.batt_remaining_min = min(self.s.batt_remaining_min,
+                                                float(m.remaining))
+
     def _qos():
         return QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
                           history=HistoryPolicy.KEEP_LAST, depth=5,
@@ -224,6 +251,7 @@ if HAVE_ROS:
                 self.create_subscription(EstimatorStatusFlags, f'{p}/out/estimator_status_flags', a.est, q)
                 # PX4-1.16 桥接的是 vehicle_gps_position（类型 SensorGps）
                 self.create_subscription(SensorGps, f'{p}/out/vehicle_gps_position', a.gps, q)
+                self.create_subscription(BatteryStatus, f'{p}/out/battery_status', a.batt, q)
 
 
 def main(argv=None) -> int:

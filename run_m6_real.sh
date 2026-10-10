@@ -36,6 +36,12 @@ else
   [ "${PREFLIGHT_LOGS:-0}" = "1" ] && PF_ARGS="$PF_ARGS --logs"
   python3 "$HOME/drone_payload_catch/tools/preflight_check.py" $PF_ARGS \
     || { echo "❌ 起飞前自检未通过 → 中止（紧急时 SKIP_PREFLIGHT=1）"; exit 1; }
+  if [ -n "${PARAM_MAVLINK:-}" ]; then
+    echo "### 飞控参数检查（$PARAM_MAVLINK）"
+    python3 "$HOME/drone_payload_catch/tools/preflight_params.py" \
+      --mavlink "$PARAM_MAVLINK" --profile "${PARAM_PROFILE:-outdoor}" \
+      || { echo "❌ 飞控参数检查未通过 → 中止"; exit 1; }
+  fi
 fi
 echo "   A_HOVER=$A_HOVER B_STANDBY=$B_STANDBY B_OFFSET=$B_OFFSET"
 echo "   RTK A=$A_RTK B=$B_RTK type=$RTK_TYPE  lever A=$A_LEVER B=$B_LEVER"

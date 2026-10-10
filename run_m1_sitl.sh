@@ -52,6 +52,18 @@ if [ "${PREFLIGHT:-0}" = "1" ]; then
     for p in 'px4 -d -i' 'gz sim' MicroXRCEAgent; do pkill -9 -f "$p" 2>/dev/null; done
     exit 1
   fi
+  if [ "${PREFLIGHT_PARAMS:-0}" = "1" ]; then
+    for inst in 0 1; do
+      port=$((18570 + inst))
+      echo "### 飞控参数检查 drone$inst (udpout:127.0.0.1:$port)"
+      if ! python3 "$HOME/drone_payload_catch/tools/preflight_params.py" \
+             --mavlink "udpout:127.0.0.1:$port" --profile sitl; then
+        echo "❌ 飞控参数检查未通过 → 放弃本次起飞"
+        for p in 'px4 -d -i' 'gz sim' MicroXRCEAgent; do pkill -9 -f "$p" 2>/dev/null; done
+        exit 1
+      fi
+    done
+  fi
 fi
 
 echo "### launch payload_catch (A/B/payload)"

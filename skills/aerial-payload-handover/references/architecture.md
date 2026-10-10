@@ -20,6 +20,7 @@
 | `payload_catch/stats.py` | 统计（Wilson CI + 配对 McNemar） |
 | `payload_catch/safety_logic.py` | 安全层**纯函数**（软围栏/姿态滤波/EKF 看门狗/分级状态机；从 `px4_iface` 抽出以便离线单测） |
 | `payload_catch/telemetry.py` | **遥测有效性**纯逻辑（冻结 STALE / 溢出 OVERFLOW / 沉默 SILENCE / 兜底 HOVER） |
+| `payload_catch/fcu_params.py` | **飞控安全参数**纯逻辑（解析/判据/分组预置：THR_MIN<THR_HOVER、失效保护、围栏、EKF 源、电池） |
 
 ## ROS 节点（SITL/真机）
 
@@ -62,6 +63,7 @@
 | `live_probe.py` | **运行时持续探测**（EKF/failsafe/磁罗盘/IMU/GPS；纯逻辑 `evaluate`） |
 | `uplink_test.py` | **offboard 上行链路验证**（发心跳看 `offboard_control_signal_lost`） |
 | `check_log_validity.py` | **遥测有效性检查**（launch.log 的 STALE/OVERFLOW/SILENCE/HOVER） |
+| `preflight_params.py` / `fcu_configure.py` | **飞控参数飞行前检查 / 配置器**（dry-run） |
 | `pytest.ini` + `tests/` | 把 `tools/test_*.py` 收进 `pytest -q`（同步 `.github/workflows/checks.yml` CI） |
 
 ## SITL 脚本（无窗口 / GUI）

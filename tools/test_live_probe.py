@@ -42,7 +42,8 @@ def healthy():
                        'cs_mag_field_disturbed': False, 'fs_bad_mag_x': False,
                        'fs_bad_mag_y': False, 'fs_bad_mag_z': False, 'fs_bad_hdg': False,
                        'fs_bad_acc_vertical': False, 'fs_bad_acc_clipping': False},
-        n_gps=50, gps_max_eph=0.9, gps_max_epv=1.2, gps_min_sats=25)
+        n_gps=50, gps_max_eph=0.9, gps_max_epv=1.2, gps_min_sats=25,
+        n_batt=50, batt_connected=True, batt_warning_max=0, batt_remaining_min=0.8)
 
 
 print('=== 健康 → 无 fail ===')
@@ -110,6 +111,17 @@ check('sats 10 < 20 → fail', status(evaluate(s, require_gps=True),
 check('GPS 达标 → 无 fail', not has_fail(evaluate(healthy(), require_gps=True)))
 check('阈值可调：sats_min=8 时 10 星通过',
       not has_fail(evaluate(healthy(), require_gps=True, gps_sats_min=8)))
+
+print('\n=== 电池（起飞前）===')
+check('电池正常 → 无 fail', not has_fail(evaluate(healthy())))
+s = healthy(); s.batt_warning_max = 2
+check('warning≥2 → fail', status(evaluate(s), '电池 warning ≤ low') == 'fail')
+s = healthy(); s.batt_warning_max = 1
+check('warning=1 → warn', status(evaluate(s), '电池 warning ≤ low') == 'warn')
+s = healthy(); s.batt_remaining_min = 0.05
+check('remaining<0.07 → fail', status(evaluate(s), '电池 remaining ≥ 0.15') == 'fail')
+s = healthy(); s.batt_connected = False
+check('未连接 → warn', status(evaluate(s), '电池已连接') == 'warn')
 
 print()
 if FAIL:

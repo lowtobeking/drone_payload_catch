@@ -39,6 +39,14 @@ python3 tools/preflight_check.py --live --gps   # 室外：加 GPS 严格门（e
 python3 tools/preflight_check.py --logs    # 日志门：Ready 必须有；Gyro STALE/Arming denied 致命
 ```
 
+**飞控参数体检**（对标参考工程 `fc_configure.py`；判据见 `report/fcu_safety.md`）：
+```bash
+python3 tools/preflight_params.py --file dump.txt --profile indoor     # 从 dump 文件
+python3 tools/preflight_params.py --mavlink udpout:127.0.0.1:18570 --profile sitl  # 直连飞控
+python3 tools/preflight_params.py --list                              # 列出分组预置
+python3 tools/fcu_configure.py -g failsafe,limits_indoor              # 配置器（dry-run，--apply 才写）
+```
+
 `--live` 优先调 **`tools/live_probe.py`**（`--seconds` 秒**持续订阅**取聚合，避免 `ros2 topic echo --once` 快照骗人）：
 EKF（xy/z/v_valid 比例、非 dead_reckoning、eph/epv）+ `failsafe_flags`（local_position/velocity/attitude/offboard/geofence/critical）
 + `estimator_status_flags`（tilt/yaw 对齐、**磁罗盘在线/故障/受扰**、加计故障 `fs_bad_acc_*`）+ GPS（`vehicle_gps_position`）。
@@ -54,7 +62,8 @@ SITL / 真机启动脚本内置可选钩子（**默认不开**，不影响现有
 ```bash
 PREFLIGHT=1 bash run_m6_sitl.sh 70        # SITL：双机 READY 后跑 live+logs，不通过则放弃起飞
 PREFLIGHT_GPS=1 PREFLIGHT=1 bash run_m6_sitl.sh 70   # 再加 GPS 严格门
-bash run_m6_real.sh                        # 真机：默认跑 --live --gps；SKIP_PREFLIGHT=1 跳过
+PREFLIGHT_PARAMS=1 PREFLIGHT=1 bash run_m6_sitl.sh 70 # 再加飞控参数体检（MAVLink 18570/18571）
+bash run_m6_real.sh                        # 真机：默认跑 --live --gps；PARAM_MAVLINK 时跑参数体检
 ```
 
 ---

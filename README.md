@@ -33,7 +33,8 @@
   `tools/gz_foam_drop_test.sh`（模型泡棉 e≈0）。
 - **抗扰**：速度前馈 + 预测对正、增广风 KF（`BallisticDragKF`）、A 端迎风预补偿、自适应下潜。
 - **安全**：不确定度 keep-out（`min_ab_gap+kσ`）、**3D 反应式 keep-out**、**分级安全状态机**
-  （`OK/HOLD/PULLBACK/LAND/KILL` + 越界回拉）、释放后清场、**飞行终止(kill)** 监督。
+  （`OK/HOLD/PULLBACK/LAND/KILL` + 越界回拉）、释放后清场、**飞行终止(kill)** 监督、
+  **飞控参数体检**（`THR_MIN<THR_HOVER`/失效保护/围栏/EKF 源）、**电池低电→Land**。
 - **协同**：释放握手（B 报就绪→A 释放权威→ack）、**释放提交窗口 + lead 窗口取消(abort)**、
   **B 在线 σ 上传**、意图（预测落点）、时钟同步、编队握手、及时释放 + 超时中止。
 - **控制/规划**：ZEM 终端导引（`zem_gain`）、**DIVE 加速度前馈**、释放前落点余量闸、
@@ -374,7 +375,8 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `payload_catch/perception.py` | **视觉载荷感知**（相机模型：FOV 门控 + 距离相关误差 + 深度 + 丢帧；自测） |
 | `payload_catch/stats.py` | **统计工具**：Wilson 95% CI + 配对 McNemar（消融显著性；自测） |
 | `payload_catch/dynamics.py` | **四旋翼聚合动力学**（倾角+推力约束，替代裸双积分器；自测） |
-| `payload_catch/safety_logic.py` | **安全层纯函数**（软围栏/姿态滤波/EKF 看门狗/分级状态机；从 `px4_iface` 抽出以便离线单测） |
+| `payload_catch/safety_logic.py` | **安全层纯函数**（软围栏/姿态滤波/EKF 看门狗/分级状态机/电池→Land；从 `px4_iface` 抽出以便离线单测） |
+| `payload_catch/fcu_params.py` | **飞控安全参数纯逻辑**（解析/判据/分组预置：`THR_MIN<THR_HOVER`、失效保护、围栏、EKF 源、电池） |
 | `payload_catch/telemetry.py` | **遥测有效性纯逻辑**（冻结 STALE / 溢出 OVERFLOW / 沉默 SILENCE / 兜底 HOVER；分析 launch.log） |
 | `payload_catch/impact.py` | **接触冲击**（冲量/峰值力/偏心角速度/可恢复性/带载推力余量；自测） |
 | `tools/dynamics_contact.py` | 量化学：动力学限幅 + 接触冲击/柔顺 + 接空中止（`report/dynamics_contact.md`） |
@@ -412,6 +414,8 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `tools/live_probe.py` | **运行时持续探测**（EKF/failsafe/磁罗盘/IMU/GPS，`--seconds` 取聚合） |
 | `tools/uplink_test.py` | **offboard 上行链路验证**（发心跳看 `offboard_control_signal_lost`） |
 | `tools/check_log_validity.py` | **遥测有效性检查**（launch.log 的 STALE/OVERFLOW/SILENCE/HOVER，失败非 0） |
+| `tools/preflight_params.py` | **飞控参数飞行前检查**（`--file`/`--mavlink`，失败非 0） |
+| `tools/fcu_configure.py` | **飞控参数配置器**（分组预置，dry-run 默认，`--apply` 才写） |
 | `Makefile` / `.githooks/pre-commit` | `make check[-quick]` / 提交前自动跑秒级自检 |
 | `tools/smoke_acados.py` | acados MPC 链冒烟（codegen+编译+求解+耗时） |
 | `tests/` + `pytest.ini` | 把 `tools/test_*.py` 收进标准 pytest（`pytest -q` / `colcon test`） |
@@ -454,6 +458,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `report/planning_control_opt.md` | **规划/协调 + 控制优化**：ZEM 终端导引 + 释放前落点余量闸 |
 | `report/safety_control_review.md` | **保护控制审查**：已有（限幅/keep-out/释放闸）vs 缺口（geofence/看门狗/abort/避碰） |
 | `report/safety_supervisor.md` | **安全监督 + 飞行终止(kill)**：外部 `/safety/kill_a|b` + 异常自动 kill；SITL 验证 |
+| `report/fcu_safety.md` | **飞控安全**：参数体检（`THR_MIN<THR_HOVER`/失效保护/围栏/EKF 源）+ 电池低电→Land；SITL 验证 |
 | `report/m6_moving_speed.md` | **M6-moving 加速度**：编队控制优化 + 及时释放/超时中止；**支持 0.5/1.0 m/s（各 2/2 完美）**，2.0 保留 |
 | `tools/validate_coord.py` | 协同协议 SITL 验证器（跑多组配置 + 不变量检查） |
 | `tools/bench_coord.py` | **协同交接基准（阶段 0）**：coord_mode×intent×σ×delay 网格 + Wilson CI + 报告 |

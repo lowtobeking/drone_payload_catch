@@ -159,6 +159,25 @@ def probe_live(runner=_run, gps=False) -> list:
     return R
 
 
+def probe_params(runner=_run, param_file=None, mavlink=None, profile='sitl'):
+    """调 tools/preflight_params.py 合并飞控参数检查结果；无来源时返回 None。"""
+    if not param_file and not mavlink:
+        return None
+    script = Path(__file__).resolve().parent / 'preflight_params.py'
+    cmd = [sys.executable, str(script), '--json', '--profile', profile]
+    if param_file:
+        cmd += ['--file', param_file]
+    if mavlink:
+        cmd += ['--mavlink', mavlink]
+    _, out = runner(cmd, timeout=90)
+    try:
+        raw = json.loads(out)
+    except (ValueError, TypeError):
+        return None
+    return [Res(f'fcu: {it["name"]}', it['status'], it.get('detail', ''))
+            for it in raw['issues']]
+
+
 def check_px4_logs(log_dir, drone_ids=(0, 1), isfile=os.path.isfile,
                    read_text=None) -> list:
     """起飞前扫 PX4 日志（grep -a 风格）。
@@ -210,12 +229,18 @@ def main(argv=None) -> int:
     ap.add_argument('--gps', action='store_true', help='--live 时加 GPS 严格门（室外）')
     ap.add_argument('--logs', nargs='?', const=os.path.expanduser('~/px4_logs'), default=None,
                     help='扫 PX4 日志门（默认 ~/px4_logs）：Ready 必须有、预检故障必须无')
+    ap.add_argument('--params', action='store_true',
+                    help='飞控参数检查（需 --param-file 或 --param-mavlink）')
+    ap.add_argument('--param-file', help='参数 dump 文件')
+    ap.add_argument('--param-mavlink', help='MAVLink 连接串，如 udpout:127.0.0.1:18570')
+    ap.add_argument('--param-profile', choices=['sitl', 'indoor', 'outdoor'], default=None)
     ap.add_argument('--json', action='store_true', help='输出 JSON')
     args = ap.parse_args(argv)
 
     mode = 'SITL' if args.sitl else '离线'
     extra = '+live' if args.live else ''
     extra += '+logs' if args.logs is not None else ''
+    extra += '+params' if args.params else ''
     if not args.json:
         print(f'=== 起飞前自检（{mode}{extra}）===')
     results = check_environment(dict(os.environ), ROOT, strict_sitl=args.sitl)
@@ -228,6 +253,15 @@ def main(argv=None) -> int:
         results += live
     if args.logs is not None:
         results += check_px4_logs(args.logs)
+    if args.params:
+        prof = args.param_profile or ('sitl' if args.sitl else 'indoor')
+        pr = probe_params(param_file=args.param_file, mavlink=args.param_mavlink,
+                          profile=prof)
+        if pr is None:
+            results.append(Res('fcu 参数检查', 'warn',
+                               '未提供 --param-file/--param-mavlink，跳过'))
+        else:
+            results += pr
 
     if args.json:
         import json

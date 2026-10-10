@@ -42,7 +42,7 @@ echo "==============================================="
 
 # 1) 纯算法模块自测（不依赖 ROS，秒级）
 for m in payload_model rendezvous sim_core payload_filter stack_drop relnav \
-         contact_detect uncertainty dynamics impact perception stats safety_logic telemetry; do
+         contact_detect uncertainty dynamics impact perception stats safety_logic telemetry fcu_params; do
   run "module:$m" python3 -m "payload_catch.$m"
 done
 

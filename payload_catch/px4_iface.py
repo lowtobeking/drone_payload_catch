@@ -19,16 +19,16 @@ from typing import Optional
 
 import numpy as np
 import rclpy
-from px4_msgs.msg import (OffboardControlMode, TrajectorySetpoint,
+from px4_msgs.msg import (BatteryStatus, OffboardControlMode, TrajectorySetpoint,
                           VehicleAttitude, VehicleCommand, VehicleLocalPosition,
                           VehicleStatus)
 from rclpy.node import Node
 from rclpy.qos import (DurabilityPolicy, HistoryPolicy, QoSProfile,
                        ReliabilityPolicy)
 
-from .safety_logic import (attitude_govern, clip_to_estimator_limits,
-                           fence_velocity, safety_decision, scale01,
-                           sensor_health_reasons)
+from .safety_logic import (attitude_govern, battery_land_reason,
+                           clip_to_estimator_limits, fence_velocity,
+                           safety_decision, scale01, sensor_health_reasons)
 
 PREFIX = {0: 'out/vehicle_status_v1', 1: 'out/vehicle_status_v1'}   # 1.16
 
@@ -107,6 +107,9 @@ class Px4Drone(Node):
         self.declare_parameter('rate_soft_dps', 150.0)    # 角速率软限 (deg/s)
         self.declare_parameter('rate_hard_dps', 300.0)    # 角速率硬限 (deg/s)
         self.declare_parameter('accel_h_max', 5.0)        # 水平指令加速度上限 (m/s²)
+        # ── 电池保护（低电 → Land）──
+        self.declare_parameter('battery_land_enable', True)
+        self.declare_parameter('battery_critical_remaining', 0.07)   # 剩余<此→Land
         self.drone_id = int(self.get_parameter('drone_id').value)
         self.hz = float(self.get_parameter('control_hz').value)
         self.auto_arm = bool(self.get_parameter('auto_arm').value)
@@ -182,6 +185,13 @@ class Px4Drone(Node):
         self._est_vxy_max = float('inf')
         self._est_vz_max = float('inf')
         self._est_hagl_min = float('inf')
+        # 电池保护状态
+        self.battery_land_enable = bool(self.get_parameter('battery_land_enable').value)
+        self.battery_critical_remaining = float(
+            self.get_parameter('battery_critical_remaining').value)
+        self._batt_connected = False
+        self._batt_warning = 0
+        self._batt_remaining = -1.0
         # 分级安全状态机：OK | HOLD | PULLBACK | LAND | KILL
         self._safety_state = 'OK'
         self._safety_reason = ''
@@ -196,6 +206,8 @@ class Px4Drone(Node):
                                  self._on_lpos, qi)
         self.create_subscription(VehicleAttitude, topic_for(self.drone_id, 'out/vehicle_attitude'),
                                  self._on_att, qi)
+        self.create_subscription(BatteryStatus, topic_for(self.drone_id, 'out/battery_status'),
+                                 self._on_batt, qi)
         self.pub_mode = self.create_publisher(
             OffboardControlMode, topic_for(self.drone_id, 'in/offboard_control_mode'), qo)
         self.pub_sp = self.create_publisher(
@@ -243,6 +255,11 @@ class Px4Drone(Node):
         if self._reset_counters is not None and counters != self._reset_counters:
             self._reset_seen_t = self.get_clock().now().nanoseconds * 1e-9
         self._reset_counters = counters
+
+    def _on_batt(self, msg):
+        self._batt_connected = bool(msg.connected)
+        self._batt_warning = int(msg.warning)
+        self._batt_remaining = float(msg.remaining)
 
     def _on_att(self, msg):
         yaw = yaw_from_quat(msg.q)
@@ -372,7 +389,12 @@ class Px4Drone(Node):
             alt_floor=alt_floor, safety_geofence_alt=self.safety_geofence_alt,
             safety_pullback_enable=self.safety_pullback_enable,
             stale_reason=stale_reason, health_reasons=health,
-            sensor_constraints_enable=self.sensor_constraints_enable)
+            sensor_constraints_enable=self.sensor_constraints_enable,
+            battery_land_reason=(battery_land_reason(
+                connected=self._batt_connected, warning=self._batt_warning,
+                remaining=self._batt_remaining,
+                critical_remaining=self.battery_critical_remaining)
+                if self.battery_land_enable else ''))
         self._safety_state = d.state
         self._safety_reason = d.reason
         self._bad_since = d.bad_since

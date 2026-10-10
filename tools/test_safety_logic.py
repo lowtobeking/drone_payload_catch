@@ -194,6 +194,16 @@ d = decide(9.0, state='HOLD', hold_since=0.0, stale_reason='pos_stale=5.0s',
 check('HOLD 超时 + escalate=land → action=land', d.action == 'land')
 
 
+print('\n=== 电池保护 ===')
+check('低电 → Land', decide(0.0, battery_land_reason='battery warning=2').action == 'land')
+check('紧急低电 → Land', decide(0.0, state='HOLD', battery_land_reason='battery warning=3').action == 'land')
+check('无低电 → 无动作', decide(0.0).action == 'none')
+check('land_reason warning≥2', sl.battery_land_reason(connected=True, warning=2, remaining=0.5) != '')
+check('land_reason remaining<crit', sl.battery_land_reason(connected=True, warning=0, remaining=0.05) != '')
+check('land_reason 正常→空', sl.battery_land_reason(connected=True, warning=0, remaining=0.9) == '')
+check('land_reason 未连接→空', sl.battery_land_reason(connected=False, warning=3, remaining=0.0) == '')
+check('warn_reason low', sl.battery_warn_reason(connected=True, warning=1, remaining=0.5) != '')
+
 print('\n=== clip_to_estimator_limits ===')
 v = sl.clip_to_estimator_limits([10.0, 0.0, 5.0], 2.0, 1.0)
 check('水平裁到 vxy_max', abs(np.linalg.norm(v[:2]) - 2.0) < 1e-9)
