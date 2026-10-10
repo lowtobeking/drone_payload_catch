@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from dataclasses import dataclass, field
 
 try:
@@ -27,7 +26,7 @@ try:
     from rclpy.qos import (DurabilityPolicy, HistoryPolicy, QoSProfile,
                            ReliabilityPolicy)
     from px4_msgs.msg import (EstimatorStatusFlags, FailsafeFlags, SensorGps,
-                              VehicleImuStatus, VehicleLocalPosition)
+                              VehicleLocalPosition)
     HAVE_ROS = True
 except Exception:                                             # noqa: BLE001
     HAVE_ROS = False
@@ -35,7 +34,10 @@ except Exception:                                             # noqa: BLE001
 # 阈值（可被命令行覆盖）
 EPH_MAX, EPV_MAX = 0.50, 0.50          # 与 px4_iface sensor_eph/epv_max 默认一致
 GPS_EPH_MAX, GPS_EPV_MAX, GPS_SATS_MIN = 1.5, 2.5, 20   # 参考 gps_acceptance
-VIBRATION_WARN = 3.0                   # accel_vibration_metric (m/s/s)
+
+# 注意：PX4-1.16 的 uXRCE-DDS **不桥接** vehicle_imu_status / vehicle_magnetometer，
+# IMU/磁健康改走已桥接的 estimator_status_flags（fs_bad_acc_* / cs_mag* / fs_bad_mag_*）；
+# GPS 话题为 /fmu/out/vehicle_gps_position（类型 SensorGps），不是 sensor_gps。
 
 FAILSAFE_FATAL = [
     ('local_position_invalid', 'failsafe: 本地位置无效'),
@@ -61,10 +63,6 @@ class Snapshot:
     failsafe: dict = field(default_factory=dict)   # 窗口内**曾**为 true 的坏位
     n_est: int = 0
     est: dict = field(default_factory=dict)        # 窗口内**曾**为 true 的位
-    n_imu: int = 0
-    imu_present: bool = False
-    imu_error: bool = False
-    vibration_max: float = 0.0
     n_gps: int = 0
     gps_max_eph: float = 0.0
     gps_max_epv: float = 0.0
@@ -72,7 +70,9 @@ class Snapshot:
 
 
 def evaluate(snap: Snapshot, *, require_gps: bool = False, eph_max: float = EPH_MAX,
-             epv_max: float = EPV_MAX) -> list:
+             epv_max: float = EPV_MAX, gps_eph_max: float = GPS_EPH_MAX,
+             gps_epv_max: float = GPS_EPV_MAX,
+             gps_sats_min: int = GPS_SATS_MIN) -> list:
     """纯函数：把窗口聚合量判成 ✅/⚠️/❌ 列表。"""
     R: list = []
 
@@ -129,27 +129,24 @@ def evaluate(snap: Snapshot, *, require_gps: bool = False, eph_max: float = EPH_
         bad_mag = any(snap.est.get(k) for k in
                       ('fs_bad_mag_x', 'fs_bad_mag_y', 'fs_bad_mag_z', 'fs_bad_hdg'))
         add('无磁融合数值错误', 'fail' if bad_mag else 'ok')
-
-    # ── IMU 健康 ──
-    if snap.n_imu == 0:
-        add('vehicle_imu_status', 'warn', '未收到')
-    else:
-        add('IMU 在线(device_id)', 'ok' if snap.imu_present else 'fail')
-        add('IMU 无 error_count', 'warn' if snap.imu_error else 'ok')
-        add('振动在阈值内', 'warn' if snap.vibration_max > VIBRATION_WARN else 'ok',
-            f'{snap.vibration_max:.2f}')
+        bad_acc = any(snap.est.get(k) for k in
+                      ('fs_bad_acc_vertical', 'fs_bad_acc_clipping'))
+        add('无加计故障(垂直/削波)', 'fail' if bad_acc else 'ok')
 
     # ── GPS（室外；默认只在 --gps 时判）──
     if require_gps:
         if snap.n_gps == 0:
-            add('sensor_gps', 'fail', '未收到（室外需要）')
+            add('vehicle_gps_position', 'fail', '未收到（室外需要）')
         else:
-            add(f'GPS eph ≤ {GPS_EPH_MAX}',
-                'ok' if snap.gps_max_eph <= GPS_EPH_MAX else 'fail', f'{snap.gps_max_eph:.2f}')
-            add(f'GPS epv ≤ {GPS_EPV_MAX}',
-                'ok' if snap.gps_max_epv <= GPS_EPV_MAX else 'fail', f'{snap.gps_max_epv:.2f}')
-            add(f'GPS sats ≥ {GPS_SATS_MIN}',
-                'ok' if snap.gps_min_sats >= GPS_SATS_MIN else 'fail', str(snap.gps_min_sats))
+            add(f'GPS eph ≤ {gps_eph_max}',
+                'ok' if snap.gps_max_eph <= gps_eph_max else 'fail',
+                f'{snap.gps_max_eph:.2f}')
+            add(f'GPS epv ≤ {gps_epv_max}',
+                'ok' if snap.gps_max_epv <= gps_epv_max else 'fail',
+                f'{snap.gps_max_epv:.2f}')
+            add(f'GPS sats ≥ {gps_sats_min}',
+                'ok' if snap.gps_min_sats >= gps_sats_min else 'fail',
+                str(snap.gps_min_sats))
     return R
 
 
@@ -199,16 +196,9 @@ if HAVE_ROS:
             self.s.n_est += 1
             for k in ('cs_tilt_align', 'cs_yaw_align', 'cs_mag', 'cs_mag_hdg', 'cs_mag_3d',
                       'cs_mag_fault', 'cs_mag_field_disturbed', 'fs_bad_mag_x',
-                      'fs_bad_mag_y', 'fs_bad_mag_z', 'fs_bad_hdg'):
+                      'fs_bad_mag_y', 'fs_bad_mag_z', 'fs_bad_hdg',
+                      'fs_bad_acc_vertical', 'fs_bad_acc_clipping'):
                 self.s.est[k] = self.s.est.get(k) or bool(getattr(m, k, False))
-
-        def imu(self, m):
-            self.s.n_imu += 1
-            self.s.imu_present = bool(m.accel_device_id) and bool(m.gyro_device_id)
-            self.s.imu_error = (m.accel_error_count > 0) or (m.gyro_error_count > 0)
-            self.s.vibration_max = max(self.s.vibration_max,
-                                       float(m.accel_vibration_metric),
-                                       float(m.gyro_vibration_metric))
 
         def gps(self, m):
             self.s.n_gps += 1
@@ -232,8 +222,8 @@ if HAVE_ROS:
                 self.create_subscription(VehicleLocalPosition, f'{p}/out/vehicle_local_position', a.lpos, q)
                 self.create_subscription(FailsafeFlags, f'{p}/out/failsafe_flags', a.failsafe, q)
                 self.create_subscription(EstimatorStatusFlags, f'{p}/out/estimator_status_flags', a.est, q)
-                self.create_subscription(VehicleImuStatus, f'{p}/out/vehicle_imu_status', a.imu, q)
-                self.create_subscription(SensorGps, f'{p}/out/sensor_gps', a.gps, q)
+                # PX4-1.16 桥接的是 vehicle_gps_position（类型 SensorGps）
+                self.create_subscription(SensorGps, f'{p}/out/vehicle_gps_position', a.gps, q)
 
 
 def main(argv=None) -> int:
@@ -241,6 +231,9 @@ def main(argv=None) -> int:
     ap.add_argument('--seconds', type=float, default=3.0)
     ap.add_argument('--drone', default='both', choices=['0', '1', 'both'])
     ap.add_argument('--gps', action='store_true', help='加 GPS 严格门（室外）')
+    ap.add_argument('--gps-eph-max', type=float, default=GPS_EPH_MAX)
+    ap.add_argument('--gps-epv-max', type=float, default=GPS_EPV_MAX)
+    ap.add_argument('--gps-sats-min', type=int, default=GPS_SATS_MIN)
     ap.add_argument('--json', action='store_true')
     args = ap.parse_args(argv)
 
@@ -258,7 +251,9 @@ def main(argv=None) -> int:
     out = {}
     n_fail = 0
     for i in ids:
-        res = evaluate(node.acc[i].s, require_gps=args.gps)
+        res = evaluate(node.acc[i].s, require_gps=args.gps,
+                       gps_eph_max=args.gps_eph_max, gps_epv_max=args.gps_epv_max,
+                       gps_sats_min=args.gps_sats_min)
         out[i] = res
         n_fail += sum(r['status'] == 'fail' for r in res)
     node.destroy_node()

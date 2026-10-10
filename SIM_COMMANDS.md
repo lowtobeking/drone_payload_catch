@@ -41,7 +41,8 @@ python3 tools/preflight_check.py --logs    # 日志门：Ready 必须有；Gyro 
 
 `--live` 优先调 **`tools/live_probe.py`**（`--seconds` 秒**持续订阅**取聚合，避免 `ros2 topic echo --once` 快照骗人）：
 EKF（xy/z/v_valid 比例、非 dead_reckoning、eph/epv）+ `failsafe_flags`（local_position/velocity/attitude/offboard/geofence/critical）
-+ `estimator_status_flags`（tilt/yaw 对齐、**磁罗盘在线/故障/受扰**）+ `vehicle_imu_status`（在线/error/振动）+ GPS。无 rclpy 时回退 ros2 CLI 快照。
++ `estimator_status_flags`（tilt/yaw 对齐、**磁罗盘在线/故障/受扰**、加计故障 `fs_bad_acc_*`）+ GPS（`vehicle_gps_position`）。
+> 注：PX4-1.16 的 uXRCE-DDS **不桥接** `vehicle_imu_status`/`vehicle_magnetometer`，故 IMU/磁健康走 `estimator_status_flags`。无 rclpy 时回退 ros2 CLI 快照。
 
 **上行链路验证**（发 offboard 心跳看 `offboard_control_signal_lost` 翻转；不 ARM/不起飞）：
 ```bash

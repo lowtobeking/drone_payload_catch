@@ -40,8 +40,8 @@ def healthy():
         n_est=50, est={'cs_tilt_align': True, 'cs_yaw_align': True, 'cs_mag': True,
                        'cs_mag_hdg': False, 'cs_mag_3d': True, 'cs_mag_fault': False,
                        'cs_mag_field_disturbed': False, 'fs_bad_mag_x': False,
-                       'fs_bad_mag_y': False, 'fs_bad_mag_z': False, 'fs_bad_hdg': False},
-        n_imu=50, imu_present=True, imu_error=False, vibration_max=0.5,
+                       'fs_bad_mag_y': False, 'fs_bad_mag_z': False, 'fs_bad_hdg': False,
+                       'fs_bad_acc_vertical': False, 'fs_bad_acc_clipping': False},
         n_gps=50, gps_max_eph=0.9, gps_max_epv=1.2, gps_min_sats=25)
 
 
@@ -88,20 +88,19 @@ check('tilt 未对齐 → fail', status(evaluate(s), 'tilt/yaw 对齐') == 'fail
 r = evaluate(Snapshot(n_lpos=10, xy_valid_frac=1, z_valid_frac=1, v_valid_frac=1))
 check('estimator 未收到 → warn', status(r, 'estimator_status_flags') == 'warn')
 
-print('\n=== IMU ===')
-s = healthy(); s.imu_present = False
-check('IMU device_id=0 → fail', status(evaluate(s), 'IMU 在线(device_id)') == 'fail')
-s = healthy(); s.imu_error = True
-check('IMU error_count → 仅 warn',
-      status(evaluate(s), 'IMU 无 error_count') == 'warn' and not has_fail(evaluate(s)))
-s = healthy(); s.vibration_max = 10.0
-check('振动超限 → 仅 warn', status(evaluate(s), '振动在阈值内') == 'warn')
+print('\n=== 加计故障（estimator_status_flags）===')
+s = healthy(); s.est['fs_bad_acc_vertical'] = True
+check('加计垂直故障 → fail',
+      status(evaluate(s), '无加计故障(垂直/削波)') == 'fail')
+s = healthy(); s.est['fs_bad_acc_clipping'] = True
+check('加计削波 → fail',
+      status(evaluate(s), '无加计故障(垂直/削波)') == 'fail')
 
 print('\n=== GPS（--gps 严格门）===')
 s = healthy()
 check('默认不判 GPS → 无 fail', not has_fail(evaluate(s)))
 check('--gps + 无 GPS → fail', status(evaluate(Snapshot(n_lpos=10, xy_valid_frac=1,
-      z_valid_frac=1, v_valid_frac=1), require_gps=True), 'sensor_gps') == 'fail')
+      z_valid_frac=1, v_valid_frac=1), require_gps=True), 'vehicle_gps_position') == 'fail')
 s = healthy(); s.gps_max_eph = 2.0
 check('GPS eph 2.0 > 1.5 → fail', status(evaluate(s, require_gps=True),
       'GPS eph ≤ 1.5') == 'fail')
@@ -109,6 +108,8 @@ s = healthy(); s.gps_min_sats = 10
 check('sats 10 < 20 → fail', status(evaluate(s, require_gps=True),
       'GPS sats ≥ 20') == 'fail')
 check('GPS 达标 → 无 fail', not has_fail(evaluate(healthy(), require_gps=True)))
+check('阈值可调：sats_min=8 时 10 星通过',
+      not has_fail(evaluate(healthy(), require_gps=True, gps_sats_min=8)))
 
 print()
 if FAIL:
