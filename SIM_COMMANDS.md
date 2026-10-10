@@ -74,6 +74,12 @@ LAUNCH_EXTRA="peer_loss_hold_s:=1.0 peer_loss_land_s:=4.0" bash run_m6_sitl.sh 5
 LAUNCH_EXTRA="collide_warn:=1.7 collide_emerg:=1.5" bash run_m6_sitl.sh 45
 ```
 
+**安全层故障注入矩阵**（对标参考 S27–S33；每道保护单独诱发 + 零误触发基线）：
+```bash
+python3 tools/sitl_safety_matrix.py            # 5 场景 ~10min，PASS/FAIL → report/safety_injection_matrix.md
+python3 tools/sitl_safety_matrix.py --only collision_floor_hold
+```
+
 ---
 
 ## 1. 离线单元自测（不需要 ROS / SITL）
