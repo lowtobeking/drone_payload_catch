@@ -41,7 +41,6 @@ FAILSAFE_FATAL = [
     ('local_position_invalid', 'failsafe: 本地位置无效'),
     ('local_velocity_invalid', 'failsafe: 本地速度无效'),
     ('attitude_invalid', 'failsafe: 姿态无效'),
-    ('offboard_control_signal_lost', 'failsafe: offboard 信号丢失'),
     ('geofence_breached', 'failsafe: 越界'),
     ('fd_critical_failure', 'failsafe: 临界故障'),
 ]
@@ -108,6 +107,11 @@ def evaluate(snap: Snapshot, *, require_gps: bool = False, eph_max: float = EPH_
         for flag, label in FAILSAFE_FATAL:
             bad = bool(snap.failsafe.get(flag))
             add(label, 'fail' if bad else 'ok')
+        # offboard 信号：**起飞前尚未进 offboard 时 true 属正常**，不能当硬失败；
+        # 主动验证（发心跳看翻转）由 tools/uplink_test.py 负责。
+        off = bool(snap.failsafe.get('offboard_control_signal_lost'))
+        add('failsafe: offboard 信号', 'warn' if off else 'ok',
+            '起 offboard 前 true 正常（用 uplink_test 主动验证）' if off else '')
         add('battery_unhealthy', 'warn' if snap.failsafe.get('battery_unhealthy') else 'ok',
             '已知 B 固有告警' if snap.failsafe.get('battery_unhealthy') else '')
 
@@ -185,6 +189,9 @@ if HAVE_ROS:
             self.s.n_failsafe += 1
             for f, _ in FAILSAFE_FATAL:
                 self.s.failsafe[f] = self.s.failsafe.get(f) or bool(getattr(m, f, False))
+            self.s.failsafe['offboard_control_signal_lost'] = (
+                self.s.failsafe.get('offboard_control_signal_lost')
+                or bool(m.offboard_control_signal_lost))
             self.s.failsafe['battery_unhealthy'] = (
                 self.s.failsafe.get('battery_unhealthy') or bool(m.battery_unhealthy))
 

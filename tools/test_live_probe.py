@@ -66,8 +66,9 @@ s = healthy(); s.failsafe['local_position_invalid'] = True
 check('local_position_invalid → fail',
       status(evaluate(s), 'failsafe: 本地位置无效') == 'fail')
 s = healthy(); s.failsafe['offboard_control_signal_lost'] = True
-check('offboard 信号丢失 → fail',
-      status(evaluate(s), 'failsafe: offboard 信号丢失') == 'fail')
+r = evaluate(s)
+check('offboard 信号丢失 → 仅 warn（起飞前正常）',
+      status(r, 'failsafe: offboard 信号') == 'warn' and not has_fail(r))
 s = healthy(); s.failsafe['battery_unhealthy'] = True
 r = evaluate(s)
 check('battery_unhealthy → 仅 warn', status(r, 'battery_unhealthy') == 'warn' and not has_fail(r))
