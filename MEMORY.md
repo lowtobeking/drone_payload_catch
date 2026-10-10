@@ -102,6 +102,7 @@ drone_payload_catch/
 │   ├── uncertainty.py         ← **相对不确定度模型**（公共抵消 ρ + 杆臂×姿态 + 残差；自测）
 │   ├── dynamics.py            ← **四旋翼聚合约束**（倾角+推力；替代裸双积分器；自测）
 │   ├── safety_logic.py        ← **安全层纯函数**（软围栏/姿态滤波/EKF 看门狗/分级状态机；从 px4_iface 抽出以便离线单测）
+│   ├── telemetry.py           ← **遥测有效性纯逻辑**（冻结 STALE / 溢出 OVERFLOW / 沉默 SILENCE / 兜底 HOVER；分析 launch.log）
 │   ├── impact.py              ← **接触冲击**（冲量/峰值力/可恢复性/带载推力余量/柔性接触；自测）
 │   ├── perception.py          ← **视觉载荷感知**（相机 FOV 门控 + 距离相关误差 + 深度 + 丢帧；自测）
 │   ├── stats.py               ← **统计工具**（Wilson CI + 配对 McNemar；自测）
@@ -145,6 +146,8 @@ drone_payload_catch/
 │   ├── test_live_probe.py     ← live_probe.evaluate 单测（合成 Snapshot）
 │   ├── uplink_test.py         ← **offboard 上行链路验证**（发心跳看 offboard_control_signal_lost）
 │   ├── test_uplink_test.py    ← uplink verdict 单测
+│   ├── check_log_validity.py  ← **遥测有效性检查**（launch.log 的 STALE/OVERFLOW/SILENCE/HOVER）
+│   ├── test_telemetry.py      ← 遥测有效性判据单测（合成日志）
 │   ├── sitl_check.sh          ← M6 SITL 端到端验收（委托 run_m6_sitl.sh，按事件给退出码）
 │   └── smoke_acados.py        ← acados MPC 链冒烟（codegen+编译+求解+耗时）
 ├── run_m1_sitl.sh             ← M1 一键 SITL（gz + 2×PX4 + agent + 节点；可传 CTRL/A_HOVER/...）
@@ -301,7 +304,7 @@ colcon build --packages-select payload_catch
 | **动力学/接触加强** | `dynamics.py`（倾角+推力约束）+ `impact.py`（冲击/可恢复性/带载余量）+ `tools/dynamics_contact.py` + b_node `miss_timeout_s`（接空安全中止） | ✅ 量化：`a_max=6`↔~31.5°倾角、水平权限随下潜衰减；100g 冲击可恢复、≥1kg 超权限；SITL 接空 → `MISS 安全悬停→降落`（`safe=OK`，无 failsafe）；`report/dynamics_contact.md` |
 | **感知/接触/风 保真** | `perception.py`（相机模型）+ `impact.compliant_contact`（柔性接触）+ `tools/perception_study.py` + `tools/make_wind_world.py`（SITL 风场） | ✅ 相机模型替换真值替身（好相机近场更优、差相机大释放误差 14%）；柔性接触峰值力 1170→37N（30×）；SITL `WIND=6` 带风跑通；`report/perception_study.md` |
 | **统计+基线** | `stats.py`（Wilson CI + McNemar）+ `tools/stats_report.py` | ✅ M6 大 N（每格 N=2000，CI）；感知(camera 100% vs 替身 98.7%, p<1e-3)、预测对正(lead=1 反而 79%<89%, p<1e-40)、闭环(0/30→28/30, p=3e-7)、释放误差敏感性、参数不确定性；`report/statistics.md` |
-| **离线自检/回归/CI** | 抽 `payload_catch/safety_logic.py`（纯函数）；`tools/test_*`（C1 证书 / C5 CBF / 安全层 / **yaml 契约** / **无 ROS 守卫** / **全仓编译** / **起飞前自检逻辑**）；`tools/preflight_check.py`（起飞前自检：离线/`--sitl`/`--live`/`--gps`/`--logs`）+ `tools/live_probe.py`（持续探测 EKF/failsafe/磁/IMU/GPS）+ `tools/uplink_test.py`（上行链路）；`tools/smoke_acados.py`；`tools/sitl_check.sh`（SITL 验收）；一键 `tools/run_checks.sh` + `Makefile` + pre-commit；`tests/`+`pytest.ini`；`.github/workflows/checks.yml` | ✅ **26/26 通过**（pytest 10）；顺带修好 `mpc_terminal` 自测三元组解包 bug + 硬化 `sim_core`/`stack_drop` 自测为带断言；CI 待首个 PR 验证 |
+| **离线自检/回归/CI** | 抽 `payload_catch/safety_logic.py`（纯函数）；`tools/test_*`（C1 证书 / C5 CBF / 安全层 / **yaml 契约** / **无 ROS 守卫** / **全仓编译** / **起飞前自检逻辑**）；`tools/preflight_check.py`（起飞前自检：离线/`--sitl`/`--live`/`--gps`/`--logs`）+ `tools/live_probe.py`（持续探测 EKF/failsafe/磁/IMU/GPS）+ `tools/uplink_test.py`（上行链路）+ `payload_catch/telemetry.py`/`tools/check_log_validity.py`（遥测有效性 STALE/OVERFLOW/SILENCE/HOVER）；`tools/smoke_acados.py`；`tools/sitl_check.sh`（SITL 验收）；一键 `tools/run_checks.sh` + `Makefile` + pre-commit；`tests/`+`pytest.ini`；`.github/workflows/checks.yml` | ✅ **28/28 通过**（pytest 11）；顺带修好 `mpc_terminal` 自测三元组解包 bug + 硬化 `sim_core`/`stack_drop` 自测为带断言；CI 待首个 PR 验证 |
 | 双机协调 | `rendezvous.solve_cooperative` + 协议分析（`report/coordination.md`） | ✅ 现状=单向/A被动；改进=握手/意图/时钟/安全；⚠️**负结果：A 小幅释放偏移与 t_r 冗余（δ*=0）**，协同价值在协议与 A 的速度/高度配合 |
 | 协同释放握手 | `coord_mode=handshake`（`a_node`/`b_node` + `/drone_b/ready` + `/drone_a/release_cmd` + `/drone_a/intent` + 时钟同步 `/coord/ping|pong` + 释放门限）（`report/coordination_handshake.md`） | ✅ **SITL：B 报就绪→A 作释放权威（精确自身状态）→ack→B 下潜→`STACK CAPTURED`**；含往返**时钟同步**(offset≈0/rtt0.5ms 换算 t_rel) 与释放前一致性门限；默认 direct 保留 |
 | 编队握手+意图 | M6-moving FORMATION 握手 + `/drone_a/intent` 升级为**预测落点**（`use_intent`/`WIND_EST`）（`report/coordination_handshake.md`） | ✅ SITL：`/formation/start`→FORMATION→**A 释放权威**→DIVE→`STACK CAPTURED horiz=0.040m`；意图落点(风漂移) SITL no-op 验证；**ack 改为原子事件**（不再依赖瞬时对齐） |

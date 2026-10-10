@@ -100,6 +100,10 @@ python3 tools/test_safety_logic.py   # 安全状态机/围栏/姿态滤波/传�
 python3 tools/test_config.py         # yaml 单一真值源契约（layout 引用/几何/真机段）
 python3 tools/test_purity.py         # 纯算法层“无 ROS 依赖”守卫
 python3 tools/test_compileall.py     # 全仓 .py 语法编译守卫（含 ROS 节点/launch）
+python3 tools/test_preflight.py      # 起飞前自检逻辑
+python3 tools/test_live_probe.py     # 运行时探测判定
+python3 tools/test_uplink_test.py    # 上行链路判定
+python3 tools/test_telemetry.py      # 遥测有效性（STALE/OVERFLOW/SILENCE/HOVER）
 
 python3 -m pytest -q                 # 收进标准测试框架（与上面同一批脚本）
 ```

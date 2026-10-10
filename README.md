@@ -375,6 +375,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `payload_catch/stats.py` | **统计工具**：Wilson 95% CI + 配对 McNemar（消融显著性；自测） |
 | `payload_catch/dynamics.py` | **四旋翼聚合动力学**（倾角+推力约束，替代裸双积分器；自测） |
 | `payload_catch/safety_logic.py` | **安全层纯函数**（软围栏/姿态滤波/EKF 看门狗/分级状态机；从 `px4_iface` 抽出以便离线单测） |
+| `payload_catch/telemetry.py` | **遥测有效性纯逻辑**（冻结 STALE / 溢出 OVERFLOW / 沉默 SILENCE / 兜底 HOVER；分析 launch.log） |
 | `payload_catch/impact.py` | **接触冲击**（冲量/峰值力/偏心角速度/可恢复性/带载推力余量；自测） |
 | `tools/dynamics_contact.py` | 量化学：动力学限幅 + 接触冲击/柔顺 + 接空中止（`report/dynamics_contact.md`） |
 | `tools/perception_study.py` | 视觉感知影响量化（标称/大释放误差/编队；`report/perception_study.md`） |
@@ -410,6 +411,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `tools/preflight_check.py` | **起飞前自检**（离线/`--sitl`/`--live`/`--logs`；配置·依赖·PX4·RMW·ROS·EKF·日志门） |
 | `tools/live_probe.py` | **运行时持续探测**（EKF/failsafe/磁罗盘/IMU/GPS，`--seconds` 取聚合） |
 | `tools/uplink_test.py` | **offboard 上行链路验证**（发心跳看 `offboard_control_signal_lost`） |
+| `tools/check_log_validity.py` | **遥测有效性检查**（launch.log 的 STALE/OVERFLOW/SILENCE/HOVER，失败非 0） |
 | `Makefile` / `.githooks/pre-commit` | `make check[-quick]` / 提交前自动跑秒级自检 |
 | `tools/smoke_acados.py` | acados MPC 链冒烟（codegen+编译+求解+耗时） |
 | `tests/` + `pytest.ini` | 把 `tools/test_*.py` 收进标准 pytest（`pytest -q` / `colcon test`） |
