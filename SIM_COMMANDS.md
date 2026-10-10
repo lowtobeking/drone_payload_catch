@@ -66,6 +66,14 @@ PREFLIGHT_PARAMS=1 PREFLIGHT=1 bash run_m6_sitl.sh 70 # 再加飞控参数体检
 bash run_m6_real.sh                        # 真机：默认跑 --live --gps；PARAM_MAVLINK 时跑参数体检
 ```
 
+**companion 安全网**（对标参考 `safety_filter.py`；`report/companion_safety.md`）：
+```bash
+# 失联看门狗：丢 A 状态 → 就地冻结 → AUTO.LAND（飞行中 kill A 节点可诱发）
+LAUNCH_EXTRA="peer_loss_hold_s:=1.0 peer_loss_land_s:=4.0" bash run_m6_sitl.sh 55
+# 硬碰撞地板：太近 → 去掉朝 A 分量 + 持续→HOLD（抬阈值可诱发）
+LAUNCH_EXTRA="collide_warn:=1.7 collide_emerg:=1.5" bash run_m6_sitl.sh 45
+```
+
 ---
 
 ## 1. 离线单元自测（不需要 ROS / SITL）

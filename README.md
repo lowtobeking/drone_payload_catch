@@ -34,7 +34,8 @@
 - **抗扰**：速度前馈 + 预测对正、增广风 KF（`BallisticDragKF`）、A 端迎风预补偿、自适应下潜。
 - **安全**：不确定度 keep-out（`min_ab_gap+kσ`）、**3D 反应式 keep-out**、**分级安全状态机**
   （`OK/HOLD/PULLBACK/LAND/KILL` + 越界回拉）、释放后清场、**飞行终止(kill)** 监督、
-  **飞控参数体检**（`THR_MIN<THR_HOVER`/失效保护/围栏/EKF 源）、**电池低电→Land**。
+  **飞控参数体检**（`THR_MIN<THR_HOVER`/失效保护/围栏/EKF 源）、**电池低电→Land**、
+  **失联看门狗**（丢 A 状态→就地冻结→AUTO.LAND）、**硬碰撞地板**（太近→去掉接近分量→HOLD）。
 - **协同**：释放握手（B 报就绪→A 释放权威→ack）、**释放提交窗口 + lead 窗口取消(abort)**、
   **B 在线 σ 上传**、意图（预测落点）、时钟同步、编队握手、及时释放 + 超时中止。
 - **控制/规划**：ZEM 终端导引（`zem_gain`）、**DIVE 加速度前馈**、释放前落点余量闸、
@@ -459,6 +460,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `report/safety_control_review.md` | **保护控制审查**：已有（限幅/keep-out/释放闸）vs 缺口（geofence/看门狗/abort/避碰） |
 | `report/safety_supervisor.md` | **安全监督 + 飞行终止(kill)**：外部 `/safety/kill_a|b` + 异常自动 kill；SITL 验证 |
 | `report/fcu_safety.md` | **飞控安全**：参数体检（`THR_MIN<THR_HOVER`/失效保护/围栏/EKF 源）+ 电池低电→Land；SITL 验证 |
+| `report/companion_safety.md` | **companion 安全网**：失联看门狗（冻结→LAND）+ 硬碰撞地板（→HOLD）；纯逻辑+SITL 诱发验证 |
 | `report/m6_moving_speed.md` | **M6-moving 加速度**：编队控制优化 + 及时释放/超时中止；**支持 0.5/1.0 m/s（各 2/2 完美）**，2.0 保留 |
 | `tools/validate_coord.py` | 协同协议 SITL 验证器（跑多组配置 + 不变量检查） |
 | `tools/bench_coord.py` | **协同交接基准（阶段 0）**：coord_mode×intent×σ×delay 网格 + Wilson CI + 报告 |

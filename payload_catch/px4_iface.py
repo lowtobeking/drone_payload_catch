@@ -192,6 +192,8 @@ class Px4Drone(Node):
         self._batt_connected = False
         self._batt_warning = 0
         self._batt_remaining = -1.0
+        # 外部/子类注入的安全原因（如 B 的碰撞地板）→ 计入安全状态机（可恢复 HOLD）
+        self.external_safety_reasons: list = []
         # 分级安全状态机：OK | HOLD | PULLBACK | LAND | KILL
         self._safety_state = 'OK'
         self._safety_reason = ''
@@ -390,6 +392,7 @@ class Px4Drone(Node):
             safety_pullback_enable=self.safety_pullback_enable,
             stale_reason=stale_reason, health_reasons=health,
             sensor_constraints_enable=self.sensor_constraints_enable,
+            external_reasons=self.external_safety_reasons,
             battery_land_reason=(battery_land_reason(
                 connected=self._batt_connected, warning=self._batt_warning,
                 remaining=self._batt_remaining,

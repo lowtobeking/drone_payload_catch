@@ -83,6 +83,11 @@ def generate_launch_description():
         'keepout_mode': 'heuristic',  # heuristic | cbf（C5）
         'keepout_alpha': '1.0',       # CBF 指数增益
         'keepout_delay_s': '0.0',     # T3 延迟鲁棒收紧用的通信延迟 (s)
+        'collide_warn': '0.90',       # 硬碰撞地板：预警带 (m, 3D)
+        'collide_emerg': '0.50',      # 硬碰撞地板：紧急 (m, 3D)
+        'collide_hold_frames': '15',  # 连续紧急多少拍→HOLD
+        'peer_loss_hold_s': '0.0',    # 失联看门狗：丢弃冻结阈值 (0=关)
+        'peer_loss_land_s': '0.0',    # 失联看门狗：降落阈值（须 > hold）
         'adaptive_dive': 'false',     # 在线自适应下潜
         'adaptive_alt_floor': '0.35', # 自适应下潜：刹停后最小离地 (m)
         'sp_rate_limit': '0.0',       # 速度设定点变化率上限 (m/s²)，0=不限
@@ -223,6 +228,11 @@ def generate_launch_description():
                  'keepout_mode': LaunchConfiguration('keepout_mode'),
                  'keepout_alpha': _f('keepout_alpha'),
                  'keepout_delay_s': _f('keepout_delay_s'),
+                 'collide_warn': _f('collide_warn'),
+                 'collide_emerg': _f('collide_emerg'),
+                 'collide_hold_frames': _i('collide_hold_frames'),
+                 'peer_loss_hold_s': _f('peer_loss_hold_s'),
+                 'peer_loss_land_s': _f('peer_loss_land_s'),
                  'sensor_constraints_enable': _b('sensor_constraints_enable'),
                  'sensor_use_ekf_sigma': _b('sensor_use_ekf_sigma'),
                  'sensor_watchdog_enable': _b('sensor_watchdog_enable'),

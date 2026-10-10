@@ -19,7 +19,8 @@ from .rendezvous import RendezvousPlanner
 from .stack_drop import plan_stack_drop, _stack_ref, _adaptive_dive, minimal_dive, retain_speed
 from .contact_detect import ContactDetector
 from .uncertainty import relative_sigma
-from .keepout import cbf_bound, project_cbf
+from .safety_logic import peer_loss_action
+from .keepout import cbf_bound, hard_floor, project_cbf
 
 
 class BNode(Px4Drone):
@@ -121,6 +122,13 @@ class BNode(Px4Drone):
         self.declare_parameter('keepout_mode', 'heuristic')  # heuristic | cbf（C5 速度级 CBF）
         self.declare_parameter('keepout_alpha', 1.0)   # CBF 指数增益 α
         self.declare_parameter('keepout_delay_s', 0.0)  # T3：延迟鲁棒收紧用的通信延迟 (s)
+        # 硬碰撞地板（最后一闸）：太近→去掉朝 A 的速度分量 + 持续→HOLD
+        self.declare_parameter('collide_warn', 0.90)       # 预警带 (m, 3D)
+        self.declare_parameter('collide_emerg', 0.50)      # 紧急地板 (m, 3D)
+        self.declare_parameter('collide_hold_frames', 15)  # 连续紧急多少拍→HOLD (50Hz→0.3s)
+        # 失联看门狗（第 2 层）：丢 A 状态 → 先就地冻结、再 AUTO.LAND（0=关）
+        self.declare_parameter('peer_loss_hold_s', 0.0)    # 冻结阈值
+        self.declare_parameter('peer_loss_land_s', 0.0)    # 降落阈值（须 > hold）
         # 在线自适应下潜：滚动重解 a_dive（抗垂直扰动，如下击暴流）
         self.declare_parameter('adaptive_dive', False)
         self.declare_parameter('adaptive_alt_floor', 0.35)   # 刹停后最小离地 (m)
@@ -223,6 +231,14 @@ class BNode(Px4Drone):
         self.keepout_mode = str(self.get_parameter('keepout_mode').value).lower()
         self.keepout_alpha = float(self.get_parameter('keepout_alpha').value)
         self.keepout_delay_s = float(self.get_parameter('keepout_delay_s').value)
+        self.collide_warn = float(self.get_parameter('collide_warn').value)
+        self.collide_emerg = float(self.get_parameter('collide_emerg').value)
+        self.collide_hold_frames = int(self.get_parameter('collide_hold_frames').value)
+        self.peer_loss_hold_s = float(self.get_parameter('peer_loss_hold_s').value)
+        self.peer_loss_land_s = float(self.get_parameter('peer_loss_land_s').value)
+        if self.peer_loss_hold_s > 0.0 and self.peer_loss_land_s <= self.peer_loss_hold_s:
+            self.get_logger().warn('peer_loss_land_s 须 > peer_loss_hold_s — 冻结阶段禁用')
+            self.peer_loss_hold_s = 0.0
         self.adaptive_dive = bool(self.get_parameter('adaptive_dive').value)
         self.adaptive_alt_floor = float(self.get_parameter('adaptive_alt_floor').value)
         self._a_adapt = None
@@ -234,6 +250,9 @@ class BNode(Px4Drone):
         self.align_t0 = None
         self.stack_hover = None         # 捕获后锁定的悬停点（防止重锚漂移靠近 A）
         self._min_relA = float('inf')   # 全程最小 A-B 间距（碰撞监测）
+        self._last_a_state_t = None     # 最近一次收到 A 状态的本机时刻
+        self._collide_streak = 0        # 连续处于碰撞紧急带的拍数
+        self._peer_loss_state = 'none'  # none | hold | land
         self._t_node0 = None
         self.planned = False
         self.plan = None
@@ -447,12 +466,20 @@ class BNode(Px4Drone):
         return project_cbf(np.asarray(v_sp, float), r, c, self.v_max)
 
     def publish_velocity(self, vel_ned, yaw=0.0, acc_ff=None):
-        """B 的栈模式叠加 keep-out（heuristic 排斥 或 C5 CBF 滤波）。"""
+        """B 的栈模式叠加 keep-out + 硬碰撞地板（最后一闸）。"""
+        self.external_safety_reasons = []
         if self.mode == 'stack':
             if self.keepout_mode == 'cbf':
                 vel_ned = self._cbf_velocity(vel_ned)
             else:
                 vel_ned = self._keepout_velocity(vel_ned)
+            if self.a_est is not None:
+                r = self.a_est - self.pos_world
+                vel_ned, lvl = hard_floor(vel_ned, r, self.collide_warn, self.collide_emerg)
+                self._collide_streak = self._collide_streak + 1 if lvl == 'emerg' else 0
+                if self._collide_streak >= self.collide_hold_frames:
+                    self.external_safety_reasons = [
+                        f'collision_floor(d={float(np.linalg.norm(r)):.2f})']
         super().publish_velocity(vel_ned, yaw=yaw, acc_ff=acc_ff)
 
     def _on_a_state(self, msg):
@@ -460,6 +487,7 @@ class BNode(Px4Drone):
             p_meas = np.array(msg.data[1:4], float)
             self.a_state_hist.append((float(msg.data[0]), p_meas,
                                       np.array(msg.data[4:7], float)))
+            self._last_a_state_t = self.get_clock().now().nanoseconds * 1e-9
             if len(self.a_state_hist) > 4000:
                 self.a_state_hist.pop(0)
             # 在线估计 A 相对位置误差 σ（测量与平滑估计的残差 EMA），供安全 keep-out 用
@@ -552,6 +580,31 @@ class BNode(Px4Drone):
                 f'pos_w={self.pos_world.round(2)} '
                 f'vel={self.vel.round(2)} '
                 f'relA={ra} min_relA={mr} pay={pp} caught={self.caught}')
+        # 失联看门狗（第 2 层）：丢 A 状态 → 先就地冻结、再 AUTO.LAND
+        if (self.peer_loss_hold_s > 0.0 and self._last_a_state_t is not None
+                and not self._landing and not self._aborted):
+            since = now - self._last_a_state_t
+            act = peer_loss_action(since, hold_s=self.peer_loss_hold_s,
+                                   land_s=self.peer_loss_land_s)
+            if act == 'hold':
+                if self._peer_loss_state != 'hold':
+                    self._peer_loss_state = 'hold'
+                    self.get_logger().error(
+                        f'B: 失联 {since:.1f}s 未收到 A 状态 → 就地冻结（不追陈旧参考）')
+                v = self.hover_velocity(self.pos_world[:2], -self.pos_world[2],
+                                        kp_xy=1.5, max_speed=self.v_max,
+                                        kp_z=1.5, max_climb=1.5)
+                self.publish_velocity(v, yaw=self.yaw)
+                return
+            if act == 'land':
+                if self._peer_loss_state != 'land':
+                    self._peer_loss_state = 'land'
+                    self.get_logger().error(f'B: 失联 {since:.1f}s → 安全悬停并降落')
+                    self.request_land('comms loss (A state stale)')
+                return
+            if self._peer_loss_state != 'none':
+                self.get_logger().warn('B: A 状态恢复 → 退出失联降级')
+                self._peer_loss_state = 'none'
         if self.mode == 'stack':
             self.control_stack(now)
             return

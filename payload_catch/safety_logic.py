@@ -126,6 +126,23 @@ def sensor_health_reasons(*, watchdog_enable: bool, reset_counters,
     return out
 
 
+# --------------------------------------------------------------- 失联看门狗
+def peer_loss_action(since_last_rx, *, hold_s: float, land_s: float,
+                     received_once: bool = True) -> str:
+    """对方（A/leader）状态丢失后的动作：'none' | 'hold'（就地冻结）| 'land'。
+
+    `hold_s<=0` 表示关闭。约束须 `0 < hold_s < land_s`（节点 init 校验）。
+    对标参考工程“第 2 层失联降落”：先冻结（不追陈旧参考），再升级 AUTO.LAND。
+    """
+    if (not received_once) or hold_s <= 0.0:
+        return 'none'
+    if land_s > 0.0 and since_last_rx >= land_s:
+        return 'land'
+    if since_last_rx >= hold_s:
+        return 'hold'
+    return 'none'
+
+
 # --------------------------------------------------------------- 电池保护
 def battery_land_reason(*, connected: bool, warning: int, remaining: float,
                         critical_remaining: float = 0.07) -> str:
@@ -172,7 +189,8 @@ def safety_decision(now: float, state: str, reason: str,
                     safety_geofence_alt: float, safety_pullback_enable: bool,
                     stale_reason: str, health_reasons: Sequence[str],
                     sensor_constraints_enable: bool,
-                    battery_land_reason: str = '') -> SafetyDecision:
+                    battery_land_reason: str = '',
+                    external_reasons: Sequence[str] = ()) -> SafetyDecision:
     """分级安全响应：OK → (HOLD | PULLBACK) → LAND → KILL（纯函数，不改外部状态）。
 
     检测：姿态超限(临界) / 位置越界(回拉) / 位置状态超时(悬停)。
@@ -209,6 +227,9 @@ def safety_decision(now: float, state: str, reason: str,
     if sensor_constraints_enable and health_reasons:
         reasons.extend(health_reasons)
         health_bad = True
+    external_bad = bool(external_reasons)
+    if external_bad:
+        reasons.extend(external_reasons)   # 如碰撞地板→HOLD（不让回拉抢）
 
     if not reasons:
         return SafetyDecision('OK', '', 'none', None, None,
@@ -231,7 +252,7 @@ def safety_decision(now: float, state: str, reason: str,
 
     bad_since = None
     if ((out_xy or out_hi or out_lo) and safety_pullback_enable
-            and not stale_reason and not health_bad):
+            and not stale_reason and not health_bad and not external_bad):
         ev = 'pullback' if state != 'PULLBACK' else ''
         return SafetyDecision('PULLBACK', msg, 'none', bad_since, None, ev)
     if hold_since is None:

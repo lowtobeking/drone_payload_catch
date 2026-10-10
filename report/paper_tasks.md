@@ -142,6 +142,7 @@
 | 2026-10-09 | **起飞前自检补全**：`tools/live_probe.py`（持续订阅 EKF/failsafe/磁罗盘/IMU/GPS，替 `--once` 快照）+ `tools/uplink_test.py`（offboard 上行链路）；`preflight --live` 接入 live_probe（无 ROS 回退 CLI）、新增 `--gps`；`run_m6_real.sh` 默认 `--live --gps` 门；全量自检 26/26（pytest 10） |
 | 2026-10-09 | **遥测有效性**（对标 `data_validity.py`）：`payload_catch/telemetry.py`（纯逻辑：STALE/OVERFLOW/SILENCE/HOVER）+ `tools/check_log_validity.py` + `test_telemetry.py`；SILENCE 只对周期源（避免 payload_node 事件型误报）；全量自检 28/28（pytest 11） |
 | 2026-10-09 | **飞控安全**（对标参考 `fc_configure.py`）：`payload_catch/fcu_params.py`（参数判据/预置）+ `tools/preflight_params.py`（--file/--mavlink）+ `tools/fcu_configure.py`（dry-run）+ `test_fcu_params.py`；**电池低电→Land**（`safety_logic`+`px4_iface`+`live_probe`）；SITL 验证参数读取与电池无误报；`report/fcu_safety.md`；全量自检 30/30（pytest 12） |
+| 2026-10-09 | **companion 安全网**（对标参考 `safety_filter.py`）：失联看门狗（`peer_loss_action`+b_node：丢 A 状态→就地冻结→AUTO.LAND）+ 硬碰撞地板（`keepout.hard_floor`+`external_safety_reasons`→HOLD）；纯逻辑单测 + **SITL 诱发验证**（kill A → 1s 冻结/4s LAND；collide_emerg:=1.5 → collision_floor HOLD）；`report/companion_safety.md` |
 | （下次） | 更新 D1–D4 决策、文献基线复现、SITL 大 N、真机/HIL |
 
 ---

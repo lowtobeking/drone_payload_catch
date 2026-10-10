@@ -191,6 +191,7 @@ drone_payload_catch/
     ├── planning_control_opt.md ← **规划/协调+控制优化**：ZEM 终端导引 + 释放前落点余量闸
     ├── safety_control_review.md ← **保护控制审查**：已有(限幅/keep-out/释放闸) vs 缺口(geofence/看门狗/abort/避碰)
     ├── safety_supervisor.md    ← **安全监督+飞行终止(kill)**：/safety/kill_a|b + 异常自动 kill；SITL 验证
+    ├── companion_safety.md     ← **companion 安全网**：失联看门狗（冻结→LAND）+ 硬碰撞地板（→HOLD）；对标参考 safety_filter
     ├── m6_moving_speed.md      ← **M6-moving 加速度**：编队控制优化(死推算参考)+速度边界(2.0✅/3.0❌)
     ├── m5_sitl_results.md     ← M5 难度扫描结果
     └── m6_sitl_results.md     ← M6 SITL 难度扫描结果（2026-09-17）
@@ -316,6 +317,7 @@ colcon build --packages-select payload_catch
 | 协同协议验证 | `tools/validate_coord.py`（`report/coordination_validation.md`） | ✅ 3 组配置（标称/噪声+安全/编队）**全部通过**：捕获、就绪→释放→ack 顺序、单次释放、min\|A−B\|≥1.0m、无 failsafe |
 | 规划/协调+控制优化 | ZEM 终端导引(`zem_gain`) + 释放前落点余量闸（`report/planning_control_opt.md`） | ✅ 离线：ZEM 临界风 w4 28→36/40、w5 13→22/40（`zem≈1`）；SITL `COORD=handshake ZEM=0.8` → `STACK CAPTURED horiz=0.055m`、无 failsafe |
 | 安全监督(kill) | `px4_iface` 安全监督：`/safety/kill_a|b` 外部 kill + 异常(姿态/越界/状态超时)持续自动 kill（`MAV_CMD_DO_FLIGHTTERMINATION`）（`report/safety_supervisor.md`） | ✅ SITL：发 `/safety/kill_b` → B `Flight termination active`（动力切），**A 不受影响**（计数 0） |
+| **companion 安全网** | 失联看门狗（`safety_logic.peer_loss_action` + b_node：丢 A 状态→就地冻结→AUTO.LAND）+ 硬碰撞地板（`keepout.hard_floor` + b_node→`external_safety_reasons`→HOLD）（`report/companion_safety.md`） | ✅ 纯逻辑单测 + **SITL 诱发**：kill A → `失联 1.0s 冻结`/`4.0s LAND`；`collide_emerg:=1.5` → `SAFETY HOLD: collision_floor(d=1.43)`；标称零误触发 |
 | 优化第二轮 | 安全分级状态机(OK/HOLD/PULLBACK/LAND/KILL) + 越界回拉；DIVE 加速度前馈(PX4 `trajectory_setpoint.acceleration`)；B 在线 σ 共享给 A 释放闸；释放提交窗口+lead 窗口取消；3D 反应式 keep-out；在线自适应下潜（`report/opt_round2.md`） | ✅ 单元+多轮 SITL：标称 `STACK CAPTURED horiz 0.008–0.080m`、双机落地、无 failsafe；越界 `PULLBACK`、丢状态 `HOLD`（自愈） |
 | 优化第三轮 | 安全硬化：安全指令绕过 `sp_rate_limit`；围栏改 `_fence_velocity` 软限幅（保留切向、消除与任务互顶）；`safe=` 进周期日志（`report/opt_round3.md`） | ✅ 单元 5 项 + SITL（围栏 3m 稳定、标称 `horiz=0.018m` 无 failsafe） |
 | 优化第四轮 | 传感器/估计器约束（零新硬件）：用 `vehicle_local_position` 未用字段 — `eph/epv` 作 σ、健康/一致性看门狗(`dead_reckoning`/valid/`reset_counter`)、估计器限值(`vxy_max/vz_max/hagl_min`)（`report/opt_round4.md`） | ✅ 单元 5 项 + SITL（启动期 `estimator_reset`→1s HOLD 自愈、标称 `horiz=0.034m` 无 failsafe） |
@@ -364,6 +366,9 @@ colcon build --packages-select payload_catch
 
 1. **`pkill -f <pattern>` 会把执行命令的 shell 自己杀掉**，如果命令串里含同样 pattern
    （如 `pkill -9 -f 'px4'` 在含 `px4` 路径的命令里）。务必把 pkill 写进**独立脚本文件**再执行。
+   ⚠️ **本会话又踩两次**：即使 pkill 在独立脚本里，**外层命令行**若出现同一模式的字面串
+   （如外层命令里写了 `catch_stack_launch.py` 而清理脚本 `pkill -f 'catch_stack_launch'`），
+   仍会自杀。⇒ 把“触发 pkill”的调用与含该模式串的命令**分两次调用**。
 2. **launch 参数向量必须全 float**（见 §4.2）。
 3. **`setup.cfg` 的 `install_scripts` 不要指到 `/usr/local/bin`**（需 root，构建失败）；用 ament 标准 `$base/lib/payload_catch`。
 4. **acados json 路径**：新版把 json 写到 `c_generated_code/`，指纹缓存要按这个路径判断，否则永远 miss。

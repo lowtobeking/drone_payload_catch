@@ -80,6 +80,17 @@ vp = ko.project_cbf(np.array([3.0, 0, 0]), np.zeros(3), 0.0, 2.0)
 check('r=0 → 仅速度裁剪', np.allclose(vp, [2.0, 0, 0]))
 
 
+print('\n=== hard_floor（硬碰撞地板）===')
+vp, lvl = ko.hard_floor(np.array([1.0, 0, 0]), np.array([0.3, 0, 0]), 1.0, 0.4)
+check('emerg：剔除朝对方分量', abs(vp[0]) < 1e-12 and lvl == 'emerg')
+vp, lvl = ko.hard_floor(np.array([1.0, 0.3, 0.0]), np.array([0.7, 0, 0]), 1.0, 0.4)
+check('warn：抑制接近、保留切向', lvl == 'warn' and abs(vp[0]) < 1e-12
+      and abs(vp[1] - 0.3) < 1e-12)
+vp, lvl = ko.hard_floor(np.array([-1.0, 0.5, 0.0]), np.array([0.3, 0, 0]), 1.0, 0.4)
+check('远离不受影响', np.allclose(vp, [-1.0, 0.5, 0.0]))
+vp, lvl = ko.hard_floor(np.array([1.0, 0, 0]), np.array([2.0, 0, 0]), 1.0, 0.4)
+check('d≥warn → ok', lvl == 'ok' and np.allclose(vp, [1.0, 0, 0]))
+
 print('\n=== 指数 CBF 不变性：数值积分 h(t) ≥ h(0)e^{−αt} ===')
 # 单积分器：p_A 固定，p_B 以投影速度运动；r=p_A−p_B，v_other=0
 alpha = 1.5

@@ -194,6 +194,13 @@ d = decide(9.0, state='HOLD', hold_since=0.0, stale_reason='pos_stale=5.0s',
 check('HOLD 超时 + escalate=land → action=land', d.action == 'land')
 
 
+print('\n=== 失联看门狗 ===')
+check('关闭(hold<=0) → none', sl.peer_loss_action(99, hold_s=0, land_s=5) == 'none')
+check('未收到过 → none', sl.peer_loss_action(99, hold_s=1, land_s=5, received_once=False) == 'none')
+check('超 hold → hold', sl.peer_loss_action(1.5, hold_s=1, land_s=5) == 'hold')
+check('超 land → land', sl.peer_loss_action(6.0, hold_s=1, land_s=5) == 'land')
+check('未超 → none', sl.peer_loss_action(0.5, hold_s=1, land_s=5) == 'none')
+
 print('\n=== 电池保护 ===')
 check('低电 → Land', decide(0.0, battery_land_reason='battery warning=2').action == 'land')
 check('紧急低电 → Land', decide(0.0, state='HOLD', battery_land_reason='battery warning=3').action == 'land')
