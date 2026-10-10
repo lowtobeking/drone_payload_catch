@@ -162,6 +162,16 @@ for k in $(seq 1 40); do
 done
 echo "  就绪后再等 8s 让 EKF 稳定"; sleep 8
 
+# 起飞前 live 自检（可选，PREFLIGHT=1）：只读探测运行中的 PX4 就绪（话题/EKF 有效）
+if [ "${PREFLIGHT:-0}" = "1" ]; then
+  echo "### 起飞前 live 自检（PREFLIGHT=1）"
+  if ! python3 "$HOME/drone_payload_catch/tools/preflight_check.py" --live --logs; then
+    echo "❌ 起飞前 live 自检未通过 → 放弃本次起飞"
+    for p in 'px4 -d -i' 'gz sim' MicroXRCEAgent; do pkill -9 -f "$p" 2>/dev/null; done
+    exit 1
+  fi
+fi
+
 echo "### launch payload_catch M6（A/B/payload）"
 timeout $((RUN_S + 40)) ros2 launch payload_catch catch_stack_launch.py \
   a_hover:="[$A_HOVER]" b_standby:="[$B_STANDBY]" b_offset:="[$B_OFFSET]" \

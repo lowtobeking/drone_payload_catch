@@ -27,6 +27,25 @@ export LD_LIBRARY_PATH=/home/caolihao/drone_package_20260908/acados/lib:$LD_LIBR
 
 ---
 
+## 0.5 起飞前自检（preflight）
+
+跑 SITL / 真机之前先确认"能不能飞"（构建/依赖/配置/PX4/RMW/ROS），失败非 0。
+
+```bash
+python3 tools/preflight_check.py           # 离线静态：配置/依赖/二进制（缺 ROS 只 warn）
+python3 tools/preflight_check.py --sitl    # SITL 严格：PX4/world/gz/agent/ROS 缺失即 fail
+python3 tools/preflight_check.py --live    # 额外只读探测运行中的 PX4（话题/EKF xy_valid/z_valid）
+python3 tools/preflight_check.py --logs    # 扫 PX4 日志门（默认 ~/px4_logs）：Ready 必须有、Gyro STALE/Arming denied 致命
+```
+
+SITL 启动脚本内置可选钩子（**默认不开**，不影响现有流程）：
+
+```bash
+PREFLIGHT=1 bash run_m6_sitl.sh 70   # 双机 READY 后跑 live+logs 自检，不通过则放弃起飞
+```
+
+---
+
 ## 1. 离线单元自测（不需要 ROS / SITL）
 
 ### 1.1 一键自检（推荐，改代码后必跑）
