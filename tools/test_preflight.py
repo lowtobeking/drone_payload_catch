@@ -4,6 +4,7 @@
     python3 tools/test_preflight.py
 """
 import io
+import json
 import os
 import sys
 from contextlib import redirect_stdout
@@ -11,7 +12,7 @@ from contextlib import redirect_stdout
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tools.preflight_check import (LIVE_TOPICS, Res, _print,   # noqa: E402
                                    check_environment, check_px4_logs,
-                                   live_checks)
+                                   live_checks, probe_live)
 
 FAIL = []
 
@@ -160,6 +161,15 @@ check('未 Ready → fail', statuses(r, 'd0 Ready for takeoff') == 'fail')
 
 r = check_px4_logs('/logs', isfile=lambda p: False, read_text=lambda p: '')
 check('日志缺失 → warn', all(x.status == 'warn' for x in r))
+
+print('\n=== probe_live（JSON 合并 / 无 ROS 回退）===')
+payload = json.dumps({'0': [{'name': 'lpos 发布', 'status': 'ok', 'detail': '3 帧'}],
+                      '1': [{'name': 'IMU 在线(device_id)', 'status': 'fail', 'detail': ''}]})
+r = probe_live(runner=lambda cmd, timeout=8: (1, payload))
+check('解析 JSON → 合并为 d0/d1', r is not None and len(r) == 2
+      and r[0].name == 'd0: lpos 发布' and r[1].status == 'fail')
+r = probe_live(runner=lambda cmd, timeout=8: (2, '❌ live_probe 需要 ROS'))
+check('无 ROS（非 JSON）→ None 回退', r is None)
 
 print()
 if FAIL:

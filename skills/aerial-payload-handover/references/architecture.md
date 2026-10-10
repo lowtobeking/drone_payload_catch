@@ -57,7 +57,9 @@
 | `test_config.py` / `test_purity.py` / `test_compileall.py` | 契约守卫（yaml 单一真值源 / 纯算法层不得依赖 ROS / 全仓语法） |
 | `smoke_acados.py` | acados MPC 链冒烟 |
 | `sitl_check.sh` | M6 SITL 端到端验收（委托 `run_m6_sitl.sh`，按事件给退出码） |
-| `preflight_check.py` | **起飞前自检**（离线 / `--sitl` / `--live`：配置·依赖·PX4·RMW·ROS·EKF） |
+| `preflight_check.py` | **起飞前自检**（离线 / `--sitl` / `--live` / `--gps` / `--logs`） |
+| `live_probe.py` | **运行时持续探测**（EKF/failsafe/磁罗盘/IMU/GPS；纯逻辑 `evaluate`） |
+| `uplink_test.py` | **offboard 上行链路验证**（发心跳看 `offboard_control_signal_lost`） |
 | `pytest.ini` + `tests/` | 把 `tools/test_*.py` 收进 `pytest -q`（同步 `.github/workflows/checks.yml` CI） |
 
 ## SITL 脚本（无窗口 / GUI）

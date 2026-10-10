@@ -139,6 +139,7 @@
 | 2026-10-09 | 补齐：相对不确定度模型、动力学/接触、感知/风保真、统计+基线、真机接入层、Agent Skill；建立本追踪文档 |
 | 2026-10-09 | **离线自检套件**（参考 `drone_package_20260908`）：抽 `safety_logic.py`、`tools/test_{coord_cert,keepout,safety_logic,config,purity,compileall}.py`、`tools/smoke_acados.py`、`tools/sitl_check.sh`、一键 `tools/run_checks.sh`+`Makefile`+pre-commit（23/23，pytest 7）、`tests`+GitHub CI；修 `mpc_terminal` 自测解包 bug + 硬化 `sim_core`/`stack_drop` 自测 |
 | 2026-10-09 | **起飞前自检**：`tools/preflight_check.py`（离线/`--sitl`/`--live`/`--logs` 日志门，致命 vs 告警分级）+ `tools/test_preflight.py`（纯逻辑单测）；`run_m6/m1_sitl.sh` 加 `PREFLIGHT=1` live+logs 门（默认关）；全量自检 24/24（pytest 8） |
+| 2026-10-09 | **起飞前自检补全**：`tools/live_probe.py`（持续订阅 EKF/failsafe/磁罗盘/IMU/GPS，替 `--once` 快照）+ `tools/uplink_test.py`（offboard 上行链路）；`preflight --live` 接入 live_probe（无 ROS 回退 CLI）、新增 `--gps`；`run_m6_real.sh` 默认 `--live --gps` 门；全量自检 26/26（pytest 10） |
 | （下次） | 更新 D1–D4 决策、文献基线复现、SITL 大 N、真机/HIL |
 
 ---

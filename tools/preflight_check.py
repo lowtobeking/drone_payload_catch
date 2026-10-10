@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import json
 import os
 import re
 import shutil
@@ -111,7 +112,7 @@ def _run(cmd, timeout=8):
 
 
 def live_checks(runner=_run) -> list:
-    """探测正在运行的 PX4（只读 ros2 CLI）。假定已 source env 且 SITL 在跑。"""
+    """回退用：ros2 CLI 快照探测（无 rclpy 时）。"""
     R: list = []
     rc, out = runner(['ros2', 'topic', 'list'], timeout=15)
     topics = set(out.split())
@@ -136,6 +137,25 @@ def live_checks(runner=_run) -> list:
         R.append(Res('failsafe_flags 无 local_position_invalid',
                      'fail' if bad else 'ok',
                      'local_position_invalid=true' if bad else ''))
+    return R
+
+
+def probe_live(runner=_run, gps=False) -> list:
+    """优先用 `tools/live_probe.py`（持续订阅，覆盖 EKF/failsafe/磁/IMU/GPS）；
+    不可用（无 rclpy / 未起 SITL）时返回 None，由调用方回退 `live_checks`。"""
+    script = Path(__file__).resolve().parent / 'live_probe.py'
+    cmd = [sys.executable, str(script), '--json', '--seconds', '3']
+    if gps:
+        cmd.append('--gps')
+    _, out = runner(cmd, timeout=25)
+    try:
+        raw = json.loads(out)
+    except (ValueError, TypeError):
+        return None            # 含 rc=2（无 ROS）输出的非 JSON → 回退
+    R = []
+    for drone, items in raw.items():
+        for it in items:
+            R.append(Res(f'd{drone}: {it["name"]}', it["status"], it.get('detail', '')))
     return R
 
 
@@ -187,6 +207,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description='起飞前自检（preflight）')
     ap.add_argument('--sitl', action='store_true', help='SITL 严格模式（PX4/ROS 缺失即 fail）')
     ap.add_argument('--live', action='store_true', help='额外探测运行中的 PX4 话题')
+    ap.add_argument('--gps', action='store_true', help='--live 时加 GPS 严格门（室外）')
     ap.add_argument('--logs', nargs='?', const=os.path.expanduser('~/px4_logs'), default=None,
                     help='扫 PX4 日志门（默认 ~/px4_logs）：Ready 必须有、预检故障必须无')
     ap.add_argument('--json', action='store_true', help='输出 JSON')
@@ -199,7 +220,12 @@ def main(argv=None) -> int:
         print(f'=== 起飞前自检（{mode}{extra}）===')
     results = check_environment(dict(os.environ), ROOT, strict_sitl=args.sitl)
     if args.live:
-        results += live_checks()
+        live = probe_live(gps=args.gps)
+        if live is None:
+            if not args.json:
+                print('  (live_probe 不可用，回退 ros2 CLI 快照探测)')
+            live = live_checks()
+        results += live
     if args.logs is not None:
         results += check_px4_logs(args.logs)
 

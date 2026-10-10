@@ -34,14 +34,26 @@ export LD_LIBRARY_PATH=/home/caolihao/drone_package_20260908/acados/lib:$LD_LIBR
 ```bash
 python3 tools/preflight_check.py           # 离线静态：配置/依赖/二进制（缺 ROS 只 warn）
 python3 tools/preflight_check.py --sitl    # SITL 严格：PX4/world/gz/agent/ROS 缺失即 fail
-python3 tools/preflight_check.py --live    # 额外只读探测运行中的 PX4（话题/EKF xy_valid/z_valid）
-python3 tools/preflight_check.py --logs    # 扫 PX4 日志门（默认 ~/px4_logs）：Ready 必须有、Gyro STALE/Arming denied 致命
+python3 tools/preflight_check.py --live    # 持续探测运行中的 PX4（见下 live_probe）
+python3 tools/preflight_check.py --live --gps   # 室外：加 GPS 严格门（eph≤1.5/epv≤2.5/sats≥20）
+python3 tools/preflight_check.py --logs    # 日志门：Ready 必须有；Gyro STALE/Arming denied 致命
 ```
 
-SITL 启动脚本内置可选钩子（**默认不开**，不影响现有流程）：
+`--live` 优先调 **`tools/live_probe.py`**（`--seconds` 秒**持续订阅**取聚合，避免 `ros2 topic echo --once` 快照骗人）：
+EKF（xy/z/v_valid 比例、非 dead_reckoning、eph/epv）+ `failsafe_flags`（local_position/velocity/attitude/offboard/geofence/critical）
++ `estimator_status_flags`（tilt/yaw 对齐、**磁罗盘在线/故障/受扰**）+ `vehicle_imu_status`（在线/error/振动）+ GPS。无 rclpy 时回退 ros2 CLI 快照。
+
+**上行链路验证**（发 offboard 心跳看 `offboard_control_signal_lost` 翻转；不 ARM/不起飞）：
+```bash
+python3 tools/uplink_test.py --drone 0 --seconds 5
+```
+
+SITL / 真机启动脚本内置可选钩子（**默认不开**，不影响现有流程）：
 
 ```bash
-PREFLIGHT=1 bash run_m6_sitl.sh 70   # 双机 READY 后跑 live+logs 自检，不通过则放弃起飞
+PREFLIGHT=1 bash run_m6_sitl.sh 70        # SITL：双机 READY 后跑 live+logs，不通过则放弃起飞
+PREFLIGHT_GPS=1 PREFLIGHT=1 bash run_m6_sitl.sh 70   # 再加 GPS 严格门
+bash run_m6_real.sh                        # 真机：默认跑 --live --gps；SKIP_PREFLIGHT=1 跳过
 ```
 
 ---

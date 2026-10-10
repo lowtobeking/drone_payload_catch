@@ -25,6 +25,18 @@ FUNNEL_MOUTH="${FUNNEL_MOUTH:-0.15}"     # 托盘内半径（30cm 盘 → 0.15�
 COORD="${COORD:-handshake}"
 
 echo "!! 真机启动前请确认：安全员就位 / RC 可接管 / 围栏高度已设 / 电机桨已装好"
+
+# 起飞前自检（真机）：持续探测运行中的 PX4 + 默认 GPS 严格门
+if [ "${SKIP_PREFLIGHT:-0}" = "1" ]; then
+  echo "### (SKIP_PREFLIGHT=1，跳过起飞前自检)"
+else
+  echo "### 起飞前自检（真机 --live）"
+  PF_ARGS="--live"
+  [ "${PREFLIGHT_GPS:-1}" = "1" ] && PF_ARGS="$PF_ARGS --gps"
+  [ "${PREFLIGHT_LOGS:-0}" = "1" ] && PF_ARGS="$PF_ARGS --logs"
+  python3 "$HOME/drone_payload_catch/tools/preflight_check.py" $PF_ARGS \
+    || { echo "❌ 起飞前自检未通过 → 中止（紧急时 SKIP_PREFLIGHT=1）"; exit 1; }
+fi
 echo "   A_HOVER=$A_HOVER B_STANDBY=$B_STANDBY B_OFFSET=$B_OFFSET"
 echo "   RTK A=$A_RTK B=$B_RTK type=$RTK_TYPE  lever A=$A_LEVER B=$B_LEVER"
 read -r -p "确认全部就绪？输入 yes 继续：" _ans

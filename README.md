@@ -237,9 +237,10 @@ python3 tools/tray_sizing.py --measure-drop 1.0 0.22   # 落物试验反推 e
 
 ```bash
 source ~/drone_payload_catch/env.sh
-python3 tools/preflight_check.py --sitl           # 起飞前自检（建议先跑；失败非 0）
+python3 tools/preflight_check.py --sitl           # 起飞前静态自检
+python3 tools/preflight_check.py --live --gps     # 持续探测运行中的 PX4（含 EKF/磁/IMU/GPS/failsafe）
 bash ~/drone_payload_catch/run_m6_sitl.sh 70      # 默认 A 4.5m / B 3.5m / 水平 5m 外起飞
-PREFLIGHT=1 bash ~/drone_payload_catch/run_m6_sitl.sh 70   # 可选：READY 后 live 自检不通过则放弃起飞
+PREFLIGHT=1 bash ~/drone_payload_catch/run_m6_sitl.sh 70   # 可选：READY 后 live+logs 自检不通过则放弃起飞
 ```
 
 实测结果（`~/payload_catch_m6/launch.log`）：
@@ -407,6 +408,8 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `tools/test_compileall.py` | 全仓 `.py` 语法编译守卫（含 ROS 节点/launch，无需依赖） |
 | `tools/sitl_check.sh` | **SITL 端到端验收**（委托 `run_m6_sitl.sh`，按 `STACK CAPTURED`/failsafe 给退出码） |
 | `tools/preflight_check.py` | **起飞前自检**（离线/`--sitl`/`--live`/`--logs`；配置·依赖·PX4·RMW·ROS·EKF·日志门） |
+| `tools/live_probe.py` | **运行时持续探测**（EKF/failsafe/磁罗盘/IMU/GPS，`--seconds` 取聚合） |
+| `tools/uplink_test.py` | **offboard 上行链路验证**（发心跳看 `offboard_control_signal_lost`） |
 | `Makefile` / `.githooks/pre-commit` | `make check[-quick]` / 提交前自动跑秒级自检 |
 | `tools/smoke_acados.py` | acados MPC 链冒烟（codegen+编译+求解+耗时） |
 | `tests/` + `pytest.ini` | 把 `tools/test_*.py` 收进标准 pytest（`pytest -q` / `colcon test`） |
