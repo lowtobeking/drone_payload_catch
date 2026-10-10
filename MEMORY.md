@@ -196,6 +196,7 @@ drone_payload_catch/
     ├── safety_supervisor.md    ← **安全监督+飞行终止(kill)**：/safety/kill_a|b + 异常自动 kill；SITL 验证
     ├── companion_safety.md     ← **companion 安全网**：失联看门狗（冻结→LAND）+ 硬碰撞地板（→HOLD）；对标参考 safety_filter
     ├── safety_injection_matrix.md ← **安全层故障注入矩阵**：5 场景逐项诱发 + 零误触发基线，5/5 PASS
+    ├── safety_overview.md      ← **安全总览**：飞行前/飞行中/验证 全清单 + 与参考工程对照 + 仍缺项
     ├── m6_moving_speed.md      ← **M6-moving 加速度**：编队控制优化(死推算参考)+速度边界(2.0✅/3.0❌)
     ├── m5_sitl_results.md     ← M5 难度扫描结果
     └── m6_sitl_results.md     ← M6 SITL 难度扫描结果（2026-09-17）

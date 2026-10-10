@@ -463,6 +463,7 @@ source ~/drone_payload_catch/env.sh    # acados + ROS + RMW=fastrtps + PX4 gz �
 | `report/fcu_safety.md` | **飞控安全**：参数体检（`THR_MIN<THR_HOVER`/失效保护/围栏/EKF 源）+ 电池低电→Land；SITL 验证 |
 | `report/companion_safety.md` | **companion 安全网**：失联看门狗（冻结→LAND）+ 硬碰撞地板（→HOLD）；纯逻辑+SITL 诱发验证 |
 | `report/safety_injection_matrix.md` | **安全层故障注入矩阵**：5 场景逐项诱发 + 零误触发基线，5/5 PASS |
+| `report/safety_overview.md` | **安全总览**：飞行前/飞行中/验证 全清单 + 与参考工程对照 + 仍缺项 |
 | `report/m6_moving_speed.md` | **M6-moving 加速度**：编队控制优化 + 及时释放/超时中止；**支持 0.5/1.0 m/s（各 2/2 完美）**，2.0 保留 |
 | `tools/validate_coord.py` | 协同协议 SITL 验证器（跑多组配置 + 不变量检查） |
 | `tools/bench_coord.py` | **协同交接基准（阶段 0）**：coord_mode×intent×σ×delay 网格 + Wilson CI + 报告 |

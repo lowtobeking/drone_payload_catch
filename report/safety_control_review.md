@@ -29,19 +29,21 @@
 
 ---
 
-## 2. 缺失的保护控制（缺口）
+## 2. 缺失的保护控制（缺口）——**状态更新（2026-10-09）**
 
-| # | 缺口 | 风险 | 建议做法 |
+| # | 缺口 | 现状 | 证据/位置 |
 |---|---|---|---|
-| G1 | **Geofence（位置/高度边界）** | A/B 飞出发区；载荷落到禁区 | 位置/高度软限幅 + 越界回拉/悬停（现只**检测+可 kill**，未回拉） |
-| G2 | **丢失目标/A 的看门狗** | 丢 `/drone_a/state`、丢载荷估计后行为未定义 | 超时 → 安全悬停/降落，不再追击（总线上已有状态超时可 kill；尚未做“回退到悬停/降落”） |
-| G3 | **接不住的 abort / go-around** | 释放后预测必然失败也无处置 | 释放前"可捕获性"判定；不可捕获则 A 不释放（已有）+ B 退避 |
-| G4 | **反应式避碰（非静态规则）** | 动态接近（如编队/斜插）时静态 keep-out 不够 | 基于预测轨迹的 keep-out + 排斥速度场 |
-| G5 | **低电/超时保护** | 电尽、超时仍飞 | 电池/任务超时 → 中止并降落 |
-| G6 | **姿态/倾角/jerk 限制** | 大机动触发姿态失效（已知 `v_p≈4.9` failsafe）；抖动 | 倾角/jerk 限幅；平滑参考 |
-| G7 | **捕获失败后处置** | 载荷砸地，无回收/告警 | 失败语义 + 应急（告警/记录/避开落点） |
-| G8 | **B 的加速度/推力约束显式化** | 依赖 PX4，无软约束 | 在控制层显式限 `|a|`、分配余量 |
-| G9 | **通信/时钟异常保护** | 时钟跳变、消息乱序 | 时钟/消息健全性检查 + 降级 |
+| G1 | **Geofence（位置/高度边界）** | ✅ 软围栏 + **越界回拉**（可恢复） | `px4_iface._fence_velocity`；`opt_round2/3`；矩阵 `geofence_pullback` PASS |
+| G2 | **丢失目标/A 的看门狗** | ✅ **失联看门狗**：丢 A→就地冻结→AUTO.LAND | `safety_logic.peer_loss_action`+`b_node`；`companion_safety.md`；矩阵 PASS |
+| G3 | **接不住的 abort / go-around** | ✅ 释放前余量闸 + 编队超时 abort + 接空 `MISS`→悬停→降落 | `a_node._abort_release`/`b_node._abort_formation`/`miss_timeout_s` |
+| G4 | **反应式避碰（非静态规则）** | ✅ 3D keep-out + CBF(opt-in) + **硬碰撞地板**→HOLD | `b_node._keepout_velocity`/`_cbf_velocity`/`keepout.hard_floor`；矩阵 PASS |
+| G5 | **低电/超时保护** | ✅ **电池 warning≥2/remaining<0.07→LAND** + 起飞前电池门 | `safety_logic.battery_*`+`px4_iface`；`fcu_safety.md` |
+| G6 | **姿态/倾角/jerk 限制** | 🟡 倾角/角速率/指令加速度 ✅；**显式 jerk 未做** | `px4_iface._attitude_govern`+`sp_rate_limit`；`opt_round5` |
+| G7 | **捕获失败后处置** | 🟡 接空 `MISS`→悬停→降落 ✅；**载荷砸地物理防护/告警未做** | `b_node` MISS；物理防护待真机 |
+| G8 | **B 的加速度/推力约束显式化** | ✅ 四旋翼聚合约束 + 指令加速度限额 | `payload_catch/dynamics.py`；`dynamics_contact.md` |
+| G9 | **通信/时钟异常保护** | 🟡 时钟 ping/pong + `peer_loss` ✅；消息乱序未专门处理 | `a_node/b_node` clock_sync；`companion_safety.md` |
+
+> 总览与与参考工程对照：`report/safety_overview.md`。
 
 ---
 
