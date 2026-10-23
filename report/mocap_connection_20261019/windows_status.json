@@ -1,0 +1,451 @@
+{
+  "tcp3883": [],
+  "udp3883": [],
+  "applications": [
+    {
+      "Id": 6044,
+      "ProcessName": "ApplicationFrameHost",
+      "MainWindowTitle": "设置",
+      "Path": "C:\\windows\\system32\\ApplicationFrameHost.exe"
+    },
+    {
+      "Id": 10256,
+      "ProcessName": "cc-switch",
+      "MainWindowTitle": "com.ccswitch.desktop-siw",
+      "Path": "C:\\Users\\caoli\\AppData\\Local\\Programs\\CC Switch\\cc-switch.exe"
+    },
+    {
+      "Id": 30124,
+      "ProcessName": "Code",
+      "MainWindowTitle": "How_to_fly_with_control.md - Visual Studio Code",
+      "Path": "C:\\Microsoft VS Code\\Code.exe"
+    },
+    {
+      "Id": 29984,
+      "ProcessName": "msedge",
+      "MainWindowTitle": "动捕使用全流程 - DeepSeek 和另外 2 个页面 - 用户配置 1 - Microsoft​ Edge",
+      "Path": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
+    },
+    {
+      "Id": 11416,
+      "ProcessName": "SystemSettings",
+      "MainWindowTitle": "设置",
+      "Path": "C:\\Windows\\ImmersiveControlPanel\\SystemSettings.exe"
+    },
+    {
+      "Id": 18040,
+      "ProcessName": "TextInputHost",
+      "MainWindowTitle": "Windows 输入体验",
+      "Path": "C:\\windows\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\TextInputHost.exe"
+    },
+    {
+      "Id": 27388,
+      "ProcessName": "WeChat",
+      "MainWindowTitle": "微信",
+      "Path": "C:\\Program Files\\Tencent\\WeChat\\WeChat.exe"
+    },
+    {
+      "Id": 31332,
+      "ProcessName": "WindowsTerminal",
+      "MainWindowTitle": "⠏ 确认能否访问 Linux 文件夹 | caoli",
+      "Path": "C:\\Program Files\\WindowsApps\\Microsoft.WindowsTerminal_1.24.12741.0_x64__8wekyb3d8bbwe\\WindowsTerminal.exe"
+    }
+  ],
+  "interfaces": [
+    {
+      "InterfaceAlias": "vEthernet (MyApps vSwitch)",
+      "IPv4Address": [
+        {
+          "CimClass": {
+            "CimSuperClassName": "CIM_IPProtocolEndpoint",
+            "CimSuperClass": "ROOT/StandardCimv2:CIM_IPProtocolEndpoint",
+            "CimClassProperties": "Caption Description ElementName InstanceID CommunicationStatus DetailedStatus HealthState InstallDate Name OperatingStatus OperationalStatus PrimaryStatus Status StatusDescriptions AvailableRequestedStates EnabledDefault = 2 EnabledState OtherEnabledState RequestedState = 12 TimeOfLastStateChange TransitioningToState = 12 CreationClassName SystemCreationClassName SystemName NameFormat OtherTypeDescription ProtocolIFType = 4096 ProtocolType Address AddressOrigin = 0 AddressType IPv4Address IPv6Address IPVersionSupport PrefixLength SubnetMask AddressFamily AddressState InterfaceAlias InterfaceIndex IPAddress PreferredLifetime PrefixOrigin SkipAsSource Store SuffixOrigin Type ValidLifetime",
+            "CimClassQualifiers": "UMLPackagePath = \"CIM::Network::ProtocolEndpoints\" ClassVersion = \"1.0.0\" dynamic = True locale = 1033 provider = \"nettcpip\"",
+            "CimClassMethods": "RequestStateChange Create",
+            "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+          },
+          "CimInstanceProperties": [
+            "Caption",
+            "Description",
+            "ElementName",
+            "InstanceID",
+            "CommunicationStatus",
+            "DetailedStatus",
+            "HealthState",
+            "InstallDate",
+            "Name = \";A?8?@8;C?8;55@?55;55;\"",
+            "OperatingStatus",
+            "OperationalStatus",
+            "PrimaryStatus",
+            "Status",
+            "StatusDescriptions",
+            "AvailableRequestedStates",
+            "EnabledDefault = 2",
+            "EnabledState",
+            "OtherEnabledState",
+            "RequestedState = 12",
+            "TimeOfLastStateChange",
+            "TransitioningToState = 12",
+            "CreationClassName = \"\"",
+            "SystemCreationClassName = \"\"",
+            "SystemName = \"\"",
+            "NameFormat",
+            "OtherTypeDescription",
+            "ProtocolIFType = 4096",
+            "ProtocolType",
+            "Address",
+            "AddressOrigin = 0",
+            "AddressType",
+            "IPv4Address = \"172.26.192.1\"",
+            "IPv6Address",
+            "IPVersionSupport",
+            "PrefixLength = 20",
+            "SubnetMask",
+            "AddressFamily = 2",
+            "AddressState = 4",
+            "InterfaceAlias = \"vEthernet (MyApps vSwitch)\"",
+            "InterfaceIndex = 64",
+            "IPAddress = \"172.26.192.1\"",
+            "PreferredLifetime = 10675199.02:48:05.4775807",
+            "PrefixOrigin = 1",
+            "SkipAsSource = False",
+            "Store = 1",
+            "SuffixOrigin = 1",
+            "Type = 1",
+            "ValidLifetime = 10675199.02:48:05.4775807"
+          ],
+          "CimSystemProperties": {
+            "Namespace": "root/StandardCimv2",
+            "ServerName": "SEVEN",
+            "ClassName": "MSFT_NetIPAddress",
+            "Path": null
+          }
+        }
+      ],
+      "IPv4DefaultGateway": null
+    },
+    {
+      "InterfaceAlias": "vEthernet (WSL (Hyper-V firewall))",
+      "IPv4Address": [
+        {
+          "CimClass": {
+            "CimSuperClassName": "CIM_IPProtocolEndpoint",
+            "CimSuperClass": "ROOT/StandardCimv2:CIM_IPProtocolEndpoint",
+            "CimClassProperties": "Caption Description ElementName InstanceID CommunicationStatus DetailedStatus HealthState InstallDate Name OperatingStatus OperationalStatus PrimaryStatus Status StatusDescriptions AvailableRequestedStates EnabledDefault = 2 EnabledState OtherEnabledState RequestedState = 12 TimeOfLastStateChange TransitioningToState = 12 CreationClassName SystemCreationClassName SystemName NameFormat OtherTypeDescription ProtocolIFType = 4096 ProtocolType Address AddressOrigin = 0 AddressType IPv4Address IPv6Address IPVersionSupport PrefixLength SubnetMask AddressFamily AddressState InterfaceAlias InterfaceIndex IPAddress PreferredLifetime PrefixOrigin SkipAsSource Store SuffixOrigin Type ValidLifetime",
+            "CimClassQualifiers": "UMLPackagePath = \"CIM::Network::ProtocolEndpoints\" ClassVersion = \"1.0.0\" dynamic = True locale = 1033 provider = \"nettcpip\"",
+            "CimClassMethods": "RequestStateChange Create",
+            "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+          },
+          "CimInstanceProperties": [
+            "Caption",
+            "Description",
+            "ElementName",
+            "InstanceID",
+            "CommunicationStatus",
+            "DetailedStatus",
+            "HealthState",
+            "InstallDate",
+            "Name = \";A?8??8?:B8;55A?55;55;\"",
+            "OperatingStatus",
+            "OperationalStatus",
+            "PrimaryStatus",
+            "Status",
+            "StatusDescriptions",
+            "AvailableRequestedStates",
+            "EnabledDefault = 2",
+            "EnabledState",
+            "OtherEnabledState",
+            "RequestedState = 12",
+            "TimeOfLastStateChange",
+            "TransitioningToState = 12",
+            "CreationClassName = \"\"",
+            "SystemCreationClassName = \"\"",
+            "SystemName = \"\"",
+            "NameFormat",
+            "OtherTypeDescription",
+            "ProtocolIFType = 4096",
+            "ProtocolType",
+            "Address",
+            "AddressOrigin = 0",
+            "AddressType",
+            "IPv4Address = \"172.22.208.1\"",
+            "IPv6Address",
+            "IPVersionSupport",
+            "PrefixLength = 20",
+            "SubnetMask",
+            "AddressFamily = 2",
+            "AddressState = 4",
+            "InterfaceAlias = \"vEthernet (WSL (Hyper-V firewall))\"",
+            "InterfaceIndex = 72",
+            "IPAddress = \"172.22.208.1\"",
+            "PreferredLifetime = 10675199.02:48:05.4775807",
+            "PrefixOrigin = 1",
+            "SkipAsSource = False",
+            "Store = 1",
+            "SuffixOrigin = 1",
+            "Type = 1",
+            "ValidLifetime = 10675199.02:48:05.4775807"
+          ],
+          "CimSystemProperties": {
+            "Namespace": "root/StandardCimv2",
+            "ServerName": "SEVEN",
+            "ClassName": "MSFT_NetIPAddress",
+            "Path": null
+          }
+        }
+      ],
+      "IPv4DefaultGateway": null
+    },
+    {
+      "InterfaceAlias": "WLAN",
+      "IPv4Address": [
+        {
+          "CimClass": {
+            "CimSuperClassName": "CIM_IPProtocolEndpoint",
+            "CimSuperClass": "ROOT/StandardCimv2:CIM_IPProtocolEndpoint",
+            "CimClassProperties": "Caption Description ElementName InstanceID CommunicationStatus DetailedStatus HealthState InstallDate Name OperatingStatus OperationalStatus PrimaryStatus Status StatusDescriptions AvailableRequestedStates EnabledDefault = 2 EnabledState OtherEnabledState RequestedState = 12 TimeOfLastStateChange TransitioningToState = 12 CreationClassName SystemCreationClassName SystemName NameFormat OtherTypeDescription ProtocolIFType = 4096 ProtocolType Address AddressOrigin = 0 AddressType IPv4Address IPv6Address IPVersionSupport PrefixLength SubnetMask AddressFamily AddressState InterfaceAlias InterfaceIndex IPAddress PreferredLifetime PrefixOrigin SkipAsSource Store SuffixOrigin Type ValidLifetime",
+            "CimClassQualifiers": "UMLPackagePath = \"CIM::Network::ProtocolEndpoints\" ClassVersion = \"1.0.0\" dynamic = True locale = 1033 provider = \"nettcpip\"",
+            "CimClassMethods": "RequestStateChange Create",
+            "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+          },
+          "CimInstanceProperties": [
+            "Caption",
+            "Description",
+            "ElementName",
+            "InstanceID",
+            "CommunicationStatus",
+            "DetailedStatus",
+            "HealthState",
+            "InstallDate",
+            "Name = \";C?8;@B8;??8;C?55??55;55;\"",
+            "OperatingStatus",
+            "OperationalStatus",
+            "PrimaryStatus",
+            "Status",
+            "StatusDescriptions",
+            "AvailableRequestedStates",
+            "EnabledDefault = 2",
+            "EnabledState",
+            "OtherEnabledState",
+            "RequestedState = 12",
+            "TimeOfLastStateChange",
+            "TransitioningToState = 12",
+            "CreationClassName = \"\"",
+            "SystemCreationClassName = \"\"",
+            "SystemName = \"\"",
+            "NameFormat",
+            "OtherTypeDescription",
+            "ProtocolIFType = 4096",
+            "ProtocolType",
+            "Address",
+            "AddressOrigin = 0",
+            "AddressType",
+            "IPv4Address = \"192.168.154.192\"",
+            "IPv6Address",
+            "IPVersionSupport",
+            "PrefixLength = 22",
+            "SubnetMask",
+            "AddressFamily = 2",
+            "AddressState = 4",
+            "InterfaceAlias = \"WLAN\"",
+            "InterfaceIndex = 22",
+            "IPAddress = \"192.168.154.192\"",
+            "PreferredLifetime = 29.23:52:30",
+            "PrefixOrigin = 3",
+            "SkipAsSource = False",
+            "Store = 1",
+            "SuffixOrigin = 3",
+            "Type = 1",
+            "ValidLifetime = 29.23:52:30"
+          ],
+          "CimSystemProperties": {
+            "Namespace": "root/StandardCimv2",
+            "ServerName": "SEVEN",
+            "ClassName": "MSFT_NetIPAddress",
+            "Path": null
+          }
+        }
+      ],
+      "IPv4DefaultGateway": [
+        {
+          "CimClass": {
+            "CimSuperClassName": "CIM_NextHopRoute",
+            "CimSuperClass": "ROOT/StandardCimv2:CIM_NextHopRoute",
+            "CimClassProperties": "Caption Description ElementName InstanceID AdminDistance DestinationAddress IsStatic RouteMetric TypeOfRoute = 3 AddressFamily CompartmentId DestinationPrefix InterfaceAlias InterfaceIndex InterfaceMetric NextHop PreferredLifetime Protocol Publish State Store ValidLifetime",
+            "CimClassQualifiers": "UMLPackagePath = \"CIM::Network::Routes\" ClassVersion = \"1.0.0\" dynamic = True locale = 1033 provider = \"nettcpip\"",
+            "CimClassMethods": "Create Find",
+            "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+          },
+          "CimInstanceProperties": [
+            "Caption",
+            "Description",
+            "ElementName",
+            "InstanceID = \":8:8:8:9:55??55;C?8;@B8;??8;55;\"",
+            "AdminDistance",
+            "DestinationAddress",
+            "IsStatic",
+            "RouteMetric = 0",
+            "TypeOfRoute = 3",
+            "AddressFamily = 2",
+            "CompartmentId = 1",
+            "DestinationPrefix = \"0.0.0.0/0\"",
+            "InterfaceAlias = \"WLAN\"",
+            "InterfaceIndex = 22",
+            "InterfaceMetric = 45",
+            "NextHop = \"192.168.152.1\"",
+            "PreferredLifetime = 29.21:39:36",
+            "Protocol = 3",
+            "Publish = 0",
+            "State = 0",
+            "Store = 1",
+            "ValidLifetime = 29.21:39:36"
+          ],
+          "CimSystemProperties": {
+            "Namespace": "root/StandardCimv2",
+            "ServerName": "SEVEN",
+            "ClassName": "MSFT_NetRoute",
+            "Path": null
+          }
+        }
+      ]
+    },
+    {
+      "InterfaceAlias": "以太网",
+      "IPv4Address": [
+        {
+          "CimClass": {
+            "CimSuperClassName": "CIM_IPProtocolEndpoint",
+            "CimSuperClass": "ROOT/StandardCimv2:CIM_IPProtocolEndpoint",
+            "CimClassProperties": "Caption Description ElementName InstanceID CommunicationStatus DetailedStatus HealthState InstallDate Name OperatingStatus OperationalStatus PrimaryStatus Status StatusDescriptions AvailableRequestedStates EnabledDefault = 2 EnabledState OtherEnabledState RequestedState = 12 TimeOfLastStateChange TransitioningToState = 12 CreationClassName SystemCreationClassName SystemName NameFormat OtherTypeDescription ProtocolIFType = 4096 ProtocolType Address AddressOrigin = 0 AddressType IPv4Address IPv6Address IPVersionSupport PrefixLength SubnetMask AddressFamily AddressState InterfaceAlias InterfaceIndex IPAddress PreferredLifetime PrefixOrigin SkipAsSource Store SuffixOrigin Type ValidLifetime",
+            "CimClassQualifiers": "UMLPackagePath = \"CIM::Network::ProtocolEndpoints\" ClassVersion = \"1.0.0\" dynamic = True locale = 1033 provider = \"nettcpip\"",
+            "CimClassMethods": "RequestStateChange Create",
+            "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+          },
+          "CimInstanceProperties": [
+            "Caption",
+            "Description",
+            "ElementName",
+            "InstanceID",
+            "CommunicationStatus",
+            "DetailedStatus",
+            "HealthState",
+            "InstallDate",
+            "Name = \";C?8;@B8;8;??55A55;55;\"",
+            "OperatingStatus",
+            "OperationalStatus",
+            "PrimaryStatus",
+            "Status",
+            "StatusDescriptions",
+            "AvailableRequestedStates",
+            "EnabledDefault = 2",
+            "EnabledState",
+            "OtherEnabledState",
+            "RequestedState = 12",
+            "TimeOfLastStateChange",
+            "TransitioningToState = 12",
+            "CreationClassName = \"\"",
+            "SystemCreationClassName = \"\"",
+            "SystemName = \"\"",
+            "NameFormat",
+            "OtherTypeDescription",
+            "ProtocolIFType = 4096",
+            "ProtocolType",
+            "Address",
+            "AddressOrigin = 0",
+            "AddressType",
+            "IPv4Address = \"192.168.1.123\"",
+            "IPv6Address",
+            "IPVersionSupport",
+            "PrefixLength = 24",
+            "SubnetMask",
+            "AddressFamily = 2",
+            "AddressState = 1",
+            "InterfaceAlias = \"以太网\"",
+            "InterfaceIndex = 7",
+            "IPAddress = \"192.168.1.123\"",
+            "PreferredLifetime = 10675199.02:48:05.4775807",
+            "PrefixOrigin = 1",
+            "SkipAsSource = False",
+            "Store = 1",
+            "SuffixOrigin = 1",
+            "Type = 1",
+            "ValidLifetime = 10675199.02:48:05.4775807"
+          ],
+          "CimSystemProperties": {
+            "Namespace": "root/StandardCimv2",
+            "ServerName": "SEVEN",
+            "ClassName": "MSFT_NetIPAddress",
+            "Path": null
+          }
+        },
+        {
+          "CimClass": {
+            "CimSuperClassName": "CIM_IPProtocolEndpoint",
+            "CimSuperClass": "ROOT/StandardCimv2:CIM_IPProtocolEndpoint",
+            "CimClassProperties": "Caption Description ElementName InstanceID CommunicationStatus DetailedStatus HealthState InstallDate Name OperatingStatus OperationalStatus PrimaryStatus Status StatusDescriptions AvailableRequestedStates EnabledDefault = 2 EnabledState OtherEnabledState RequestedState = 12 TimeOfLastStateChange TransitioningToState = 12 CreationClassName SystemCreationClassName SystemName NameFormat OtherTypeDescription ProtocolIFType = 4096 ProtocolType Address AddressOrigin = 0 AddressType IPv4Address IPv6Address IPVersionSupport PrefixLength SubnetMask AddressFamily AddressState InterfaceAlias InterfaceIndex IPAddress PreferredLifetime PrefixOrigin SkipAsSource Store SuffixOrigin Type ValidLifetime",
+            "CimClassQualifiers": "UMLPackagePath = \"CIM::Network::ProtocolEndpoints\" ClassVersion = \"1.0.0\" dynamic = True locale = 1033 provider = \"nettcpip\"",
+            "CimClassMethods": "RequestStateChange Create",
+            "CimSystemProperties": "Microsoft.Management.Infrastructure.CimSystemProperties"
+          },
+          "CimInstanceProperties": [
+            "Caption",
+            "Description",
+            "ElementName",
+            "InstanceID",
+            "CommunicationStatus",
+            "DetailedStatus",
+            "HealthState",
+            "InstallDate",
+            "Name = \";@C8???8;?C8;?B55A55;55;\"",
+            "OperatingStatus",
+            "OperationalStatus",
+            "PrimaryStatus",
+            "Status",
+            "StatusDescriptions",
+            "AvailableRequestedStates",
+            "EnabledDefault = 2",
+            "EnabledState",
+            "OtherEnabledState",
+            "RequestedState = 12",
+            "TimeOfLastStateChange",
+            "TransitioningToState = 12",
+            "CreationClassName = \"\"",
+            "SystemCreationClassName = \"\"",
+            "SystemName = \"\"",
+            "NameFormat",
+            "OtherTypeDescription",
+            "ProtocolIFType = 4096",
+            "ProtocolType",
+            "Address",
+            "AddressOrigin = 0",
+            "AddressType",
+            "IPv4Address = \"169.254.149.158\"",
+            "IPv6Address",
+            "IPVersionSupport",
+            "PrefixLength = 16",
+            "SubnetMask",
+            "AddressFamily = 2",
+            "AddressState = 1",
+            "InterfaceAlias = \"以太网\"",
+            "InterfaceIndex = 7",
+            "IPAddress = \"169.254.149.158\"",
+            "PreferredLifetime = 10675199.02:48:05.4775807",
+            "PrefixOrigin = 2",
+            "SkipAsSource = False",
+            "Store = 1",
+            "SuffixOrigin = 4",
+            "Type = 1",
+            "ValidLifetime = 10675199.02:48:05.4775807"
+          ],
+          "CimSystemProperties": {
+            "Namespace": "root/StandardCimv2",
+            "ServerName": "SEVEN",
+            "ClassName": "MSFT_NetIPAddress",
+            "Path": null
+          }
+        }
+      ],
+      "IPv4DefaultGateway": null
+    }
+  ]
+}

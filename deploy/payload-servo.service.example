@@ -1,0 +1,20 @@
+# Template only: not installed/enabled by the deployment tool.
+# All referenced code, dependencies and configs must be root-owned and reviewed.
+[Unit]
+Description=Payload A latch PWM with temporary pin33 rollback
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+EnvironmentFile=/etc/payload_catch/servo.env
+RuntimeDirectory=payload-servo
+ExecStart=/bin/bash /opt/payload_catch/servo_runtime/deploy/run_servo_service.sh run
+ExecStopPost=/bin/bash /opt/payload_catch/servo_runtime/deploy/run_servo_service.sh restore
+Restart=no
+KillMode=control-group
+TimeoutStopSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,66 @@
+{
+  "kind": "operator_reported_ccw_turn",
+  "recorded_at_utc": "2026-10-21 08:19:53 UTC",
+  "before": {
+    "tracker": "planeA",
+    "count": 1198,
+    "invalid": 0,
+    "nonincreasing_timestamps": 1,
+    "connected": true,
+    "rate_hz": 120.058362951937,
+    "age_s": 0.006372976,
+    "position": [
+      2.2070205078125,
+      0.288998107910156,
+      0.290943542480469
+    ],
+    "quaternion_xyzw": [
+      0.00431094504892826,
+      0.00484082102775574,
+      0.999462246894836,
+      0.0321435406804085
+    ],
+    "forwarded_to_px4": false
+  },
+  "after": {
+    "tracker": "planeA",
+    "count": 1199,
+    "invalid": 0,
+    "nonincreasing_timestamps": 0,
+    "connected": true,
+    "rate_hz": 119.989201204258,
+    "age_s": 0.001070595,
+    "position": [
+      2.10812866210938,
+      0.233878143310547,
+      0.198668243408203
+    ],
+    "quaternion_xyzw": [
+      -0.616680204868317,
+      -0.02214714884758,
+      0.786329984664917,
+      0.0299986600875854
+    ],
+    "forwarded_to_px4": false
+  },
+  "delta_position_m": [
+    -0.09889184570312004,
+    -0.05511996459960902,
+    -0.092275299072266
+  ],
+  "relative_rotation_world_xyzw": [
+    0.0059901148146849735,
+    -0.620595594000016,
+    -0.001817335236162225,
+    0.7841058120718871
+  ],
+  "rotation_angle_deg": 76.7238954341289,
+  "axis_in_raw_world": [
+    0.009651712286586733,
+    -0.9999491336839352,
+    -0.0029282238104540266
+  ],
+  "assumption": "standard active xyzw quaternion (body-to-world); actual source orientation convention requires verification",
+  "finding": "Observed relative rotation primarily about raw world -Y under standard active xyzw interpretation, inconsistent with expected pure yaw about previously identified +Z. Need operator motion confirmation and source orientation convention verification. Not accepted calibration.",
+  "forwarded_to_px4": false
+}

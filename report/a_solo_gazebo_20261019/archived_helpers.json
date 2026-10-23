@@ -1,0 +1,77 @@
+[
+  {
+    "source": "tools/fix_a_gazebo_params.py",
+    "destination": "report/a_solo_gazebo_20261019/diagnostic_helpers/fix_a_gazebo_params.py",
+    "sha256": "2a55659ff50fe95dfbb104075dccf797c8869b0eabd161ef2e4f3c0d766a7585"
+  },
+  {
+    "source": "tools/fix_a_gazebo_land_watch.py",
+    "destination": "report/a_solo_gazebo_20261019/diagnostic_helpers/fix_a_gazebo_land_watch.py",
+    "sha256": "25b873bbfcda87ebde0168fb93a49404d2d36d867aae9937f0f4054a5b407eef"
+  },
+  {
+    "source": "tools/fix_a_gazebo_heartbeat.py",
+    "destination": "report/a_solo_gazebo_20261019/diagnostic_helpers/fix_a_gazebo_heartbeat.py",
+    "sha256": "b93b4893524f130d270c64453ccfd8e9af30f6a39d8201822b26a48c6aa9c1d4"
+  },
+  {
+    "source": "tools/fix_a_gazebo_protocol.py",
+    "destination": "report/a_solo_gazebo_20261019/diagnostic_helpers/fix_a_gazebo_protocol.py",
+    "sha256": "3a0c0876eec8076e9f513e89231268ccd08fc2e24ad5766b81e44815293ad8d4"
+  },
+  {
+    "source": "tools/fix_a_gazebo_clock.py",
+    "destination": "report/a_solo_gazebo_20261019/diagnostic_helpers/fix_a_gazebo_clock.py",
+    "sha256": "03319abc864b313ecb8dfdc2e3541d96bd39e0ff0d9f250c399da3a3c8ecab80"
+  },
+  {
+    "source": "tools/fix_a_gazebo_delivery.py",
+    "destination": "report/a_solo_gazebo_20261019/diagnostic_helpers/fix_a_gazebo_delivery.py",
+    "sha256": "27e87bbf2316f32aa8de9f88a977145fc72717808a9a81ca0b33691d2a45c5b8"
+  },
+  {
+    "source": "tools/fix_a_gazebo_clock_snapshot.py",
+    "destination": "report/a_solo_gazebo_20261019/diagnostic_helpers/fix_a_gazebo_clock_snapshot.py",
+    "sha256": "19f6db3e466d86763b43187d7e03437545795b4a8ce03cdcc23fee9848c60996"
+  },
+  {
+    "source": "tools/fix_a_gazebo_clock_domains.py",
+    "destination": "report/a_solo_gazebo_20261019/diagnostic_helpers/fix_a_gazebo_clock_domains.py",
+    "sha256": "13136ab93691d01be06c2a7c99bee41c8f3a402327fb4978922d050087c8f472"
+  },
+  {
+    "source": "tools/fix_a_gazebo_diagnostics.py",
+    "destination": "report/a_solo_gazebo_20261019/diagnostic_helpers/fix_a_gazebo_diagnostics.py",
+    "sha256": "1ec4e18f49914bcab799c83e79984f31ba1da558e539a74f939047af88945d4a"
+  },
+  {
+    "source": "tools/fix_a_gazebo_buzzer_trial.py",
+    "destination": "report/a_solo_gazebo_20261019/diagnostic_helpers/fix_a_gazebo_buzzer_trial.py",
+    "sha256": "bd4c1da6335a88dbee4d264ec1b750194e3e47f173348d069b7b0fccf8b1c9c2"
+  },
+  {
+    "source": "tools/fix_a_gazebo_queue_diagnostic.py",
+    "destination": "report/a_solo_gazebo_20261019/diagnostic_helpers/fix_a_gazebo_queue_diagnostic.py",
+    "sha256": "8ff6aa2ecf959f7a739764decfc159141cb107a2e016237e3961c44378585537"
+  },
+  {
+    "source": "tools/fix_a_gazebo_diagnostic_scope.py",
+    "destination": "report/a_solo_gazebo_20261019/diagnostic_helpers/fix_a_gazebo_diagnostic_scope.py",
+    "sha256": "9b7aed8f2ef8146720e3da54556e79e63cd038dd07c2ce67266048d562f95e46"
+  },
+  {
+    "source": "tools/cleanup_a_gazebo_retry.py",
+    "destination": "report/a_solo_gazebo_20261019/diagnostic_helpers/cleanup_a_gazebo_retry.py",
+    "sha256": "f697ca1c5aa6b5a32bbef1e055fc23c2dce9bc1cf787dbce00b00024ce6bb973"
+  },
+  {
+    "source": "tools/inspect_a_solo_gazebo.py",
+    "destination": "report/a_solo_gazebo_20261019/diagnostic_helpers/inspect_a_solo_gazebo.py",
+    "sha256": "b6b04c3fce1aba4f7969bc26cc1540042c2c19801b53cd289461200ef872d6ee"
+  },
+  {
+    "source": "tools/inspect_a_function_log.py",
+    "destination": "report/a_solo_gazebo_20261019/diagnostic_helpers/inspect_a_function_log.py",
+    "sha256": "9cf4e113f207abcfb74d6338c626d744242f76d957fc08ed5f9a0138903012b8"
+  }
+]

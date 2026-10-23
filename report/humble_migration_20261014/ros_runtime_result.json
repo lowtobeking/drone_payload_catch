@@ -1,0 +1,18 @@
+{
+  "ros_distro": "humble",
+  "domain_id": 97,
+  "localhost_only": true,
+  "nodes_initialized": [
+    "a_node",
+    "b_node",
+    "safety_supervisor",
+    "release_guard",
+    "relnav_node",
+    "payload_node"
+  ],
+  "observation_seconds": 6.000199756000029,
+  "vehicle_commands": 0,
+  "arm_commands": 0,
+  "offboard_commands": 0,
+  "authorized_releases": 0
+}

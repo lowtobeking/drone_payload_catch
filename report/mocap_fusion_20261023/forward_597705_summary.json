@@ -1,0 +1,63 @@
+{
+  "operator_distance_m": 0.597705,
+  "baseline_file": "heading_movement_baseline.json",
+  "probe_directory": "heading_probe_20261023T082553Z",
+  "source_world_delta_m": [
+    -0.06236231451271901,
+    0.5976285088633355,
+    7.240849304684938e-05
+  ],
+  "laboratory_frd_delta_m": [
+    0.5976285088633355,
+    -0.06236231451271901,
+    -7.240849304684938e-05
+  ],
+  "baseline_body_frd_delta_m": [
+    0.5987942863880613,
+    -0.049160311530399625,
+    -0.008807069877855735
+  ],
+  "horizontal_heading_forward_m": 0.5988675008251475,
+  "horizontal_heading_right_m": -0.049057204700626605,
+  "up_m": 7.240849304684938e-05,
+  "distance_3d_m": 0.6008734460105448,
+  "horizontal_distance_m": 0.6008734416477377,
+  "distance_difference_m": 0.0031684460105447787,
+  "relative_rotation_rpy_deg": [
+    0.10720351189277293,
+    -0.06812235294694158,
+    1.7587011143345366
+  ],
+  "distance_not_independent_calibration": true,
+  "source_mean_position_m": [
+    1.8162322807550135,
+    0.3977213735973347,
+    0.2917576463487415
+  ],
+  "source_mean_quaternion_xyzw": [
+    0.006404562955232696,
+    0.008495942522736666,
+    0.9999342540070819,
+    0.004276470192006554
+  ],
+  "static_endpoint_comparison_only": true,
+  "flight_approval": false,
+  "north_verified": false,
+  "forward_direction_matches": true,
+  "raw_samples": 801,
+  "heading_reference_check": {
+    "old_px4_yaw_deg": -47.1091351473675,
+    "new_px4_yaw_deg": -86.28841152307554,
+    "old_mocap_yaw_deg": -1.274543044161562,
+    "new_mocap_yaw_deg": 0.4837094320193514,
+    "px4_heading_change_deg": -39.179276375708035,
+    "mocap_heading_change_deg": 1.7582524761809133,
+    "old_reference_offset_deg": -45.8345921030609,
+    "current_reference_offset_deg": -86.77212095506289,
+    "reference_offset_change_deg": -40.93752885200199,
+    "current_magnetic_heading_consistent": false,
+    "current_heading_good_for_control": false,
+    "comparable_reference_proven": false,
+    "conclusion": "Do not resnapshot/redefine axes at each location; static stability does not prove a reliable shared reference."
+  }
+}

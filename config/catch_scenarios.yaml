@@ -340,7 +340,7 @@ thresholds:
 # ── 真机配置（标定 + 相对定位 + 接触检测）；SITL/离线不读此段 ────────────────
 real:
   relnav:                      # 相对定位驱动（relnav_node）
-    source: rtk                # rtk | px4 | sim
+    source: rtk                # rtk | px4（需统一世界系标定）
     a_rtk_topic: /rtk/a
     b_rtk_topic: /rtk/b
     rtk_type: navsatfix        # navsatfix | array（array 时 use_geodetic 决定 [lat,lon,alt] 或 [n,e,d]）
@@ -348,8 +348,8 @@ real:
     origin_lat: 0.0            # 公共 NED 原点（全 0 → 取首个 fix）
     origin_lon: 0.0
     origin_alt: 0.0
-    a_lever: [0.0, 0.0, 0.2]   # A 天线→末端/释放点（机体系 NED，x前 y右 z下）
-    b_lever: [0.0, 0.0, -0.21] # B 天线→托盘面（机体系 NED）
+    a_lever: [0.0, 0.0, 0.0]   # 占位，必须实测：A 天线→PX4 机体原点（FRD）
+    b_lever: [0.0, 0.0, 0.0]   # 占位，必须实测：B 天线→PX4 机体原点（FRD）
   calibration:                 # 标定（实测回填）
     b_world_offset: [0.0, 0.0, 0.0]   # B 的 PX4 原点在 relnav 世界系的 NED
     px4_z_bias: 0.24           # PX4 pos_world.z 与模型绝对高度的差
@@ -359,4 +359,4 @@ real:
     enable: true
     accel_thresh: 15.0         # m/s²
     topic: /payload/contact    # 外部力/微动/对射开关（Bool）
-    timeout_s: 0.30            # 进入窗口后无接触则兜底
+    timeout_s: 0.30            # 兼容历史参数；真机已禁止超时假报捕获

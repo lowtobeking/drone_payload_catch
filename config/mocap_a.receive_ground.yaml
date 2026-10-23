@@ -1,0 +1,47 @@
+# Ground commissioning only. No flight tasks, parameter writes or arm commands.
+schema: 1
+scope: ground_only
+enabled: true
+timestamp_mode: receive_time_ground
+# Explicitly limited to DISARMED + LANDED, bounded ground tests.
+# No measured sample time or marker-to-IMU calibration is claimed.
+ground_receive_time_acknowledged: true
+max_relative_time_drift_s: 0.08
+max_identical_pose_s: 0.5
+input_topic: /payload/mocap/a/raw_sample
+output_topic: /fmu/in/vehicle_visual_odometry
+input_frame: world
+tracker: planeA
+sensor: 0
+expected_system_id: 1
+expected_component_id: 1
+mounting_confirmed: false
+lever_arm_measured: false
+server_timing_verified: false
+tracking_loss_verified: false
+# local Unix microseconds = VRPN source microseconds + this measured offset.
+# Never learn an offset automatically from minimum/mean arrival delay.
+source_to_local_offset_us: null
+source_offset_uncertainty_us: null
+max_sample_age_s: 0.15
+max_receive_age_s: 0.05
+max_source_gap_s: 0.15
+max_clock_step_s: 0.02
+max_time_sync_age_s: 2.0
+max_time_sync_rtt_us: 10000
+max_output_hz: 50.0
+# Conservative commissioning assumptions, not measured mocap accuracy.
+position_variance_m2: 0.01
+orientation_variance_rad2: 0.01
+reset_counter: 0
+transform:
+  world_to_local:
+    - [0, 1, 0]
+    - [1, 0, 0]
+    - [0, 0, -1]
+  body_to_marker:
+    - [0, -1, 0]
+    - [-1, 0, 0]
+    - [0, 0, -1]
+  shared_origin_world_m: [0, 0, 0]
+  body_origin_in_marker_m: [0, 0, 0]

@@ -21,9 +21,14 @@ def generate_launch_description():
     controller = LaunchConfiguration('controller')
 
     a = Node(package='payload_catch', executable='a_node', name='a_node', output='screen',
-             parameters=[{'drone_id': 0, 'hover_world': a_hover}])
+             parameters=[{'drone_id': 0, 'hover_world': a_hover,
+                          'preflight_report': LaunchConfiguration('preflight_report'),
+                          'preflight_require_gps': False,'preflight_require_rc':False}])
     b = Node(package='payload_catch', executable='b_node', name='b_node', output='screen',
              parameters=[{'drone_id': 1, 'standby_world': b_standby, 'world_offset': b_offset,
+                          'preflight_report': LaunchConfiguration('preflight_report'),
+                          'preflight_require_gps': False,
+                          'preflight_require_rc':False,
                           'a_release_world': a_hover, 'start_delay': 18.0,
                           'capture_radius': 0.5, 'capture_rel_speed': 2.5,
                           'replan_dt': 0.10, 'b_max_speed': 9.0, 'b_max_accel': 10.0,
@@ -35,6 +40,7 @@ def generate_launch_description():
                                 'release_delay': release_delay, 'use_gazebo': True,
                                 'model_path': model_path}])
     return LaunchDescription([
+        DeclareLaunchArgument('preflight_report', default_value=''),
         DeclareLaunchArgument('a_hover', default_value='[0.0, 0.0, -3.0]'),
         DeclareLaunchArgument('b_standby', default_value='[0.2, 0.0, -2.8]'),
         DeclareLaunchArgument('b_offset', default_value='[0.2, 0.0, 0.0]'),
@@ -42,5 +48,7 @@ def generate_launch_description():
         DeclareLaunchArgument('controller', default_value='pd', description='pd | mpc'),
         DeclareLaunchArgument('model_path',
                               default_value='/home/caolihao/drone_payload_catch/models/payload/model.sdf'),
+        Node(package='payload_catch',executable='safety_supervisor',output='screen',parameters=[{'require_rc':False}]),
+        Node(package='payload_catch',executable='release_guard',output='screen',parameters=[{'authority':1}]),
         a, b, payload,
     ])

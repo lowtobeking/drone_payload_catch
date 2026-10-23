@@ -6,3 +6,29 @@ log/
 
 # Word 临时锁文件
 ~$*.docx
+
+# Local test caches and Windows download metadata
+.pytest_cache/
+*.pyo
+*:Zone.Identifier
+
+# Report run artifacts remain local; keep summaries and reproducible entry scripts.
+/report/*/*
+!/report/figures/
+!/report/*/*.md
+!/report/*/*.py
+!/report/*/*.sh
+!/report/*/*.cpp
+!/report/*/*.yaml
+!/report/*/*.json
+
+# Historical archives and housekeeping records remain local.
+/report/workfiles/
+/report/workspace_cleanup_20261023/
+/report/**/active_ssh_session_*.json
+/report/**/capture_state.json
+
+# Historical Wi-Fi helpers with site credentials remain local.
+/report/mocap_connection_20261019/attempt_wifi.py
+/report/mocap_connection_20261019/fix_wifi_routes.py
+/report/mocap_connection_20261019/wifi_connect_guard.py

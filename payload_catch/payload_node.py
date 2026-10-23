@@ -14,13 +14,16 @@ use_gazebo=false 时退回解析抛体（旧行为，便于离线/对照）。
 from __future__ import annotations
 
 import os
+import time
+import json
 
 import numpy as np
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Bool, Float64, Float64MultiArray
+from std_msgs.msg import Bool, Float64, Float64MultiArray, String
 
 from .payload_model import PayloadModel, PayloadParams
+from .safety_runtime import SourceWatch
 
 try:
     from gz.transport13 import Node as GzNode
@@ -82,7 +85,9 @@ class PayloadNode(Node):
         self.dt = 1.0 / self.hz
         self.world = str(self.get_parameter('world').value)
         self.model_path = str(self.get_parameter('model_path').value)
-        self.use_gz = bool(self.get_parameter('use_gazebo').value) and _HAS_GZ
+        if bool(self.get_parameter('use_gazebo').value) and not _HAS_GZ:
+            raise RuntimeError('Gazebo requested but bindings unavailable; no analytic fallback')
+        self.use_gz = bool(self.get_parameter('use_gazebo').value)
         self.release_offset = np.asarray(
             self.get_parameter('release_offset').value, float).reshape(3)
         self.release_xy_sigma = float(self.get_parameter('release_xy_sigma').value)
@@ -104,6 +109,9 @@ class PayloadNode(Node):
         self.model = PayloadModel(PayloadParams(gravity=float(self.get_parameter('gravity').value)))
         self.t = 0.0
         self.abs_release_at = None
+        self._authorized=False;self._authorized_watch=SourceWatch(.10)
+        self._abort_at=-float('inf')
+        self._odom_source_stamp=None
         self.caught = False
         self.spawned = False
         # Gazebo 观测
@@ -127,6 +135,7 @@ class PayloadNode(Node):
         self.pub_released = self.create_publisher(Bool, '/payload/released', 10)
         self.create_subscription(Bool, '/payload/caught', self._on_caught, 10)
         self.create_subscription(Float64, '/payload/release_at', self._on_release_at, 10)
+        self.create_subscription(String,'/payload/authorized_release',self._on_authorized,10)
         self.create_subscription(Bool, '/payload/release_abort', self._on_release_abort, 10)
         if self.use_a_state:
             self.create_subscription(Float64MultiArray,
@@ -174,9 +183,19 @@ class PayloadNode(Node):
             self.abs_release_at = float(msg.data)
             self.get_logger().warn(f'payload_node: 收到释放时刻 {self.abs_release_at:.3f}')
 
+    def _on_authorized(self,msg):
+        try:
+            d=json.loads(msg.data)
+            if not isinstance(d.get('nonce'),str) or not d['nonce'] or d['stamp']<=self._abort_at:return
+            if self._authorized_watch.accept(d['stamp'],[],time.time(),time.monotonic()):
+                self._authorized=True
+        except (ValueError,KeyError,TypeError):self._authorized=False
+
     def _on_release_abort(self, msg):
         """释放取消（A 在 lead 窗口复核失败）：撤销已排定的释放时刻（载荷未释放时）。"""
         if msg.data and not self.model.released:
+            self._authorized=False
+            self._abort_at=time.time()
             if self.abs_release_at is not None:
                 self.get_logger().warn('payload_node: 收到释放取消，撤销已排定的释放时刻')
             self.abs_release_at = None
@@ -278,6 +297,9 @@ class PayloadNode(Node):
     def _on_odom(self, msg):
         p = msg.pose.position
         v = msg.twist.linear
+        stamp=msg.header.stamp.sec+msg.header.stamp.nsec*1e-9
+        if self._odom_source_stamp is not None and stamp<=self._odom_source_stamp:return
+        self._odom_source_stamp=stamp
         self._gz_p = enu_to_ned_pos(p)
         self._gz_v = enu_to_ned_vec(v)
         self._gz_t = self.get_clock().now().nanoseconds * 1e-9
@@ -327,9 +349,10 @@ class PayloadNode(Node):
     # ------------------------------------------------------------------ tick
     def _tick(self):
         now_s = self.get_clock().now().nanoseconds * 1e-9
-        due = (now_s >= self.abs_release_at) if self.abs_release_at is not None else (self.t >= self.t_r)
+        due = self._authorized and self._authorized_watch.fresh(time.time(),time.monotonic())
 
         if (not self.model.released) and due:
+            self._authorized=False
             p_rel = self.p_r.copy()
             if self.use_a_state and self._a_world is not None:
                 p_rel = self._a_world + self.release_offset
@@ -352,8 +375,10 @@ class PayloadNode(Node):
             else:
                 self.active = True
 
+        observation_at=now_s
         if self.use_gz and self.spawned and self._gz_p is not None:
             p, v = self._gz_p, self._gz_v
+            observation_at=self._gz_t
         elif self.model.released:
             p, v = self.model.pos.copy(), self.model.vel.copy()
             self.model.step(self.dt)
@@ -361,8 +386,10 @@ class PayloadNode(Node):
             p, v = self.p_r.copy(), self.v_r.copy()
 
         if self.active:
+            if self.use_gz and (self._gz_t is None or now_s-self._gz_t>.5):
+                self.t+=self.dt;return
             m = Float64MultiArray()
-            m.data = [float(self.t), float(p[0]), float(p[1]), float(p[2]),
+            m.data = [float(observation_at), float(p[0]), float(p[1]), float(p[2]),
                       float(v[0]), float(v[1]), float(v[2])]
             self.pub_state.publish(m)
         self.t += self.dt

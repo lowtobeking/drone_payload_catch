@@ -1,0 +1,29 @@
+# Candidate from manual axis tests. DIAGNOSTIC ONLY; not a flight calibration.
+schema: 1
+mode: preview
+input_topic: /vrpn_mocap/planeA/pose
+input_frame: world
+max_local_stamp_age_s: 0.15
+
+# These remain false until measured/confirmed. Preview does not grant flight approval.
+mounting_confirmed: false
+lever_arm_measured: false
+server_timing_verified: false
+transform:
+  # Local lab FRD: X=world Y, Y=world X, Z=-world Z.
+  # Arbitrary fixed lab heading, NOT verified geographic north/NED.
+  world_to_local:
+    - [0, 1, 0]
+    - [1, 0, 0]
+    - [0, 0, -1]
+  # Candidate: aircraft forward=-marker Y, right=-marker X, down=-marker Z.
+  # Full body rotation includes down-axis conversion; not just a yaw correction.
+  body_to_marker:
+    - [0, -1, 0]
+    - [-1, 0, 0]
+    - [0, 0, -1]
+  # Shared lab origin. Never reset independently at A/B startup.
+  shared_origin_world_m: [0, 0, 0]
+  # Placeholder: vector from marker origin to chosen aircraft/IMU origin,
+  # expressed in marker coordinates. Must measure before flight forwarding.
+  body_origin_in_marker_m: [0, 0, 0]

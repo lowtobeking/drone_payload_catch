@@ -1,0 +1,30 @@
+{
+  "host": "nvidia-desktop",
+  "architecture": "aarch64",
+  "boot_id": "64244966-0f68-4732-b814-1da1248c28e9",
+  "current": "/home/nvidia/payload_catch_deploy/releases/8accbc1eca8dcba99b747f953e33ffddee2ac55f16d09db4d48a6df77a4781dd",
+  "role": "a",
+  "pwm": {
+    "/sys/class/pwm/pwmchip2/pwm0": {
+      "period": "20000000",
+      "duty_cycle": "0",
+      "enable": "0",
+      "polarity": "normal"
+    }
+  },
+  "mission_processes": [],
+  "vehicle_status": {
+    "arming_state": 1,
+    "nav_state": 4,
+    "system_id": 1,
+    "timestamp": 1792137483414647
+  },
+  "status_samples": 8,
+  "services": {
+    "mav-relay.service": "active",
+    "microxrce-agent.service": "active"
+  },
+  "boot_hashes": {
+    "/boot/extlinux/extlinux.conf": "6d55aea184afb2f389d624e6a9c83fb280837164eda406c3e81035d84f19bc32"
+  }
+}

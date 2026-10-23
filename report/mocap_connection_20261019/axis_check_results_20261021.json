@@ -1,0 +1,599 @@
+{
+  "manual_direction_checks": {
+    "forward_positive": true,
+    "right_positive": true,
+    "up_negative_z": true,
+    "left_negative_yaw": true,
+    "level_after_turn": true
+  },
+  "scope": "A Jetson live preview; translation direction and level yaw direction only",
+  "records": {
+    "yaw_left": {
+      "directory": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_connection_20261019\\axis_check_20261021T093939Z_yaw_left",
+      "remote_logs": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/logs/20261021T093939Z_yaw_left",
+      "sample": {
+        "label": "yaw_left",
+        "preview_frame": "payload_lab_frd",
+        "tail_seconds": 3.0,
+        "samples": 357,
+        "position_local_m": [
+          0.04097404707580049,
+          1.767275655281645,
+          -0.290095949744644
+        ],
+        "quaternion_body_to_local_xyzw": [
+          0.002906916489502799,
+          -0.0006759675716098146,
+          -0.7017207237008091,
+          0.712445870809269
+        ],
+        "roll_pitch_yaw_deg": [
+          0.2916795734484912,
+          0.17856295690220558,
+          -89.13049104205152
+        ],
+        "max_position_deviation_m": 0.0004379667766656877,
+        "max_orientation_deviation_deg": 0.45117718510724913,
+        "stationary": true,
+        "forwarded_to_px4": false,
+        "flight_approval": false,
+        "comparison": {
+          "reference_label": "yaw_baseline",
+          "delta_local_m": [
+            -0.08463083185187134,
+            -0.07938435067565752,
+            0.0017924821550830972
+          ],
+          "delta_previous_body_frd_m": [
+            -0.08059411906053114,
+            -0.08343739583162844,
+            0.003202307621836064
+          ],
+          "relative_rotation_vector_previous_body_deg": [
+            -0.39612456786608674,
+            0.04666575205701223,
+            -86.30753067800684
+          ],
+          "relative_euler_xyz_deg": [
+            -0.29140870102325195,
+            -0.21511889156854166,
+            -86.30729470605795
+          ]
+        }
+      },
+      "processes": {
+        "started_at": "2026-10-21T09:39:54.138953+00:00",
+        "root": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0",
+        "processes": [
+          {
+            "name": "vrpn",
+            "pid": 11052,
+            "argv": [
+              "/usr/bin/python3",
+              "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/planeA_raw_source.py",
+              "--reader",
+              "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/planeA_stream",
+              "--nic",
+              "192.168.1.4"
+            ]
+          },
+          {
+            "name": "preview",
+            "pid": 11053,
+            "argv": [
+              "/usr/bin/python3",
+              "-m",
+              "payload_catch.mocap_preview_node",
+              "--config",
+              "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/config/mocap_a.preview.yaml"
+            ]
+          }
+        ],
+        "cleanup": [
+          {
+            "name": "preview",
+            "pid": 11053,
+            "exit": 0,
+            "exited": true
+          },
+          {
+            "name": "vrpn",
+            "pid": 11052,
+            "exit": 0,
+            "exited": true
+          }
+        ],
+        "capture_exit": 0,
+        "source": "native_planeA_only",
+        "finished_at": "2026-10-21T09:40:13.685232+00:00"
+      }
+    },
+    "yaw_baseline": {
+      "directory": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_connection_20261019\\axis_check_20261021T093701Z_yaw_baseline",
+      "remote_logs": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/logs/20261021T093701Z_yaw_baseline",
+      "sample": {
+        "label": "yaw_baseline",
+        "preview_frame": "payload_lab_frd",
+        "tail_seconds": 3.0,
+        "samples": 359,
+        "position_local_m": [
+          0.12560487892767183,
+          1.8466600059573026,
+          -0.2918884318997271
+        ],
+        "quaternion_body_to_local_xyzw": [
+          0.0036352780492042206,
+          -0.00494761103323571,
+          -0.024632456394171692,
+          0.9996777220637453
+        ],
+        "roll_pitch_yaw_deg": [
+          0.43042776059986,
+          -0.5565192994881708,
+          -2.8251007408314583
+        ],
+        "max_position_deviation_m": 0.00015242571021708887,
+        "max_orientation_deviation_deg": 0.16002200064872701,
+        "stationary": true,
+        "forwarded_to_px4": false,
+        "flight_approval": false,
+        "comparison": {
+          "reference_label": "up",
+          "delta_local_m": [
+            -0.004722312016455066,
+            -0.09542242569700043,
+            0.24979377855769797
+          ],
+          "delta_previous_body_frd_m": [
+            0.006777213349228234,
+            -0.04284450091127954,
+            0.2638997716628322
+          ],
+          "relative_rotation_vector_previous_body_deg": [
+            -11.4066154886638,
+            3.1330200185336086,
+            -8.16162843227707
+          ],
+          "relative_euler_xyz_deg": [
+            -11.597616097739857,
+            2.292712349993373,
+            -8.423580716697433
+          ]
+        }
+      },
+      "processes": {
+        "started_at": "2026-10-21T09:37:16.635389+00:00",
+        "root": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0",
+        "processes": [
+          {
+            "name": "vrpn",
+            "pid": 10624,
+            "argv": [
+              "/usr/bin/python3",
+              "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/planeA_raw_source.py",
+              "--reader",
+              "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/planeA_stream",
+              "--nic",
+              "192.168.1.4"
+            ]
+          },
+          {
+            "name": "preview",
+            "pid": 10625,
+            "argv": [
+              "/usr/bin/python3",
+              "-m",
+              "payload_catch.mocap_preview_node",
+              "--config",
+              "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/config/mocap_a.preview.yaml"
+            ]
+          }
+        ],
+        "cleanup": [
+          {
+            "name": "preview",
+            "pid": 10625,
+            "exit": 0,
+            "exited": true
+          },
+          {
+            "name": "vrpn",
+            "pid": 10624,
+            "exit": 0,
+            "exited": true
+          }
+        ],
+        "capture_exit": 0,
+        "source": "native_planeA_only",
+        "finished_at": "2026-10-21T09:37:36.184293+00:00"
+      }
+    },
+    "up": {
+      "directory": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_connection_20261019\\axis_check_20261021T093434Z_up",
+      "remote_logs": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/logs/20261021T093434Z_up",
+      "sample": {
+        "label": "up",
+        "preview_frame": "payload_lab_frd",
+        "tail_seconds": 3.0,
+        "samples": 357,
+        "position_local_m": [
+          0.1303271909441269,
+          1.942082431654303,
+          -0.541682210457425
+        ],
+        "quaternion_body_to_local_xyzw": [
+          0.10183231864332502,
+          -0.03487287290579011,
+          0.046967267917934416,
+          0.9930801263540346
+        ],
+        "roll_pitch_yaw_deg": [
+          11.513607602810811,
+          -4.521241733176422,
+          4.959478025746173
+        ],
+        "max_position_deviation_m": 0.006807395621283186,
+        "max_orientation_deviation_deg": 1.857668023973197,
+        "stationary": true,
+        "forwarded_to_px4": false,
+        "flight_approval": false,
+        "comparison": {
+          "reference_label": "right",
+          "delta_local_m": [
+            -0.11269107339289255,
+            0.05381758450575469,
+            -0.2500680764491907
+          ],
+          "delta_previous_body_frd_m": [
+            -0.11551909557607906,
+            0.053120671410476376,
+            -0.24892405691226308
+          ],
+          "relative_rotation_vector_previous_body_deg": [
+            11.04125227964317,
+            -3.2058159547204332,
+            4.245800836515949
+          ],
+          "relative_euler_xyz_deg": [
+            10.926345386430564,
+            -3.591313084329857,
+            3.9165153886741493
+          ]
+        }
+      },
+      "processes": {
+        "started_at": "2026-10-21T09:34:49.337649+00:00",
+        "root": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0",
+        "processes": [
+          {
+            "name": "vrpn",
+            "pid": 10202,
+            "argv": [
+              "/usr/bin/python3",
+              "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/planeA_raw_source.py",
+              "--reader",
+              "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/planeA_stream",
+              "--nic",
+              "192.168.1.4"
+            ]
+          },
+          {
+            "name": "preview",
+            "pid": 10203,
+            "argv": [
+              "/usr/bin/python3",
+              "-m",
+              "payload_catch.mocap_preview_node",
+              "--config",
+              "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/config/mocap_a.preview.yaml"
+            ]
+          }
+        ],
+        "cleanup": [
+          {
+            "name": "preview",
+            "pid": 10203,
+            "exit": 0,
+            "exited": true
+          },
+          {
+            "name": "vrpn",
+            "pid": 10202,
+            "exit": 0,
+            "exited": true
+          }
+        ],
+        "capture_exit": 0,
+        "source": "native_planeA_only",
+        "finished_at": "2026-10-21T09:35:08.885466+00:00"
+      }
+    },
+    "right": {
+      "directory": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_connection_20261019\\axis_check_20261021T093150Z_right",
+      "remote_logs": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/logs/20261021T093150Z_right",
+      "sample": {
+        "label": "right",
+        "preview_frame": "payload_lab_frd",
+        "tail_seconds": 3.0,
+        "samples": 352,
+        "position_local_m": [
+          0.24301826433701945,
+          1.8882648471485484,
+          -0.2916141340082343
+        ],
+        "quaternion_body_to_local_xyzw": [
+          0.005724580007213256,
+          -0.007695065901794251,
+          0.009463515879203776,
+          0.9999092243857504
+        ],
+        "roll_pitch_yaw_deg": [
+          0.6476757394293167,
+          -0.8879530557045457,
+          1.079486210021567
+        ],
+        "max_position_deviation_m": 3.810154864208621e-05,
+        "max_orientation_deviation_deg": 0.03638559591037056,
+        "stationary": true,
+        "forwarded_to_px4": false,
+        "flight_approval": false,
+        "comparison": {
+          "reference_label": "forward",
+          "delta_local_m": [
+            0.10009668915734832,
+            0.8759199560121453,
+            -0.00023669744739335252
+          ],
+          "delta_previous_body_frd_m": [
+            0.07703772479970289,
+            0.8782286501289283,
+            -0.00589911829588642
+          ],
+          "relative_rotation_vector_previous_body_deg": [
+            0.3647519703711589,
+            -0.2630347673909861,
+            2.587384885247601
+          ],
+          "relative_euler_xyz_deg": [
+            0.358692554403647,
+            -0.2711780518543106,
+            2.586549325273264
+          ]
+        }
+      },
+      "processes": {
+        "started_at": "2026-10-21T09:32:02.539812+00:00",
+        "root": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0",
+        "processes": [
+          {
+            "name": "vrpn",
+            "pid": 9772,
+            "argv": [
+              "/usr/bin/python3",
+              "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/planeA_raw_source.py",
+              "--reader",
+              "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/planeA_stream",
+              "--nic",
+              "192.168.1.4"
+            ]
+          },
+          {
+            "name": "preview",
+            "pid": 9773,
+            "argv": [
+              "/usr/bin/python3",
+              "-m",
+              "payload_catch.mocap_preview_node",
+              "--config",
+              "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/config/mocap_a.preview.yaml"
+            ]
+          }
+        ],
+        "cleanup": [
+          {
+            "name": "preview",
+            "pid": 9773,
+            "exit": 0,
+            "exited": true
+          },
+          {
+            "name": "vrpn",
+            "pid": 9772,
+            "exit": 0,
+            "exited": true
+          }
+        ],
+        "capture_exit": 0,
+        "source": "native_planeA_only",
+        "finished_at": "2026-10-21T09:32:22.087350+00:00"
+      }
+    },
+    "forward": {
+      "directory": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_connection_20261019\\axis_check_20261021T092803Z_forward",
+      "remote_logs": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/logs/20261021T092803Z_forward",
+      "sample": {
+        "label": "forward",
+        "preview_frame": "payload_lab_frd",
+        "tail_seconds": 3.0,
+        "samples": 359,
+        "position_local_m": [
+          0.14292157517967113,
+          1.012344891136403,
+          -0.291377436560841
+        ],
+        "quaternion_body_to_local_xyzw": [
+          0.0026925952734985245,
+          -0.005298918329018409,
+          -0.01312548855008969,
+          0.9998961910846332
+        ],
+        "roll_pitch_yaw_deg": [
+          0.31650574941757026,
+          -0.6031095637776972,
+          -1.5058057856732405
+        ],
+        "max_position_deviation_m": 0.0004286691707294908,
+        "max_orientation_deviation_deg": 0.3794957355013818,
+        "stationary": true,
+        "forwarded_to_px4": false,
+        "flight_approval": false,
+        "comparison": {
+          "reference_label": "baseline",
+          "delta_local_m": [
+            0.934695346077836,
+            -0.06217392095284224,
+            -0.00023038867323543766
+          ],
+          "delta_previous_body_frd_m": [
+            0.9366900780646261,
+            -0.007928581385101718,
+            -0.008359112253189405
+          ],
+          "relative_rotation_vector_previous_body_deg": [
+            0.15074001500846887,
+            -0.09642307471468618,
+            1.8168246380947053
+          ],
+          "relative_euler_xyz_deg": [
+            0.14918626230491794,
+            -0.09879655737747958,
+            1.8166974918514942
+          ]
+        }
+      },
+      "processes": {
+        "started_at": "2026-10-21T09:28:16.261512+00:00",
+        "root": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0",
+        "processes": [
+          {
+            "name": "vrpn",
+            "pid": 9344,
+            "argv": [
+              "/usr/bin/python3",
+              "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/planeA_raw_source.py",
+              "--reader",
+              "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/planeA_stream",
+              "--nic",
+              "192.168.1.4"
+            ]
+          },
+          {
+            "name": "preview",
+            "pid": 9345,
+            "argv": [
+              "/usr/bin/python3",
+              "-m",
+              "payload_catch.mocap_preview_node",
+              "--config",
+              "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/config/mocap_a.preview.yaml"
+            ]
+          }
+        ],
+        "cleanup": [
+          {
+            "name": "preview",
+            "pid": 9345,
+            "exit": 0,
+            "exited": true
+          },
+          {
+            "name": "vrpn",
+            "pid": 9344,
+            "exit": 0,
+            "exited": true
+          }
+        ],
+        "capture_exit": 0,
+        "source": "native_planeA_only",
+        "finished_at": "2026-10-21T09:28:35.809329+00:00"
+      }
+    },
+    "baseline": {
+      "directory": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_connection_20261019\\axis_check_20261021T092532Z_baseline",
+      "remote_logs": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/logs/20261021T092532Z_baseline",
+      "sample": {
+        "label": "baseline",
+        "preview_frame": "payload_lab_frd",
+        "tail_seconds": 3.0,
+        "samples": 359,
+        "position_local_m": [
+          -0.7917737708981649,
+          1.0745188120892453,
+          -0.29114704788760554
+        ],
+        "quaternion_body_to_local_xyzw": [
+          0.0014720446189430707,
+          -0.004396964781351653,
+          -0.02898099693356319,
+          0.9995692080101747
+        ],
+        "roll_pitch_yaw_deg": [
+          0.18322069586863318,
+          -0.49875566423211093,
+          -3.322275860740852
+        ],
+        "max_position_deviation_m": 0.0004381916474568793,
+        "max_orientation_deviation_deg": 0.44883000250449007,
+        "stationary": true,
+        "forwarded_to_px4": false,
+        "flight_approval": false
+      },
+      "processes": {
+        "started_at": "2026-10-21T09:25:44.666930+00:00",
+        "root": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0",
+        "processes": [
+          {
+            "name": "vrpn",
+            "pid": 8919,
+            "argv": [
+              "/usr/bin/python3",
+              "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/planeA_raw_source.py",
+              "--reader",
+              "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/planeA_stream",
+              "--nic",
+              "192.168.1.4"
+            ]
+          },
+          {
+            "name": "preview",
+            "pid": 8920,
+            "argv": [
+              "/usr/bin/python3",
+              "-m",
+              "payload_catch.mocap_preview_node",
+              "--config",
+              "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/config/mocap_a.preview.yaml"
+            ]
+          }
+        ],
+        "cleanup": [
+          {
+            "name": "preview",
+            "pid": 8920,
+            "exit": 0,
+            "exited": true
+          },
+          {
+            "name": "vrpn",
+            "pid": 8919,
+            "exit": 0,
+            "exited": true
+          }
+        ],
+        "capture_exit": 0,
+        "source": "native_planeA_only",
+        "finished_at": "2026-10-21T09:26:04.213557+00:00"
+      }
+    }
+  },
+  "operator_clarification": {
+    "forward_distance": "operator says close to 1m, not ruler measurement"
+  },
+  "precise_scale_calibrated": false,
+  "full_mounting_calibrated": false,
+  "lever_arm_measured": false,
+  "server_timing_verified": false,
+  "px4_fusion_verified": false,
+  "forwarded_to_px4": false,
+  "flight_approval": false
+}

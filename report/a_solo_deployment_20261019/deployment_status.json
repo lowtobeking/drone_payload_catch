@@ -1,0 +1,19 @@
+{
+  "status": "deployed_not_run",
+  "release": "b4453dd12c8482d808613769fb6c781bd7debff566633bf0fc4827a6d2654d37",
+  "current": "/home/nvidia/payload_catch_deploy/releases/b4453dd12c8482d808613769fb6c781bd7debff566633bf0fc4827a6d2654d37",
+  "previous": "/home/nvidia/payload_catch_deploy/releases/13c1e49da415339aa236e19547c63a809de15e55235584917a700e964dd1702a",
+  "config": "/home/nvidia/payload_catch_deploy/a_solo.yaml",
+  "arm_build_passed": true,
+  "onboard_ros_acceptance_passed": false,
+  "acceptance_note": "Previous isolated ROS test failed on report directory permission; not rerun by user request.",
+  "real_flight_started": false,
+  "pwm_started": false,
+  "tests_started_this_step": false,
+  "services_modified": false,
+  "autostart_configured": false,
+  "startup_gate_unchanged": true,
+  "post_deploy_readonly_verification_passed": true,
+  "no_remaining_mission_or_test_processes": true,
+  "rollback_command": "/usr/bin/python3 /home/nvidia/payload_catch_a_solo_20261019/select_files_only.py b4453dd12c8482d808613769fb6c781bd7debff566633bf0fc4827a6d2654d37 --rollback"
+}

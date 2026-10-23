@@ -1,0 +1,36 @@
+{
+  "label": "yaw_left",
+  "remote_root": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0",
+  "remote_logs": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/logs/20261021T093939Z_yaw_left",
+  "local": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_connection_20261019\\axis_check_20261021T093939Z_yaw_left",
+  "reference": {
+    "label": "yaw_baseline",
+    "remote_root": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0",
+    "remote_logs": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/logs/20261021T093701Z_yaw_baseline",
+    "local": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_connection_20261019\\axis_check_20261021T093701Z_yaw_baseline",
+    "reference": {
+      "label": "up",
+      "remote_root": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0",
+      "remote_logs": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/logs/20261021T093434Z_up",
+      "local": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_connection_20261019\\axis_check_20261021T093434Z_up",
+      "reference": {
+        "label": "right",
+        "remote_root": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0",
+        "remote_logs": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/logs/20261021T093150Z_right",
+        "local": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_connection_20261019\\axis_check_20261021T093150Z_right",
+        "reference": {
+          "label": "forward",
+          "remote_root": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0",
+          "remote_logs": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/logs/20261021T092803Z_forward",
+          "local": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_connection_20261019\\axis_check_20261021T092803Z_forward",
+          "reference": {
+            "label": "baseline",
+            "remote_root": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0",
+            "remote_logs": "/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0/logs/20261021T092532Z_baseline",
+            "local": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_connection_20261019\\axis_check_20261021T092532Z_baseline"
+          }
+        }
+      }
+    }
+  }
+}

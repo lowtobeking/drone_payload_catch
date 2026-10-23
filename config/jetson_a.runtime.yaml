@@ -1,0 +1,28 @@
+# A managed by payload_catch. Legacy services must be masked; no old workspace.
+schema: 1
+ownership: managed
+managed_prefix: /opt/payload_catch/managed_20261016
+legacy_units: [microxrce-agent.service, mav-relay.service]
+role: a
+hostname: nvidia-desktop
+system_id: 1
+domain_id: 0
+px4_msgs_setup: /opt/payload_catch/managed_20261016/px4_msgs_ws/install/setup.bash
+px4_msgs_source: /opt/payload_catch/managed_20261016/px4_msgs_ws/src/px4_msgs
+px4_msgs_commit: 392e831c1f659429ca83902e66820d7094591410
+network:
+  interface: eno1
+  local_ip: 10.41.10.100
+  fc_ip: 10.41.10.2
+  mesh_ip: 192.168.1.101
+agent:
+  unit: payload-catch-agent.service
+  port: 8888
+  executable: /opt/payload_catch/managed_20261016/bin/MicroXRCEAgent
+  sha256: 24c3f80b112867c22e5d31b7a94f38d3de38af80a5c843247346a72eb450c532
+relay:
+  unit: payload-catch-mav-relay.service
+  port: 14550
+  script: /opt/payload_catch/managed_20261016/mavlink_relay.py
+  sha256: 918eea71c416e58e81d2dbac560c3cd5a90e9a9125a387b8e63e36561529e419
+  ground_station_ip: 192.168.1.123

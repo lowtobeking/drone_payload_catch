@@ -76,6 +76,7 @@ class StackPlan:
     b_standby: Vec3 = field(default_factory=lambda: np.zeros(3))  # B 待命点(NED)
     gap: float = 0.0            # 释放时载荷到 B 的垂直间距 m
     a_dive: float = 0.0         # B 下潜加速度 m/s²（正=向下）
+    v_b0: float = 0.0          # B downward speed at trajectory start (NED)
     a_brake: float = 0.0        # 接触后刹车加速度 m/s²
     # 时序 / 状态
     t_c: float = math.nan       # 释放到接触时长 s
@@ -144,6 +145,53 @@ def plan_stack_drop(a_height: float, b_height: float,
     return p
 
 
+def plan_stack_intercept(payload_height: float, b_height: float,
+                         payload_vz: float, b_vz: float, a_dive=None,
+                         g=9.81, a_brake=6., ground_margin=.30,
+                         funnel_depth=.30, restitution=.60, a_dive_max=6.) -> StackPlan:
+    """Plan the remaining intercept from current measured state (NED velocities).
+
+    payload_height is adjusted by the funnel mount height. Time zero is the
+    current B state, independent of the physical detachment timestamp.
+    """
+    p=StackPlan()
+    values=(payload_height,b_height,payload_vz,b_vz,g,a_brake,ground_margin,
+            funnel_depth,restitution,a_dive_max)
+    if (not all(math.isfinite(x) for x in values) or g<=0 or a_brake<=0
+            or ground_margin<0 or funnel_depth<=0 or restitution<=0
+            or not 0<=a_dive_max<g or payload_vz<0):
+        p.reason='invalid intercept state / limits';return p
+    p.gap=payload_height-b_height
+    p.a_hover=np.array([0.,0.,-payload_height])
+    p.b_standby=np.array([0.,0.,-b_height])
+    p.v_b0=float(b_vz);p.a_brake=float(a_brake)
+    p.v_retain=retain_speed(funnel_depth,restitution,g)
+    if p.gap<=1e-9:
+        p.reason='payload already at or below funnel';return p
+    rv=payload_vz-b_vz
+    if a_dive is None:
+        required=g-(p.v_retain**2-rv**2)/(2*p.gap)
+        a_dive=min(max(0.,required),a_dive_max)
+    if not math.isfinite(a_dive) or not 0<=a_dive<=a_dive_max:
+        p.reason='intercept acceleration exceeds limits';return p
+    p.a_dive=float(a_dive)
+    closing=math.sqrt(rv*rv+2*(g-a_dive)*p.gap)
+    p.t_c=(2*p.gap/(closing+rv) if rv>=0 else (closing-rv)/(g-a_dive))
+    p.v_pay=payload_vz+g*p.t_c
+    p.v_b=b_vz+a_dive*p.t_c
+    p.v_rel=closing
+    p.dive=b_vz*p.t_c+.5*a_dive*p.t_c**2
+    p.z_c=b_height-p.dive
+    p.brake_dist=p.v_b**2/(2*a_brake)
+    p.post_brake_alt=p.z_c-p.brake_dist
+    if p.v_b<0 or p.z_c<ground_margin or p.post_brake_alt<ground_margin:
+        p.reason='intercept / braking altitude unsafe';return p
+    if p.v_rel>p.v_retain+1e-9:
+        p.reason='relative impact speed exceeds retention limit';return p
+    p.feasible=True;p.reason='ok'
+    return p
+
+
 # ------------------------------------------------------------------ 仿真
 @dataclass
 class StackResult:
@@ -181,13 +229,13 @@ def _stack_ref(t: float, plan: StackPlan, p_xy: Tuple[float, float],
     """
     zb0 = plan.b_standby[2]
     if t <= plan.t_c:
-        z = zb0 + 0.5 * plan.a_dive * t * t
-        vz = plan.a_dive * t
+        z = zb0 + plan.v_b0 * t + 0.5 * plan.a_dive * t * t
+        vz = plan.v_b0 + plan.a_dive * t
         az = plan.a_dive
     else:
         tb = t - plan.t_c
-        zc = zb0 + 0.5 * plan.a_dive * plan.t_c * plan.t_c
-        vb = plan.a_dive * plan.t_c
+        zc = zb0 + plan.v_b0 * plan.t_c + 0.5 * plan.a_dive * plan.t_c * plan.t_c
+        vb = plan.v_b0 + plan.a_dive * plan.t_c
         if vb - plan.a_brake * tb > 0.0:
             z = zc + vb * tb - 0.5 * plan.a_brake * tb * tb
             vz = vb - plan.a_brake * tb

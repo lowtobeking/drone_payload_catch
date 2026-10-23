@@ -1,0 +1,12 @@
+{
+  "moved": [
+    "prepare_run.py",
+    "fix_reconnect.py",
+    "improve_restart_probe.py",
+    "refine_evidence.py",
+    "fix_ros_restart.py",
+    "batch_proof.py",
+    "refine_post_audit.py"
+  ],
+  "destination": "/home/caolihao/drone_payload_catch/report/fixed_reference_20261023/diagnostic_helpers"
+}

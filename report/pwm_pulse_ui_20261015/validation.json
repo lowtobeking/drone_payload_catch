@@ -1,0 +1,9 @@
+{
+  "result": "PASS",
+  "windows_gui_smoke": "direct1533us; no angle or duration; hold, input validation, heartbeat, stop",
+  "project_quick_checks": "34 passed, 0 failed",
+  "git_diff_check": "passed",
+  "real_PWM_output_this_change": false,
+  "gui_sha256": "087c0dc290bc00ba58e305b5d6b698935fb34656cf6c82942a6c9729dccc9ca2",
+  "backup": "/home/caolihao/pwm_pulse_ui_backup_20261015_160819"
+}

@@ -1,0 +1,10 @@
+{
+  "result": "PASS",
+  "test": "actual GUI SSH transport: status/ping/close only",
+  "statuses_received": 24,
+  "readonly": true,
+  "pwm_enabled": false,
+  "mode": "original GPIO",
+  "baseline_and_state_sha256_unchanged": true,
+  "blocked_reason": "设备已重启，PWM基线过期：仅可查看，禁止输出；须重新核验"
+}

@@ -1,0 +1,35 @@
+{
+  "case": "manual",
+  "mock_only": true,
+  "real_px4": false,
+  "b_present": false,
+  "commands": [
+    176,
+    400
+  ],
+  "phases": [
+    "CHECK",
+    "READY",
+    "PRESTREAM",
+    "MODE",
+    "ARM",
+    "FLY",
+    "MANUAL"
+  ],
+  "setpoints": 44,
+  "offboard_modes": 44,
+  "release_events": [],
+  "worker_pids": [
+    343,
+    344
+  ],
+  "passed": true,
+  "final_phase": "MANUAL",
+  "landed": false,
+  "final_position": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "workers_stopped": true
+}

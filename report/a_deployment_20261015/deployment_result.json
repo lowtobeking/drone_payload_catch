@@ -1,0 +1,22 @@
+{
+  "boot_hashes": {
+    "/boot/dtb/kernel_tegra234-p3768-0000+p3767-0001-nv-super.dtb": "8b5373b9b79be1469077985b063de73d93c4b1041552f43f2d77ee8d3cdff8b6",
+    "/boot/extlinux/extlinux.conf": "6d55aea184afb2f389d624e6a9c83fb280837164eda406c3e81035d84f19bc32"
+  },
+  "built": {
+    "architecture": "aarch64",
+    "built_at": 1792056080.8404143,
+    "host": "nvidia-desktop"
+  },
+  "current": "/home/nvidia/payload_catch_deploy/releases/e27cb2caa69a0ff8fc9cf4d43adbcc3a40419dc07c803536187a1a3608a9d9cb",
+  "mission_started": false,
+  "pwm": {
+    "duty_cycle": "0",
+    "enable": "0",
+    "period": "20000000",
+    "polarity": "normal"
+  },
+  "release_id": "e27cb2caa69a0ff8fc9cf4d43adbcc3a40419dc07c803536187a1a3608a9d9cb",
+  "role": "a",
+  "services_installed": false
+}

@@ -64,9 +64,9 @@ PRESETS = {
     ],
     'battery': [
         ('COM_LOW_BAT_ACT', 3, '低电动作 → 3(Land)；0(None) 飞到没电'),
-        ('BAT1_LOW_THR', 0.15, '低电阈值'),
-        ('BAT1_CRIT_THR', 0.07, '严重低电阈值'),
-        ('BAT1_EMERGEN_THR', 0.05, '紧急低电阈值'),
+        ('BAT_LOW_THR', 0.15, '低电阈值'),
+        ('BAT_CRIT_THR', 0.07, '严重低电阈值'),
+        ('BAT_EMERGEN_THR', 0.05, '紧急低电阈值'),
     ],
     'ekf2_mocap': [
         ('EKF2_GPS_CTRL', 0, '动捕/视觉：禁用 GPS 位置'),
@@ -113,12 +113,50 @@ def parse_param_dump(text: str) -> dict:
 
 
 # ----------------------------------------------------------- 判据（纯函数）
-def check_params(p: dict, profile: str = 'sitl') -> list:
+def check_params(p: dict, profile: str = 'sitl', *, require_complete: bool = False) -> list:
     """对飞控参数做安全检查。profile ∈ {sitl, indoor, outdoor}。"""
     R: list = []
+    # PX4 1.16 uses shared BAT_* thresholds; accept older dumps using BAT1_*.
+    # Never allow conflicting aliases to conceal an unsafe threshold.
+    p = dict(p)
+    for suffix in ("LOW_THR", "CRIT_THR", "EMERGEN_THR"):
+        canonical, legacy = "BAT_" + suffix, "BAT1_" + suffix
+        if canonical in p:
+            if legacy in p and abs(p[canonical] - p[legacy]) > 1e-6:
+                R.append(Issue(canonical, "fail", "conflicting battery threshold aliases"))
+            p[legacy] = p[canonical]
 
     def add(name, cond, detail='', level='fail'):
         R.append(Issue(name, 'ok' if cond else level, '' if cond else detail))
+
+    if require_complete:
+        import math
+        required = ['MPC_THR_MIN', 'MPC_THR_HOVER', 'COM_RCL_EXCEPT',
+                    'MPC_XY_VEL_MAX', 'COM_OBL_RC_ACT', 'COM_OF_LOSS_T',
+                    'NAV_RCL_ACT', 'COM_RC_LOSS_T', 'COM_LOW_BAT_ACT',
+                    'BAT1_EMERGEN_THR', 'BAT1_CRIT_THR', 'BAT1_LOW_THR']
+        if profile in ('indoor', 'outdoor'):
+            required += ['GF_MAX_HOR_DIST', 'GF_MAX_VER_DIST', 'GF_ACTION',
+                         'RTL_RETURN_ALT', 'EKF2_GPS_CTRL', 'EKF2_EV_CTRL',
+                         'EKF2_BARO_CTRL', 'EKF2_MAG_TYPE', 'SENS_BOARD_ROT',
+                         'COM_RC_IN_MODE','RC_MAP_KILL_SW','RC_MAP_FLTMODE',
+                         *['COM_FLTMODE'+str(i) for i in range(1,7)]]
+        missing = [k for k in required if k not in p or not math.isfinite(p[k])]
+        if missing:
+            R.append(Issue('必需飞控参数完整且有限', 'fail', ','.join(missing)))
+            return R
+        add('COM_OBL_RC_ACT = 4(Land)', int(p['COM_OBL_RC_ACT']) == 4)
+        add('NAV_RCL_ACT = 3(Land)', int(p['NAV_RCL_ACT']) == 3)
+        add('COM_LOW_BAT_ACT ∈ {2,3}', int(p['COM_LOW_BAT_ACT']) in (2, 3))
+        add('COM_OF_LOSS_T ≤ 0.5', 0 <= p['COM_OF_LOSS_T'] <= 0.5)
+        add('COM_RC_LOSS_T ≤ 1.0', 0 < p['COM_RC_LOSS_T'] <= 1.0)
+        if profile in ('indoor', 'outdoor'):
+            add('GF_ACTION = 4(Land)', int(p['GF_ACTION']) == 4)
+            add('独立 RC 输入启用',int(p['COM_RC_IN_MODE'])==0)
+            add('RC 切动力开关独立映射',1<=p['RC_MAP_KILL_SW']<=18
+                and p['RC_MAP_KILL_SW']!=p['RC_MAP_FLTMODE'])
+            add('RC 模式开关映射',1<=p['RC_MAP_FLTMODE']<=18)
+            add('RC 模式含人工接管',any(int(p['COM_FLTMODE'+str(i)]) in (0,1,2) for i in range(1,7)))
 
     # ── 关键关系（任何 profile 都查）──
     if 'MPC_THR_MIN' in p and 'MPC_THR_HOVER' in p:

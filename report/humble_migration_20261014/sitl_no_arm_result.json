@@ -1,0 +1,21 @@
+{
+  "network_isolated": true,
+  "command_publishers": 0,
+  "flight_task_started": false,
+  "aircraft": {
+    "0": {
+      "arming_state": 1,
+      "pre_flight_checks_pass": true,
+      "xy_valid": true,
+      "z_valid": true,
+      "battery_remaining": 0.9999465942382812
+    },
+    "1": {
+      "arming_state": 1,
+      "pre_flight_checks_pass": true,
+      "xy_valid": true,
+      "z_valid": true,
+      "battery_remaining": 0.9998378753662109
+    }
+  }
+}

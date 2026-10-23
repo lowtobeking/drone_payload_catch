@@ -1,0 +1,27 @@
+{
+  "recorded_at": "2026-10-15T15:02:24",
+  "observation": "User reports shaft rotates in one direction beyond a full revolution under angle command.",
+  "observed_before_stop": {
+    "period_ns": 20000000,
+    "duty_ns": 1533000,
+    "enabled": true,
+    "polarity": "normal"
+  },
+  "action": "SIGTERM sent only to known bench PWM agent PID 8766 holding dedicated config lock; output disabled under same exclusive lock; no recentering.",
+  "final_verified": {
+    "period_ns": 20000000,
+    "duty_ns": 0,
+    "enabled": false,
+    "polarity": "normal",
+    "pinmux": "0x405",
+    "boot_unchanged": true
+  },
+  "physical_confirmation": "User confirmed servo has stopped.",
+  "conclusion": "Actual continuous shaft rotation contradicts supplied positional-servo specification; cause unconfirmed.",
+  "possible_causes": [
+    "Actual unit has a continuous-rotation variant/mode/modification",
+    "Position feedback/mechanical failure",
+    "Actual electrical PWM waveform differs from sysfs settings"
+  ],
+  "next_steps": "No further motion until actual unit type/mode and waveform are checked; do not present computed nominal degrees as verified physical position."
+}

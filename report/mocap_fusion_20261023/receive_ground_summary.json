@@ -1,0 +1,71 @@
+{
+  "real_fcu_fusion_proven": true,
+  "full_ground_acceptance_passed": false,
+  "flight_approval": false,
+  "run_directory": "report/mocap_fusion_20261023/receive_ground_20261023T074805Z",
+  "server_software": "FZMotion 3.0.0.9",
+  "temporary_EKF2_EV_CTRL": 9,
+  "restored_EKF2_EV_CTRL": 0,
+  "UXRCE_DDS_SYNCT": 1,
+  "parameter_count": 1127,
+  "parameter_differences": {},
+  "all_observed_status_disarmed": true,
+  "all_observed_land_true": true,
+  "ev_both_active_samples": 22,
+  "ev_both_active_span_s": 21.210862765,
+  "tail_local_position_samples": 1000,
+  "tail_all_xy_vxy_valid": true,
+  "tail_all_dead_reckoning_false": true,
+  "tail_heading_good_for_control": false,
+  "tail_ev_pos_and_yaw": true,
+  "mean_ev_position_m": [
+    -0.19990020509809256,
+    1.878599635064602,
+    -0.29169587880373
+  ],
+  "mean_fused_position_m": [
+    -0.19990273104608058,
+    1.8782313095331191,
+    -0.6611886616945267
+  ],
+  "horizontal_static_mean_difference_m": 0.00036833419275887066,
+  "height_fusion_enabled": false,
+  "final_bridge": {
+    "scope": "ground_only",
+    "send_to_px4_requested": true,
+    "accepted": 3623,
+    "rejected": 0,
+    "forwarded": 1112,
+    "stale": false,
+    "latched_fault": "",
+    "last_error": "",
+    "ground_gate_issues": [],
+    "configuration_issues": [],
+    "timestamp_mode": "receive_time_ground",
+    "lever_arm_measured": false,
+    "limitations": "receive time includes unknown acquisition/network delay; marker origin used; no flight approval",
+    "sample_time_verified": false,
+    "flight_approval": false,
+    "velocity_supplied": false
+  },
+  "parameter_lease": {
+    "changed": true,
+    "restored": true,
+    "flight_commands": 0,
+    "uxrce_sync_changed": false,
+    "lease_ended": true,
+    "sync_after": 1
+  },
+  "no_remaining_task_processes": true,
+  "audit": {
+    "read_only": true,
+    "serial": "1612425621719",
+    "boot": "a006295d-9ab4-41c6-a277-f0a2455a86a8",
+    "current": "/home/nvidia/payload_catch_deploy/releases/b4453dd12c8482d808613769fb6c781bd7debff566633bf0fc4827a6d2654d37",
+    "remaining_task_processes": [],
+    "services": "MainPID=1011\nId=payload-catch-agent.service\nActiveState=active\n\nMainPID=1013\nId=payload-catch-mav-relay.service\nActiveState=active\n"
+  },
+  "source_sampling_time_verified": false,
+  "lever_arm_measured": false,
+  "after_snapshot": "report/mocap_fusion_20261023/parameters_20261023T075120Z/parameters_backup.json"
+}

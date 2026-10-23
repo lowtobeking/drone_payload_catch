@@ -1,0 +1,16 @@
+board_serial: GAZEBO_ONLY_NO_BOARD
+climb_speed: 0.3
+expected_cells: 4
+height_m: 1.0
+hostname: GAZEBO_SITL_A
+hover_s: 10.0
+max_flight_s: 60.0
+max_height_m: 2.0
+max_tilt_deg: 25.0
+payload_removed: true
+positioning: external_local
+radius_m: 2.0
+scope: a_solo_no_payload_v1
+site_checked: true
+takeoff_timeout_s: 20.0
+xy_speed: 0.2

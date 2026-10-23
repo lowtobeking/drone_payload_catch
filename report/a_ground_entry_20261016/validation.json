@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "scope": "permanent ground entry",
+  "jetson_run_passed": true,
+  "duration_s": 20.049598223999965,
+  "quick_checks": "38/38",
+  "telemetry_guard_tests": 4,
+  "remote_report": "/home/nvidia/payload_catch_deploy/ground/reports/run-20261016T091209Z-zalNpI",
+  "real_vehicle_armed": false,
+  "physical_pwm_output": false,
+  "cleanup_passed": true,
+  "current_release_unchanged": "13c1e49da415339aa236e19547c63a809de15e55235584917a700e964dd1702a"
+}

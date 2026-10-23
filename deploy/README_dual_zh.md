@@ -1,0 +1,151 @@
+# 双机部署与通信说明
+
+2026-10-15。适用 WSL Ubuntu-22.04 的 `drone_payload_catch`。本轮仅编写、构建和电脑模拟测试，未 SSH 连接、上传、部署、启动无人机，未配置实际无线网络或改变 Jetson 引脚。
+
+## 1. 两端各运行什么
+
+同一份源代码、同一个发布包、同一份 fleet 配置和舵机标定文件，按角色运行不同节点：
+
+| 主机 | 启动入口 | 节点 |
+|---|---|---|
+| A 投放机 | `catch_real_a_launch.py` | A 控制、安全监督器、释放门禁、PWM 驱动、A 通信监测 |
+| B 接取机 | `catch_real_b_launch.py` | B 控制、相对定位、B 通信监测 |
+| 操作员电脑 | 配置网络后运行只读探针／自检 | 监视双机、生成自检记录、发送停止指令 |
+
+A/B 角色启动入口固定各自角色。原 `catch_real_launch.py` 的 `both` 模式保留用于集中运行，**不要在两台飞机上分别启动整套 both 程序**。两机各只运行一个对应 PX4 的 Agent。相对定位在 B 端读取两机真实定位和姿态数据，向两端发布 A 的公共坐标状态。
+
+A 端只有一个全局 `safety_supervisor`。两机各自任务节点也检查监督器和通信租约：失效即锁存暂停、撤销释放，并停止任务 Offboard 输出。A 端监督器能联系飞控时继续执行现有 HOLD／顺序降落策略。完全断网或 A 整机掉电时，无法远程命令 B；B 必须依靠本机 PX4 已验收的 Offboard 失联保护及独立 RC 接管，不能保证此时仍能维持“双机协调降落”。本轮没有修改飞控失联参数，也没有宣称这部分真机验收已完成。
+
+## 2. 设备与软件前提
+
+- 两端 Ubuntu 22.04、ROS 2 Humble，`rmw_fastrtps_cpp`、rclpy、launch、ament_index_python。
+- 依赖 numpy、scipy、PyYAML；运行完整参数自检还需 pymavlink。PX4 消息接口使用与当前代码匹配的 `px4_msgs v1.16.2`。实际飞控固件和消息版本须现场核对，不能仅看 ROS 名称。
+- 每台机器在本机原生构建，不能把电脑的 x86 编译产物复制到 ARM Jetson。
+- 使用支持双向 IP 通信的 Wi-Fi／数传／Mesh；同一受控网络、稳定地址、无客户端隔离，DDS 发现和 UDP 数据双向可达。串口遥测电台不能直接视为 ROS 网络。
+- 两机系统时钟用 chrony／PTP／PPS 等同步。通信租约拒绝超过 20ms 的源时间偏差；其他已有数据检查更严格，未来时间戳也可能拒绝。应实际测量并尽量把时差降到毫秒级，20ms 不是接取精度保证。
+- A：SYSID=1，DDS 话题 `/fmu/...`；B：SYSID=2，DDS 命名空间 `px4_1`，话题 `/px4_1/fmu/...`。应在飞控的 uXRCE-DDS 客户端配置命名空间，不能仅重命名 Agent。Agent 客户端 key 也须唯一。
+- 两端 Jetson Agent 连接自己的飞控串口或本地 UDP；不要让两个飞控都以相同的 `/fmu/...` 出现在同一个域。
+
+`fleet_link` 会实读两台 `VehicleStatus.system_id` 并核对，不仅根据话题名字猜飞机。它检查 A/B 节点及关键发布者唯一性、双向心跳、源时间、代码版本、任务参数和标定指纹。B 还核对 PWM 驱动报告的软件版本及舵机标定签名，外部旧驱动无法冒充本轮配置。
+
+DDS 配置只设置通信方式、接口与发现对端，不提供身份认证或加密；同一网络里不应接入无关控制程序。独立 RC 是网络失效时的操作员控制通道。
+
+## 3. 填写任务配置，生成网络配置
+
+复制 `config/fleet.example.yaml` 为正式配置。必须填写两机真实 `hostname`、IP、唯一任务编号、实测杆臂/世界原点及目标位置，实测后设置 `geometry_confirmed: true`。模板的空值及 `FILL_ME` 会导致启动拒绝。
+
+`servo_config` 可写成与 fleet 文件相邻的 `payload_servo.yaml`，两端保留相同相对路径和内容。默认仍为 disabled/uncalibrated：当前为连续旋转舵机直接1700µs、50Hz；旧缓变动作的1.5秒不代表直出延迟，unmeasured_direct需重新测量为local_command_direct后标定；没有完成机械标定、真实反馈、保持/失电验证，就不能启用真实投放。详见根目录 `Jetson_PWM_释放逻辑接入说明.md`。
+
+每台机器生成自己的临时配置，例如 A：
+
+```bash
+python3 tools/fleet_configure.py /absolute/fleet.yaml --role a --out /absolute/network-a --check-host
+source /absolute/network-a/network.env
+```
+
+B 使用 `--role b`。操作员电脑的 IP 先填入 `operator_ips`，再以 `--role 操作员实际IPv4地址` 生成自己的配置。
+
+生成的配置使用 Fast DDS UDP，限制实际网卡并列出两端和操作员的发现地址，保留多播并增加单播对端发现；不改系统网络、防火墙、路由、启动文件或系统服务。不承诺穿过 NAT、错误子网或屏蔽 UDP 的设备。若跨路由或无线设备限制多播，应在真实链路验证发现与数据传输，不可仅凭 ping 成功认定 DDS 正常。
+
+PX4 Agent 也应从加载相同网络环境的终端启动。例如已确认串口和波特率后手动运行 `MicroXRCEAgent serial --dev 实际串口 -b 实际波特率`；本项目不自动选择串口、启动 Agent 或修改飞控。
+
+## 4. 打包、上传、构建和选择版本
+
+以下是后续获得实机部署授权后的操作步骤，本轮未执行上传命令。
+
+电脑生成一个发布包：
+
+```bash
+python3 tools/fleet_deploy.py bundle --out /absolute/payload-catch.tar.gz
+```
+
+工具打印内容哈希 `release_id`。打包的是**当前工作区**，包含本轮尚未提交的安全/PWM/双机代码，排除旧编译结果、缓存和庞大的 report。没有继续使用旧脚本中错误的 `mpc_control` 或 `Multi-UAV-simulation` 路径。SHA256 用于版本和完整性核对，不是数字签名。
+
+使用已核对主机密钥的 SSH 别名上传同一个包到两机：
+
+```bash
+python3 tools/fleet_deploy.py push --host jetson-a --bundle /absolute/payload-catch.tar.gz
+python3 tools/fleet_deploy.py push --host jetson-b --bundle /absolute/payload-catch.tar.gz
+```
+
+`push` 只上传，不执行远端代码、安装软件、解压、切换或启动任务。它同时上传包内对应版本的 `payload-catch-installer.py`；包名会打印出来。SSH 密钥、密码或 IP 不写入代码。
+
+在目标主机上先加载本机 Humble 和消息工作区，然后安装。A 示例：
+
+```bash
+export PX4_MSGS_SETUP=/absolute/px4_msgs_ws/install/setup.bash
+source /opt/ros/humble/setup.bash
+source "$PX4_MSGS_SETUP"
+python3 ~/payload-catch-installer.py install --bundle ~/工具打印的包名.tar.gz --role a
+```
+
+B 改为 `--role b`。默认目录 `~/payload_catch_deploy`。每个发布版本独立保存在 `releases/<release_id>`，本机构建成功才生成 BUILT 标记。失败构建可用同一命令重试；旧版本不覆盖。`--no-build` 只暂存，不能激活。
+
+地面确认无武装、全部任务及独立舵机服务已停止后，显式选择版本：
+
+```bash
+python3 ~/payload-catch-installer.py activate --release 工具打印的完整release_id --ground-confirmed
+```
+
+激活只原子切换 `current` 指针，不启动任务；旧版本保留为 `previous`。工具检查角色、源文件哈希、本机构建标记及架构，正常入口运行期间的任务锁会阻止安装、切换和回退。它无法代替操作员确认无人机已落地，也不识别绕过入口手动启动的任意控制程序。
+
+## 5. 先通信调试，再生成起飞自检记录
+
+两机分别打开全新的 Humble 终端，在 A 上：
+
+```bash
+export PX4_MSGS_SETUP=/absolute/px4_msgs_ws/install/setup.bash
+bash ~/payload_catch_deploy/current/src/deploy/run_fleet.sh a /absolute/fleet.yaml /absolute/preflight.json
+```
+
+B 改为 `b`。入口核对本机主机名/IP、角色和源文件，加载本机消息环境与该版本构建结果，生成网络配置，启动对应角色。
+
+初次调试时不要提供有效的起飞自检记录：任务节点会等待文件、拒绝自动武装和任务 Offboard 输出。默认 PWM 也保持禁用。这便于无桨检查角色图、传感器和通信。**之后将有效记录写入该路径会使节点在全部其他条件也通过时允许自动起飞，因此只能在正式起飞授权时分发记录。**
+
+操作员加载本轮网络配置和工程环境后，可只读检查：
+
+```bash
+python3 tools/fleet_probe.py --seconds 10
+```
+
+它不发布控制命令，报告两端通信就绪、样本数、接收最大间隔及“源时钟偏差加传输时间”，后者不是精确单向延迟测量。通信 ready 只是其中一个条件，不表示机械机构或整机已允许起飞。
+
+正式起飞前，从能访问两机 MAVLink 的受控电脑执行现有完整自检。例如室外：
+
+```bash
+python3 tools/preflight_check.py --live --rc --gps --param-profile outdoor \
+  --param-mavlink-a 实际A连接 --param-mavlink-b 实际B连接 \
+  --write-approval /absolute/preflight.json
+```
+
+全部通过后，将**同一份**记录复制到两机入口指定路径。记录只有 60 秒有效期，两端节点还会持续复核双机健康、每台电池至少 40%、PX4 自检、RC、硬件反馈和通信。记录过期须重新自检，不能手改时间或关闭检查。室内须选择已验证的定位及 indoor 参数策略，并将 fleet 中 `preflight_require_gps` 显式改为 `'false'`；RC、自检和电池门槛不取消。
+
+## 6. A 端 PWM 权限
+
+不要为了 PWM 把整套飞行程序都以 root 运行。默认未标定配置下，普通用户角色程序不会准备真实引脚。完成台架验收后，需要管理员单独部署受限的 root PWM 服务。
+
+提供 `deploy/payload-servo.service.example` 和 `run_servo_service.sh` 模板，**没有安装或启用**。管理员须把已核验版本及其本机编译结果放在 root 所有、其他用户不可写的 `/opt/payload_catch`，在最终位置构建，避免 symlink-install 指向用户可写目录；消息依赖同样保护。配置放 `/etc/payload_catch`，基线使用已验证的 `/home/nvidia/pwm_pin33_safety`，重启后基线须重新核验。
+
+`/etc/payload_catch/servo.env` 所需值为 `FLEET_SERVO_RELEASE`（保护好的发布目录）、`PX4_MSGS_SETUP`（保护好的消息环境）、`FLEET_CONFIG`（保护好的同一份 fleet 配置）。service 启动路径也须由管理员指向保护好的脚本。模板仅运行舵机节点，停止后尝试按所有权恢复引脚；Restart=no，不会自动重新开锁。
+
+使用独立服务时，在 A 普通用户启动终端设置 `FLEET_SERVO_EXTERNAL=true`，避免再启动第二个舵机节点。缺少外部节点、版本/标定不同或状态不新鲜，B 硬件门禁都不会通过。独立服务必须与任务同时停止，软件回退时也要切换为匹配版本。
+
+## 7. 停止与回退
+
+操作员网络正常时可使用现有 ROS Bool 入口，例如 `/safety/pause`、`/safety/land`；`/safety/kill` 是终止飞行、可能坠落，不能当作普通暂停。对应 `_a/_b` 可指定单机，但停止任一方都会撤销双机释放许可。网络完全断开时，这些网络指令可能无法到达，应使用独立 RC 和已验收的飞控失联保护。
+
+通信监测拒绝代码/配置不同、时钟异常、双向回执过期、错机编号、重复控制节点和缺失发布者。飞行中丢失条件后任务锁存停止，不会因网络恢复就自动恢复投放；监督器/监测进程重启也要求地面检查。开锁前可取消，开锁后不能保证收回物块，停 PWM 不能代替机械锁住。
+
+地面停机、无武装，并停止 A 的独立舵机服务后，在两台机器上分别执行：
+
+```bash
+python3 ~/payload-catch-installer.py rollback --ground-confirmed
+```
+
+这会将 current 切回 previous，保留所有发布文件，不启动任务。不自动修改 PX4 参数、网络系统设置或物理锁扣，不删除开锁尝试记录。重新启动仍必须使用匹配配置、完成自检。没有 previous 时拒绝回退；应在首次更改旧系统之前，另行保存旧部署、依赖和飞控参数。
+
+## 8. 本轮验证边界
+
+完成了纯逻辑断联/单向断联/版本/时钟测试、角色启动参数求值、Fast DDS UDP 两进程通信及错机编号/重复节点/对端退出测试，以及临时目录的实际打包、目标构建、重复构建、激活和回退。保持原有起飞与 PWM 测试。
+
+电脑两进程测试证明软件链路可工作，不能代替两台实体设备的无线丢包、带宽、干扰、飞控串口、时钟、RC 和失联行为验收。B 的硬件信息、真实 IP/网络、机构/感知标定仍待填写；默认模板不可用于真机起飞。本轮被修改的既有文件备份在 `/home/caolihao/fleet_integration_backup_20261015`。

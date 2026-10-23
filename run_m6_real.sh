@@ -19,36 +19,43 @@ B_OFFSET="${B_OFFSET:-0.0,0.0,0.0}"      # B 的 PX4 原点在 relnav 世界系�
 A_RTK="${A_RTK:-/rtk/a}"
 B_RTK="${B_RTK:-/rtk/b}"
 RTK_TYPE="${RTK_TYPE:-navsatfix}"        # navsatfix | array
-A_LEVER="${A_LEVER:-0.0,0.0,0.2}"        # A 天线→末端（机体系 NED）
-B_LEVER="${B_LEVER:-0.0,0.0,-0.21}"      # B 天线→托盘面（机体系 NED）
+# 必须实测：天线→PX4 机体定位原点，禁止复用旧的天线→托盘杆臂。
+[ -n "${A_LEVER:-}" ] && [ -n "${B_LEVER:-}" ] \
+  || { echo "拒绝启动：必须填写实测 A_LEVER/B_LEVER（天线到机体原点）"; exit 1; }
 FUNNEL_MOUTH="${FUNNEL_MOUTH:-0.15}"     # 托盘内半径（30cm 盘 → 0.15）
 COORD="${COORD:-handshake}"
 
 echo "!! 真机启动前请确认：安全员就位 / RC 可接管 / 围栏高度已设 / 电机桨已装好"
 
-# 起飞前自检（真机）：持续探测运行中的 PX4 + 默认 GPS 严格门
+# 强制门禁：不可跳过，必须分别读取两台飞控；节点还会复核实时健康。
 if [ "${SKIP_PREFLIGHT:-0}" = "1" ]; then
-  echo "### (SKIP_PREFLIGHT=1，跳过起飞前自检)"
-else
-  echo "### 起飞前自检（真机 --live）"
-  PF_ARGS="--live"
-  [ "${PREFLIGHT_GPS:-1}" = "1" ] && PF_ARGS="$PF_ARGS --gps"
-  [ "${PREFLIGHT_LOGS:-0}" = "1" ] && PF_ARGS="$PF_ARGS --logs"
-  python3 "$HOME/drone_payload_catch/tools/preflight_check.py" $PF_ARGS \
-    || { echo "❌ 起飞前自检未通过 → 中止（紧急时 SKIP_PREFLIGHT=1）"; exit 1; }
-  if [ -n "${PARAM_MAVLINK:-}" ]; then
-    echo "### 飞控参数检查（$PARAM_MAVLINK）"
-    python3 "$HOME/drone_payload_catch/tools/preflight_params.py" \
-      --mavlink "$PARAM_MAVLINK" --profile "${PARAM_PROFILE:-outdoor}" \
-      || { echo "❌ 飞控参数检查未通过 → 中止"; exit 1; }
-  fi
+  echo "拒绝启动：SKIP_PREFLIGHT 已禁用"; exit 1
 fi
+[ -n "${PARAM_MAVLINK_A:-}" ] && [ -n "${PARAM_MAVLINK_B:-}" ] \
+  || { echo "拒绝启动：必须设置 PARAM_MAVLINK_A 和 PARAM_MAVLINK_B"; exit 1; }
+PARAM_PROFILE="${PARAM_PROFILE:-outdoor}"
+PF_ARGS=(--live --rc --param-profile "$PARAM_PROFILE"
+         --param-mavlink-a "$PARAM_MAVLINK_A" --param-mavlink-b "$PARAM_MAVLINK_B")
+PF_GPS=true
+case "$PARAM_PROFILE" in
+  outdoor) PF_ARGS+=(--gps) ;;
+  indoor) PF_GPS=false ;;
+  *) echo "真机必须选择 outdoor 或 indoor 参数策略"; exit 1 ;;
+esac
+
 echo "   A_HOVER=$A_HOVER B_STANDBY=$B_STANDBY B_OFFSET=$B_OFFSET"
 echo "   RTK A=$A_RTK B=$B_RTK type=$RTK_TYPE  lever A=$A_LEVER B=$B_LEVER"
 read -r -p "确认全部就绪？输入 yes 继续：" _ans
 [ "$_ans" = "yes" ] || { echo "已取消"; exit 1; }
+PF_REPORT=$(mktemp /tmp/payload_catch_preflight.XXXXXX.json) || exit 1
+python3 "$HOME/drone_payload_catch/tools/preflight_check.py" "${PF_ARGS[@]}" \
+  --write-approval "$PF_REPORT" \
+  || { echo "自检未通过，拒绝起飞"; exit 1; }
+
 
 ros2 launch payload_catch catch_real_launch.py \
+  servo_config:="${SERVO_CONFIG:-$HOME/drone_payload_catch/config/payload_servo.yaml}" \
+  preflight_report:="$PF_REPORT" preflight_require_gps:="$PF_GPS" \
   a_hover:="[$A_HOVER]" b_standby:="[$B_STANDBY]" b_offset:="[$B_OFFSET]" \
   source:=rtk a_rtk_topic:="$A_RTK" b_rtk_topic:="$B_RTK" rtk_type:="$RTK_TYPE" \
   a_lever:="[$A_LEVER]" b_lever:="[$B_LEVER]" \
@@ -57,5 +64,5 @@ ros2 launch payload_catch catch_real_launch.py \
 
 # 说明：
 #  · 载荷状态 /payload/state 需由真实感知节点发布（视觉/动捕/UWB tag 或弹道预测）；
-#    若暂时没有，可先用 tools/ 里的解析预测节点（不存在则需自建）作为兜底。
+#    缺失真实感知或 /payload/hardware_ready 时拒飞，不用解析预测冒充观测。
 #  · 捕获由【接触检测】触发（加速度尖峰/速度反转/外部 /payload/contact 开关）。

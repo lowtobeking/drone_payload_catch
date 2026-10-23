@@ -1,0 +1,17 @@
+{
+  "checks": {
+    "pwm_tests": "23 passed",
+    "quick": "33/33 passed",
+    "windows_gui_smoke": "passed; local mock; stale status still sends heartbeat",
+    "syntax": "passed",
+    "git_diff_check": "passed"
+  },
+  "hardware_output": "none; actual SSH diagnostic used only MockBackend",
+  "datasheet_mapping": "1000-2000us total 90+/-10 degrees; center 1500us; relative nominal +/-45deg",
+  "source_hashes": {
+    "tools/pwm_ssh_gui.py": "f81df7550ec52f6a130db60d394620a92770aa1da7a77df8d7d7f49198778620",
+    "tools/pwm_angle.py": "85c73cc426a0ce2a40568cea358874d56e1f6497114e22e5da634e6c7041b43e",
+    "tools/pwm_remote_agent.py": "f4eb1c7ded5b55da5258c6927584c58101b92d4f0bafde15ac5b85856669c5fc",
+    "tools/test_pwm_gui.py": "e8414d084c9ba63dd0ef3c2ae3330022fb167a639ff28342d036fa782d59f944"
+  }
+}

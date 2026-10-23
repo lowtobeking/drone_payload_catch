@@ -1,0 +1,26 @@
+{
+  "addresses": {
+    "exit": 0,
+    "stdout": "[{\"ifindex\":1,\"ifname\":\"lo\",\"flags\":[\"LOOPBACK\",\"UP\",\"LOWER_UP\"],\"mtu\":65536,\"qdisc\":\"noqueue\",\"operstate\":\"UNKNOWN\",\"group\":\"default\",\"txqlen\":1000,\"link_type\":\"loopback\",\"address\":\"00:00:00:00:00:00\",\"broadcast\":\"00:00:00:00:00:00\",\"addr_info\":[{\"family\":\"inet\",\"local\":\"127.0.0.1\",\"prefixlen\":8,\"scope\":\"host\",\"label\":\"lo\",\"valid_life_time\":4294967295,\"preferred_life_time\":4294967295},{\"family\":\"inet\",\"local\":\"10.255.255.254\",\"prefixlen\":32,\"broadcast\":\"10.255.255.254\",\"scope\":\"global\",\"label\":\"lo\",\"valid_life_time\":4294967295,\"preferred_life_time\":4294967295},{\"family\":\"inet6\",\"local\":\"::1\",\"prefixlen\":128,\"scope\":\"host\",\"valid_life_time\":4294967295,\"preferred_life_time\":4294967295}]},{\"ifindex\":2,\"ifname\":\"eth0\",\"flags\":[\"BROADCAST\",\"MULTICAST\",\"UP\",\"LOWER_UP\"],\"mtu\":1500,\"qdisc\":\"mq\",\"operstate\":\"UP\",\"group\":\"default\",\"txqlen\":1000,\"link_type\":\"ether\",\"address\":\"00:15:5d:87:76:ba\",\"broadcast\":\"ff:ff:ff:ff:ff:ff\",\"addr_info\":[{\"family\":\"inet\",\"local\":\"172.22.208.66\",\"prefixlen\":20,\"broadcast\":\"172.22.223.255\",\"scope\":\"global\",\"label\":\"eth0\",\"valid_life_time\":4294967295,\"preferred_life_time\":4294967295},{\"family\":\"inet6\",\"local\":\"fe80::215:5dff:fe87:76ba\",\"prefixlen\":64,\"scope\":\"link\",\"valid_life_time\":4294967295,\"preferred_life_time\":4294967295}]}]\n",
+    "stderr": ""
+  },
+  "routes": {
+    "exit": 0,
+    "stdout": "[{\"dst\":\"default\",\"gateway\":\"172.22.208.1\",\"dev\":\"eth0\",\"protocol\":\"kernel\",\"flags\":[]},{\"dst\":\"172.22.208.0/20\",\"dev\":\"eth0\",\"protocol\":\"kernel\",\"scope\":\"link\",\"prefsrc\":\"172.22.208.66\",\"flags\":[]}]\n",
+    "stderr": ""
+  },
+  "vrpn_port": {
+    "exit": 0,
+    "stdout": "Netid State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess\n",
+    "stderr": ""
+  },
+  "known_paths": {
+    "/opt/ros/humble/share/ament_index/resource_index/packages": true,
+    "/home/caolihao/ros2_ws/install": false,
+    "/usr/local/include/vrpn_Tracker.h": false,
+    "/usr/local/lib/libvrpn.so": false
+  },
+  "mocap_paths": [
+    "/home/caolihao/drone_package_20260908/PX4-Autopilot-1.16/src/modules/local_position_estimator/sensors/mocap.cpp"
+  ]
+}

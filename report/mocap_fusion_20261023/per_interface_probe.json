@@ -1,0 +1,32 @@
+{
+  "read_only_network_configuration": true,
+  "probes": [
+    {
+      "interface_index": 23,
+      "local": "192.168.1.2",
+      "target": "192.168.1.4",
+      "port": 22,
+      "connected": true,
+      "banner": "SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.16\r\n",
+      "elapsed_s": 3.0320000000065193
+    },
+    {
+      "interface_index": 8,
+      "local": "192.168.1.123",
+      "target": "192.168.1.101",
+      "port": 22,
+      "connected": true,
+      "banner": "SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.16\r\n",
+      "elapsed_s": 0.031000000017229468
+    },
+    {
+      "interface_index": 8,
+      "local": "192.168.1.123",
+      "target": "192.168.1.4",
+      "port": 22,
+      "connected": true,
+      "banner": "SSH-2.0-OpenSSH_8.9p1 Ubuntu-3ubuntu0.16\r\n",
+      "elapsed_s": 0.030999999959021807
+    }
+  ]
+}

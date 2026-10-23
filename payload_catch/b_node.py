@@ -11,16 +11,19 @@
 from __future__ import annotations
 
 import numpy as np
+import time
+import json
 import rclpy
-from std_msgs.msg import Bool, Float64, Float64MultiArray
+from std_msgs.msg import String, Bool, Float64, Float64MultiArray
 
 from .px4_iface import Px4Drone
 from .rendezvous import RendezvousPlanner
-from .stack_drop import plan_stack_drop, _stack_ref, _adaptive_dive, minimal_dive, retain_speed
+from .stack_drop import plan_stack_intercept, plan_stack_drop, _stack_ref, _adaptive_dive, minimal_dive, retain_speed
 from .contact_detect import ContactDetector
 from .uncertainty import relative_sigma
 from .safety_logic import peer_loss_action
 from .keepout import cbf_bound, hard_floor, project_cbf
+from .safety_runtime import SourceWatch
 
 
 class BNode(Px4Drone):
@@ -129,6 +132,8 @@ class BNode(Px4Drone):
         # 失联看门狗（第 2 层）：丢 A 状态 → 先就地冻结、再 AUTO.LAND（0=关）
         self.declare_parameter('peer_loss_hold_s', 0.0)    # 冻结阈值
         self.declare_parameter('peer_loss_land_s', 0.0)    # 降落阈值（须 > hold）
+        self.declare_parameter('require_payload_before_release',False)
+        self.declare_parameter('require_physical_capture',False)
         # 在线自适应下潜：滚动重解 a_dive（抗垂直扰动，如下击暴流）
         self.declare_parameter('adaptive_dive', False)
         self.declare_parameter('adaptive_alt_floor', 0.35)   # 刹停后最小离地 (m)
@@ -237,8 +242,30 @@ class BNode(Px4Drone):
         self.peer_loss_hold_s = float(self.get_parameter('peer_loss_hold_s').value)
         self.peer_loss_land_s = float(self.get_parameter('peer_loss_land_s').value)
         if self.peer_loss_hold_s > 0.0 and self.peer_loss_land_s <= self.peer_loss_hold_s:
-            self.get_logger().warn('peer_loss_land_s 须 > peer_loss_hold_s — 冻结阶段禁用')
-            self.peer_loss_hold_s = 0.0
+            raise ValueError('peer_loss_land_s must exceed positive peer_loss_hold_s')
+        self._relative_watch=SourceWatch();self._payload_watch=SourceWatch()
+        self.require_payload_before_release=bool(self.get_parameter('require_payload_before_release').value)
+        self.require_physical_capture=bool(self.get_parameter('require_physical_capture').value)
+        if self.require_physical_capture and not self.contact_detect:
+            raise ValueError('physical capture requires contact_detect')
+        self._capture_since=None
+        self._capture_source_at=None
+        self._payload_present=False;self._payload_present_t=None
+        self._hardware_ready=False;self._hardware_ready_t=None
+        self.declare_parameter('require_hardware_status',False)
+        self.require_hardware_status=bool(self.get_parameter('require_hardware_status').value)
+        self._hardware_watch=SourceWatch(.2)
+        self._hardware_status_ready=False
+        self._release_event_nonce=None
+        self._measured_release_at=None
+        self._estimated_release_at=None
+        self.declare_parameter('release_confirmation_mode','sensor')
+        self.release_confirmation_mode=self.get_parameter('release_confirmation_mode').value
+        if self.release_confirmation_mode not in ('sensor','timed'):raise ValueError('invalid release confirmation mode')
+        self.declare_parameter('expected_servo_signature','')
+        self.declare_parameter('expected_release_id','')
+        self.expected_servo_signature=self.get_parameter('expected_servo_signature').value
+        self.expected_release_id=self.get_parameter('expected_release_id').value
         self.adaptive_dive = bool(self.get_parameter('adaptive_dive').value)
         self.adaptive_alt_floor = float(self.get_parameter('adaptive_alt_floor').value)
         self._a_adapt = None
@@ -281,6 +308,9 @@ class BNode(Px4Drone):
         self._a_intent = None
         self._release_cmd = None
         self._release_cmd_t = 0.0
+        self._release_cmd_stamp = -np.inf
+        self._release_plan_at = None
+        self._release_cancelled = False
         self.pub_ready = self.create_publisher(Float64MultiArray, '/drone_b/ready', 10)
         if self.coord_mode == 'handshake':
             self.create_subscription(Float64MultiArray, '/drone_a/intent', self._on_a_intent, 10)
@@ -319,8 +349,12 @@ class BNode(Px4Drone):
 
         self.create_subscription(Float64MultiArray, '/payload/state', self._on_payload, 10)
         self.create_subscription(Bool, str(self.get_parameter('contact_topic').value),
-                                 self._on_contact, 10)
+                                  self._on_contact, 10)
+        self.create_subscription(Bool,'/payload/present',self._on_present,10)
+        self.create_subscription(Bool,'/payload/hardware_ready',self._on_hardware_ready,10)
+        self.create_subscription(String,'/payload/hardware_status',self._on_hardware_status,10)
         self.create_subscription(Bool, '/payload/released', self._on_released, 10)
+        self.create_subscription(String, '/payload/release_event', self._on_release_event, 10)
         self.pub_caught = self.create_publisher(Bool, '/payload/caught', 10)
         self.pub_miss = self.create_publisher(Bool, '/payload/miss', 10)
         self.miss_timeout_s = float(self.get_parameter('miss_timeout_s').value)
@@ -342,40 +376,181 @@ class BNode(Px4Drone):
 
     def _on_payload(self, msg):
         if len(msg.data) >= 7:
+            now=self.get_clock().now().nanoseconds*1e-9
+            if not self._payload_watch.accept(float(msg.data[0]),msg.data[1:7],now,time.monotonic()):return
             self.p_pay = np.array([msg.data[1], msg.data[2], msg.data[3]])
             self.v_pay = np.array([msg.data[4], msg.data[5], msg.data[6]])
             self.t_sim = float(msg.data[0])
-            self._pay_hist.append((self.get_clock().now().nanoseconds * 1e-9,
+            self._pay_hist.append((float(msg.data[0]),
                                    self.p_pay.copy(), self.v_pay.copy()))
             if len(self._pay_hist) > 4000:
                 self._pay_hist.pop(0)
 
     def _on_contact(self, msg):
         """外部接触开关（力/微动/红外对射等）→ 置一次接触标志。"""
-        if bool(msg.data):
+        if bool(msg.data) and self.released and self.phase=='DIVE':
             self._ext_contact = True
 
+    def _on_present(self,msg):
+        self._payload_present=bool(msg.data);self._payload_present_t=time.monotonic()
+
+    def _on_hardware_ready(self,msg):
+        self._hardware_ready=bool(msg.data);self._hardware_ready_t=time.monotonic()
+
+    def _on_hardware_status(self,msg):
+        try:
+            d=json.loads(msg.data);wall=time.time();mono=time.monotonic()
+            if ((getattr(self,'expected_servo_signature','') and d.get('servo_signature')!=self.expected_servo_signature)
+                    or (getattr(self,'expected_release_id','') and d.get('release_id')!=self.expected_release_id)):
+                self._hardware_watch.valid=False;return
+            if d.get('session')!=self._supervisor_session or d.get('mock') is not False:
+                self._hardware_watch.valid=False;return
+            mode=d.get('confirmation_mode','sensor')
+            if mode!=getattr(self,'release_confirmation_mode','sensor'):
+                self._hardware_watch.valid=False;return
+            if mode=='sensor':
+                if not 0<=wall-d['feedback_stamp']<=.2:
+                    self._hardware_watch.valid=False;return
+            elif d.get('feedback_required') is not False or d.get('physically_released') is not False:
+                self._hardware_watch.valid=False;return
+            if self._hardware_watch.accept(d['stamp'],[],wall,mono):
+                self._hardware_status_ready=(d.get('ready') is True
+                    and d.get('state') in ('READY','COMMAND_SENT','RELEASED','ACTION_COMPLETE'))
+        except (ValueError,KeyError,TypeError):self._hardware_watch.valid=False
+
+    def extra_sources_ready(self):
+        now=self.get_clock().now().nanoseconds*1e-9;mono=time.monotonic()
+        if self.mode=='stack' and not self._relative_watch.fresh(now,mono):return False
+        if self.require_payload_before_release and not self.released:
+            if self.require_hardware_status and not (self._hardware_status_ready
+                    and self._hardware_watch.fresh(time.time(),mono)):return False
+            return (self._payload_watch.fresh(now,mono) and self._hardware_ready
+                    and self._hardware_ready_t is not None and mono-self._hardware_ready_t<=.5)
+        if self.released and not self.caught:
+            return self._payload_watch.fresh(now,mono) or mono-self._released_rx_t<.15
+        if self.caught and self.require_physical_capture:
+            return (self._payload_present and self._payload_present_t is not None
+                    and 0<=mono-self._payload_present_t<=.5)
+        return True
+
+    def _plan_before_release(self):
+        if self.a_est is None or not self._relative_watch.fresh(
+                self.get_clock().now().nanoseconds*1e-9,time.monotonic()):return None
+        if self.require_payload_before_release and not self._payload_watch.fresh(
+                self.get_clock().now().nanoseconds*1e-9,time.monotonic()):return None
+        a_h=-self.a_est[2]-self.payload_release_offset-self.funnel_mount_height
+        b_h=-self.pos_world[2]
+        return plan_stack_drop(a_height=a_h,b_height=b_h,
+            a_dive=None if self.auto_min_dive else self.a_dive,a_brake=self.a_brake,
+            funnel_depth=self.funnel_depth,restitution=self.funnel_restitution)
+
+    def on_safety_stop(self,reason):
+        self._release_cancelled=True
+        self.publish_release_permit(False)
+        if hasattr(self,'pub_ready'):self._pub_ready(
+            self.get_clock().now().nanoseconds*1e-9,0.,0.,0.)
+        self._release_cmd=None;self.release_ref_t0=None;self.stack_plan=None
+        self.align_t0=None;self.form_t0=None
+        if hasattr(self,'phase'):self.phase='SAFE_HOLD'
+
+    def on_operator_resume(self):
+        if self._release_cancelled:
+            self.phase='SAFE_HOLD'
+            return
+        self.phase='CLIMB' if self.mode=='stack' else 'HOLD'
+        self._release_cmd=None;self.release_ref_t0=None;self.stack_plan=None
+        self.align_t0=None;self.form_t0=None;self._formation_sent=False
+        self.form_ref_p0=None;self.form_ref_t0=None;self.planned=False;self.plan=None
+        self._t_node0=None;self._form_timeout_t0=None;self._dive_anchored=False
+
+    def _on_release_event(self, msg):
+        """Accept the configured evidence type; never label a timed estimate as measured."""
+        try:
+            d=json.loads(msg.data)
+            if (d.get('mock') is not False or d.get('session')!=self._supervisor_session
+                    or not isinstance(d.get('nonce'),str) or not d['nonce']
+                    or (self.expected_release_id and d.get('release_id')!=self.expected_release_id)
+                    or (self.expected_servo_signature and d.get('servo_signature')!=self.expected_servo_signature)):
+                return
+            mode=d.get('confirmation_mode','sensor')
+            if mode!=getattr(self,'release_confirmation_mode','sensor'):return
+            if mode=='timed':
+                if d.get('physically_confirmed') is not False or d.get('detached_at') is not None:return
+                edge=d['estimated_detach_at'];completed=d['action_completed_at'];written=d['output_written_at']
+                if (any(type(v) not in (int,float) or not np.isfinite(v) for v in (edge,completed,written))
+                        or not written<edge<=completed or completed-edge>.05):return
+            else:
+                if d.get('physically_confirmed') is False:return
+                edge=d['detached_at']
+            stamp=d['stamp']
+            source_now=time.time()+self.clock_offset
+            if (type(edge) not in (int,float) or type(stamp) not in (int,float)
+                    or not np.isfinite(edge) or not np.isfinite(stamp)
+                    or not 0<=stamp-edge<=.2 or not 0<=source_now-stamp<=.2):
+                return
+            # One accepted release event per mission, including duplicate/reordered delivery.
+            if self._release_event_nonce is not None:return
+            self._release_event_nonce=d['nonce']
+            if mode=='timed':self._estimated_release_at=edge-self.clock_offset
+            else:self._measured_release_at=edge-self.clock_offset
+            if not self._dive_anchored:self.release_ref_t0=edge-self.clock_offset
+            self._on_released(Bool(data=True))
+        except (ValueError,TypeError,KeyError):
+            return
+
     def _on_released(self, msg):
+        # Real hardware requires the timestamped event, whichever DDS topic arrives first.
+        if (getattr(self,'require_hardware_status',False)
+                and getattr(self,'_measured_release_at',None) is None
+                and not (getattr(self,'release_confirmation_mode','sensor')=='timed'
+                         and getattr(self,'_estimated_release_at',None) is not None
+                         and getattr(self,'_release_event_nonce',None))):return
         if msg.data and not self.released:
             self.released = True
+            self._released_rx_t=time.monotonic()
             if self.mode != 'stack':
                 self.phase = 'RENDEZ'
             elif (self.coord_mode == 'handshake'
                   and self.phase in ('ALIGN', 'FORMATION') and not self._dive_anchored):
                 # C2 冗余：若 release_cmd 丢失，用 /payload/released（载荷实际分离）兜底触发 DIVE
-                self.release_ref_t0 = self.get_clock().now().nanoseconds * 1e-9
+                edge=(self._measured_release_at if self._measured_release_at is not None
+                      else getattr(self,'_estimated_release_at',None))
+                self.release_ref_t0=(edge if edge is not None else self.get_clock().now().nanoseconds*1e-9)
                 self._dive_anchored = False
                 self.phase = 'DIVE'
                 self.get_logger().warn(
-                    'B: /payload/released → 冗余触发 DIVE（release_cmd 可能丢失）')
-            self.get_logger().warn('B: payload released → rendezvous')
+                    'B: validated release event → 等待真实下落后启动接取（release_cmd 可能丢失）')
+            evidence='timed action, detachment unconfirmed' if getattr(self,'release_confirmation_mode','sensor')=='timed' else 'sensor-confirmed release'
+            self.get_logger().warn('B: '+evidence+' → wait for observed falling motion')
 
     def _on_a_intent(self, msg):
         self._a_intent = list(msg.data)
 
     def _on_release_cmd(self, msg):
-        self._release_cmd = list(msg.data)
-        self._release_cmd_t = self.get_clock().now().nanoseconds * 1e-9
+        # Validate A source time, not arrival time: delayed packets cannot become fresh.
+        try:
+            values=list(msg.data)
+            if len(values)!=3 or not np.all(np.isfinite(values)):return
+            action, planned, stamp=map(float,values)
+            now=self.get_clock().now().nanoseconds*1e-9
+            source_now=now+self.clock_offset
+            if (action not in (-1.,1.) or not 0<=source_now-stamp<=self.handshake_timeout
+                    or stamp<=self._release_cmd_stamp):return
+            if self.released or self._release_cancelled:return
+            if action==1.:
+                if not (0<planned-stamp<=5. and planned>source_now):return
+                if self._release_plan_at is not None and planned!=self._release_plan_at:return
+                self._release_plan_at=planned
+            elif planned!=0.:
+                return
+            self._release_cmd_stamp=stamp
+            self._release_cmd=values
+            self._release_cmd_t=stamp-self.clock_offset
+            if action==-1.:
+                self._release_cancelled=True
+                self.request_hold('A cancelled release; ground inspection required')
+        except (ValueError,TypeError,OverflowError):
+            return
 
     def _on_pong(self, msg):
         """时钟同步：data=[t_b_send, t_a_recv] → 估 offset=(A−B)，EMA 平滑。"""
@@ -395,6 +570,10 @@ class BNode(Px4Drone):
                 f'B: 时钟同步 offset(A−B)={self.clock_offset:+.4f}s rtt={rtt*1000:.1f}ms')
 
     def _pub_ready(self, now, ready, rel_xy, spd_xy):
+        plan=self._plan_before_release() if ready else None
+        feasible=bool(plan is not None and plan.feasible)
+        ready=bool(ready and feasible and self.mission_allowed())
+        if self.coord_mode!='handshake':self.publish_release_permit(ready)
         m = Float64MultiArray()
         # [ready, rel_xy, spd_xy, stamp, sigma_abs, sigma_rel]
         #   sigma_abs = 在线残差 ⊕ EKF 自身 σ（keep-out/启发式用）
@@ -419,7 +598,7 @@ class BNode(Px4Drone):
         if self.sensor_constraints_enable and self.sensor_use_ekf_sigma:
             sigma_abs = float(np.sqrt(sigma_rel ** 2 + self.pos_sigma_h ** 2))
         m.data = [float(ready), float(rel_xy), float(spd_xy), float(now),
-                  sigma_abs, sigma_rel]
+                  sigma_abs, sigma_rel,float(feasible)]
         self.pub_ready.publish(m)
 
     def _gap_eff(self):
@@ -484,6 +663,8 @@ class BNode(Px4Drone):
 
     def _on_a_state(self, msg):
         if len(msg.data) >= 7:
+            now=self.get_clock().now().nanoseconds*1e-9
+            if not self._relative_watch.accept(float(msg.data[0]),msg.data[1:7],now,time.monotonic()):return
             p_meas = np.array(msg.data[1:4], float)
             self.a_state_hist.append((float(msg.data[0]), p_meas,
                                       np.array(msg.data[4:7], float)))
@@ -497,7 +678,7 @@ class BNode(Px4Drone):
 
     def _relnav_a(self, now):
         """相对定位（mesh 替身）：A 广播位姿 + 延迟(含抖动) + 丢包 + 慢变偏置 + 白噪声。"""
-        if not self.a_state_hist:
+        if not self._relative_watch.fresh(now,time.monotonic()) or not self.a_state_hist:
             return None, None
         if self.rel_bias > 0:      # 慢变偏置（随机游走，模拟标定漂移/多径）
             self._rel_bias_vec = np.clip(
@@ -527,7 +708,7 @@ class BNode(Px4Drone):
 
     def _payload_est(self, now):
         """载荷状态估计（延迟 + 丢包 + 白噪声），供 DIVE 阶段闭环跟踪。"""
-        if not self._pay_hist:
+        if not self._payload_watch.fresh(now,time.monotonic()) or not self._pay_hist:
             return None
         j = len(self._pay_hist) - 1
         lat = self.payload_meas_latency + (self._rng.uniform(0.0, self.rel_jitter)
@@ -550,9 +731,25 @@ class BNode(Px4Drone):
         self._pay_last_est = (self._pay_est_f.copy(), v.copy())
         return self._pay_last_est
 
+    def _payload_for_intercept(self, now):
+        if (self.p_pay is None or self.v_pay is None
+                or not self._payload_watch.fresh(now,time.monotonic())):
+            return None
+        age=now-self.t_sim
+        edge=self._measured_release_at
+        if edge is None:edge=getattr(self,'_estimated_release_at',None)
+        if not 0<=age<=.15 or (edge is not None and self.t_sim<edge):return None
+        p=self.p_pay.copy();v=self.v_pay.copy()
+        p += v*age + .5*np.array([0.,0.,9.81])*age*age
+        v[2] += 9.81*age
+        return p,v
+
     def _capture_check(self):
-        if self.p_pay is None or self.caught:
+        if (self.p_pay is None or self.caught or not self.released or not self.mission_allowed()
+                or not self._payload_watch.fresh(self.get_clock().now().nanoseconds*1e-9,time.monotonic())):
             return
+        if self.require_physical_capture:
+            self._stack_capture_check();return
         d = float(np.linalg.norm(self.pos_world - self.p_pay))
         rv = float(np.linalg.norm(self.vel - self.v_pay))
         if d < self.r_c and rv < self.v_c:
@@ -565,6 +762,15 @@ class BNode(Px4Drone):
 
     def control(self):
         now = self.get_clock().now().nanoseconds * 1e-9
+        if not self.mission_allowed():return
+        if self.mode=='stack' and not self._relative_watch.fresh(now,time.monotonic()):
+            self.request_hold('relative navigation missing / source stale');return
+        if self.released and not self.caught and not self._payload_watch.fresh(now,time.monotonic()):
+            if time.monotonic()-self._released_rx_t<.15:
+                self.publish_velocity([0.,0.,0.],yaw=self.yaw);return
+            self.request_hold('payload perception missing / source stale');return
+        if self.mode!='stack':self.publish_release_permit(
+            self.plan is not None and self.plan.feasible)
         if self.clock_sync and (now - self._last_ping) > 0.2:
             self._last_ping = now
             self._ping_send = now
@@ -702,7 +908,9 @@ class BNode(Px4Drone):
         self.phase = 'DONE'
 
     def _stack_capture_check(self):
-        if self.caught or self.p_pay is None:
+        if self.caught or not self.released or self.p_pay is None or not self.mission_allowed():
+            return
+        if not self._payload_watch.fresh(self.get_clock().now().nanoseconds*1e-9,time.monotonic()):
             return
         pos = self.pos_world
         # 漏斗口平面的 NED z（px4_z_bias 把 PX4 世界系换算回模型绝对高度）
@@ -726,9 +934,15 @@ class BNode(Px4Drone):
                 self._near_since = None
             hit = self.contact.update(now, az, rel_vz, near, external=self._ext_contact)
             self._ext_contact = False
-            timeout = (self._near_since is not None
-                       and (now - self._near_since) > self.contact_timeout_s)
-            trigger = hit or (near and timeout)
+            trigger = hit and near
+            if self.require_physical_capture:
+                retained = bool(trigger and self._payload_present and self._payload_present_t is not None
+                                and 0<=time.monotonic()-self._payload_present_t<=.5)
+                if not retained:self._capture_since=None;self._capture_source_at=None
+                elif self._capture_since is None:
+                    self._capture_since=now;self._capture_source_at=self._payload_watch.stamp
+                trigger=(retained and now-self._capture_since>=.10
+                         and self._payload_watch.stamp>self._capture_source_at)
             if hit:
                 self.get_logger().warn('B: 检测到接触事件 → 捕获')
         else:
@@ -747,29 +961,41 @@ class BNode(Px4Drone):
                 f'*** STACK CAPTURED *** horiz={horiz:.3f}m rel_v={rv:.3f}m/s '
                 f'z_mouth={z_mouth:.2f} p_B={pos.round(2)} p_p={self.p_pay.round(2)}')
 
+    def _hold_during_opening(self, pos):
+        # A 1.5s actuator delay is attached flight, not the beginning of a dive.
+        v = self.hover_velocity(pos[:2], -pos[2], kp_xy=2.0,
+                                max_speed=2.0, kp_z=1.5, max_climb=1.5)
+        if self.use_formation and self.a_est is not None:
+            # Keep tracking A horizontally throughout opening and sensor latency.
+            v[:2] = (self.formation_vel[:2]
+                     + self.form_kp_rel * (self.a_est[:2] - pos[:2]))
+            speed = float(np.linalg.norm(v[:2]))
+            if speed > self.v_max:
+                v[:2] *= self.v_max / speed
+        self.publish_velocity(v, yaw=self.yaw)
+
     def control_stack(self, now):
         pos = self.pos_world
+        if self._release_cancelled:
+            self.request_hold('release attempt cancelled; ground inspection required');return
         # 协同握手：A 的释放 ack 是【原子事件】——只要收到就切 DIVE，
         # 不依赖当前瞬时对齐（释放/分离会让对齐短暂抖动，否则会漏掉 ack 卡在 ALIGN/FORMATION）。
         if (self.coord_mode == 'handshake' and self.phase in ('ALIGN', 'FORMATION')
-                and self._release_cmd is not None and float(self._release_cmd[0]) >= 0.5
-                and (now - self._release_cmd_t) < self.handshake_timeout):
+                and not self.released and self._release_cmd is not None and float(self._release_cmd[0]) >= 0.5
+                and 0 <= now - self._release_cmd_t < self.handshake_timeout):
             t_rel = float(self._release_cmd[1]) - self.clock_offset
             self.release_ref_t0 = t_rel
             self._dive_anchored = False
             self.get_logger().warn(
                 f'B: 收到 A 释放 ack@{t_rel:.2f}s（原 phase={self.phase}）→ DIVE')
             self.phase = 'DIVE'
-        # 释放取消（A 在 lead 窗口复核失败）：若在 DIVE 且尚未真正下潜 → 回到 ALIGN
+        # Cancellation is terminal for this release attempt, never a new alignment loop.
         if (self.coord_mode == 'handshake' and self.phase == 'DIVE'
-                and not self._dive_anchored and self._release_cmd is not None
+                and not self.released and not self._dive_anchored and self._release_cmd is not None
                 and float(self._release_cmd[0]) < 0.0
-                and (now - self._release_cmd_t) < self.handshake_timeout):
-            self.phase = 'ALIGN'
-            self.align_t0 = now
-            self._dive_anchored = False
-            self.release_ref_t0 = None
-            self.get_logger().warn('B: 收到释放取消 → 回到 ALIGN（重新对正）')
+                and 0 <= now - self._release_cmd_t < self.handshake_timeout):
+            self._release_cancelled=True
+            self.request_hold('release cancelled; ground inspection required');return
         p_est, v_est = self._relnav_a(now)
         if p_est is not None:
             self.a_est, self.a_vel_est = p_est, v_est
@@ -846,7 +1072,10 @@ class BNode(Px4Drone):
             a_slow = (self.a_vel_est is None
                       or float(np.linalg.norm(self.a_vel_est)) < self.align_vel_tol)
             aligned = (rel_xy < self.align_xy_tol and spd_xy < self.align_vel_tol
-                       and alt_ok and a_slow)
+                        and alt_ok and a_slow)
+            before=self._plan_before_release()
+            aligned=aligned and before is not None and before.feasible
+            if self.coord_mode!='handshake':self.publish_release_permit(aligned)
             if aligned:
                 if self.coord_mode == 'handshake' and not self.use_formation:
                     # 持续报就绪（含质量指标）；一旦不再对齐会置 0，A 就不会释放。
@@ -873,8 +1102,8 @@ class BNode(Px4Drone):
                     elif self.coord_mode == 'handshake':
                         # 等 A（释放权威）的 ack；a = [release(0/1), t_rel, stamp]
                         cmd = self._release_cmd
-                        if (cmd is not None and float(cmd[0]) >= 0.5
-                                and (now - self._release_cmd_t) < self.handshake_timeout):
+                        if (not self.released and cmd is not None and float(cmd[0]) >= 0.5
+                                and 0 <= now - self._release_cmd_t < self.handshake_timeout):
                             t_rel = float(cmd[1]) - self.clock_offset   # A 时钟 → B 时钟
                             self.release_ref_t0 = t_rel
                             self._dive_anchored = False
@@ -940,6 +1169,9 @@ class BNode(Px4Drone):
                 np.linalg.norm(self.formation_vel[:2]))
             aligned = (rel_xy < self.align_xy_tol and rel_vxy < self.align_vel_tol
                        and alt_ok and speed_ok)
+            before=self._plan_before_release()
+            aligned=aligned and before is not None and before.feasible
+            if self.coord_mode!='handshake':self.publish_release_permit(aligned)
             if aligned:
                 self._last_good_t = now
                 if self.coord_mode == 'handshake':
@@ -950,8 +1182,8 @@ class BNode(Px4Drone):
                 elif (now - self.form_t0) >= self.align_hold_s:
                     if self.coord_mode == 'handshake':
                         cmd = self._release_cmd
-                        if (cmd is not None and float(cmd[0]) >= 0.5
-                                and (now - self._release_cmd_t) < self.handshake_timeout):
+                        if (not self.released and cmd is not None and float(cmd[0]) >= 0.5
+                                and 0 <= now - self._release_cmd_t < self.handshake_timeout):
                             t_rel = float(cmd[1]) - self.clock_offset
                             self.release_ref_t0 = t_rel
                             self._dive_anchored = False
@@ -979,6 +1211,13 @@ class BNode(Px4Drone):
             return
 
         if self.phase == 'DIVE':
+            if not self.released:
+                rel_xy=float(np.linalg.norm(self.a_est[:2]-pos[:2])) if self.a_est is not None else float('inf')
+                spd=float(np.linalg.norm(self.vel[:2]-self.formation_vel[:2])) if self.use_formation else float(np.linalg.norm(self.vel[:2]))
+                ready=rel_xy<self.align_xy_tol and spd<self.align_vel_tol
+                self._pub_ready(now,ready,rel_xy,spd)
+                if not ready:
+                    self.request_hold('release lead window alignment lost');return
             # 接空安全中止：DIVE 超时未捕获 → MISS，安全悬停→降落（不盲目追击/砸地）
             if (self._dive_anchored and self._dive_t0 is not None and not self.caught
                     and (now - self._dive_t0) > self.miss_timeout_s):
@@ -992,55 +1231,53 @@ class BNode(Px4Drone):
                 self.publish_velocity(np.zeros(3), yaw=self.yaw)
                 return
             tl = now - self.release_ref_t0
+            if tl>=0 and not self.released:
+                if tl>.5:
+                    self.request_hold('release execution unconfirmed');return
+                self._hold_during_opening(pos);return
             if tl < 0.0:
-                # 释放前：原地悬停等（不能用 standby，编队模式下 B 已离开原点）
-                v = self.hover_velocity(pos[:2], -pos[2], kp_xy=2.0,
-                                        max_speed=2.0, kp_z=1.5, max_climb=1.5)
-                self.publish_velocity(v, yaw=self.yaw)
+                # Before planned detachment, stay attached-flight aligned with A.
+                self._hold_during_opening(pos)
                 return
-            # 分离有 ~0.1-0.2s 延迟：把 DIVE 参考起点重锚到载荷“真正开始下落”的时刻，
-            # 否则 B 会比载荷早下潜，导致擦肩/落空。
+            # Keep detachment time immutable; start a separate trajectory from
+            # current observed state only after fresh falling motion is confirmed.
             if not self._dive_anchored:
-                falling = (self.v_pay is not None
+                falling = (self._payload_for_intercept(now) is not None and self.v_pay is not None
                            and float(self.v_pay[2]) > self.dive_anchor_vz)
-                if falling or tl > 0.5:
-                    self.release_ref_t0 = now
+                if falling or (not self.require_physical_capture and tl > 0.5):
                     self.stack_plan = None
                     self._a_adapt = None
                     self._dive_anchored = True
                     self._dive_t0 = now
                     tl = 0.0
                     self.get_logger().warn(
-                        f'B: DIVE 重锚（载荷开始下落 falling={falling}）')
+                        f'B: DIVE 从当前状态规划（falling={falling}），保留脱离时刻')
                 else:
-                    # 分离延迟：载荷尚未真正下落 → 原地悬停等（不能用 standby）
-                    v = self.hover_velocity(pos[:2], -pos[2], kp_xy=2.0,
-                                            max_speed=2.0, kp_z=1.5, max_climb=1.5)
-                    self.publish_velocity(v, yaw=self.yaw)
+                    if self.require_physical_capture and tl>.5:
+                        self.request_hold('released payload motion unconfirmed');return
+                    # Sensor confirmation is still pending: no speculative dive.
+                    self._hold_during_opening(pos)
                     return
+            tl = now - self._dive_t0
             if self.stack_plan is None:
-                a_h = -self.a_est[2] if self.a_est is not None else -standby[2]
-                # 载荷实际从 A 下方 offset 处释放；漏斗口在 B 机体上方 mount 处。
-                # 让 plan 的有效 gap = 载荷→漏斗口的距离（_stack_ref 仍从 B 机体起步）。
-                a_h = a_h - self.payload_release_offset - self.funnel_mount_height
-                # 最小必要下潜：gap ≤ v_retain²/(2g) 时 a_dive=0（B 悬停接，下落时间最短、
-                # 横风漂移最小）；否则取刚好使 v_rel≤v_retain 的最小 a_dive。
-                if self.auto_min_dive:
-                    gap_eff = a_h - (-pos[2])
-                    v_ret = retain_speed(self.funnel_depth, self.funnel_restitution)
-                    a_dive_use = minimal_dive(gap_eff, v_ret, 9.81,
-                                              float(self.get_parameter('b_max_accel').value))
-                else:
-                    a_dive_use = self.a_dive
-                self.stack_plan = plan_stack_drop(
-                    a_height=a_h, b_height=-pos[2], a_dive=a_dive_use, g=9.81,
-                    a_brake=self.a_brake, funnel_depth=self.funnel_depth,
-                    restitution=self.funnel_restitution)
+                state=self._payload_for_intercept(now)
+                if state is None:
+                    self.request_hold('no fresh post-release payload state for intercept');return
+                pp,pv=state
+                a_dive_use=None if self.auto_min_dive else self.a_dive
+                self.stack_plan=plan_stack_intercept(
+                    payload_height=-pp[2]-self.funnel_mount_height,
+                    b_height=-pos[2],payload_vz=pv[2],b_vz=self.vel[2],
+                    a_dive=a_dive_use,a_dive_max=float(self.get_parameter('b_max_accel').value),
+                    a_brake=self.a_brake,funnel_depth=self.funnel_depth,
+                    restitution=self.funnel_restitution,ground_margin=self.adaptive_alt_floor)
+                self._a_adapt=float(self.stack_plan.a_dive)
                 self.get_logger().warn(
-                    f'B: DIVE plan a_dive={a_dive_use:.2f}(auto={self.auto_min_dive}) '
-                    f't_c={self.stack_plan.t_c:.3f}s v_rel={self.stack_plan.v_rel:.3f} '
-                    f'v_retain={self.stack_plan.v_retain:.3f} feasible={self.stack_plan.feasible}')
-                self._a_adapt = float(self.stack_plan.a_dive)
+                    f'B: current-state intercept tc={self.stack_plan.t_c:.3f}s '
+                    f'v_rel={self.stack_plan.v_rel:.3f} feasible={self.stack_plan.feasible}')
+                if not self.stack_plan.feasible:
+                    self.request_hold('inflight capture/braking plan infeasible: '+self.stack_plan.reason)
+                    self.pub_miss.publish(Bool(data=True));return
             xy_tgt = self.a_est[:2] if self.a_est is not None else pos[:2]
             vxy_ff = np.zeros(2)
             # 编队模式：物块就是从 A 释放的（无释放误差），直接跟踪 A 更稳

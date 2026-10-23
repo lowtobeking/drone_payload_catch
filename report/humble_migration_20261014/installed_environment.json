@@ -1,0 +1,9 @@
+{
+  "ubuntu": "22.04.5",
+  "ros_distro": "humble",
+  "architecture": "x86_64",
+  "python": "3.10.12",
+  "numpy": "1.26.4",
+  "scipy": "1.11.4",
+  "gazebo_bindings": true
+}

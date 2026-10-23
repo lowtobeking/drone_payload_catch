@@ -62,6 +62,15 @@ check('电池阈值次序错 → fail',
                              'BAT1_EMERGEN_THR': 0.15}),
              '电池阈值次序 EMERGEN ≤ CRIT ≤ LOW') == 'fail')
 
+print('\n=== PX4 共享电池参数 ===')
+canonical = {**good, 'BAT_LOW_THR': .15, 'BAT_CRIT_THR': .07, 'BAT_EMERGEN_THR': .05}
+check('共享 BAT_* 正常次序通过', not has_fail(F.check_params(canonical)))
+check('共享 BAT_* 错误次序拒绝',
+      status(F.check_params({**canonical, 'BAT_EMERGEN_THR': .20}),
+             '电池阈值次序 EMERGEN ≤ CRIT ≤ LOW') == 'fail')
+check('新旧电池别名冲突拒绝',
+      has_fail(F.check_params({**canonical, 'BAT1_LOW_THR': .25})))
+
 print('\n=== 实机（indoor）===')
 indoor = {**good, 'GF_MAX_HOR_DIST': 3.0, 'GF_MAX_VER_DIST': 3.0,
           'RTL_RETURN_ALT': 2.0, 'COM_OBL_RC_ACT': 4, 'NAV_RCL_ACT': 3,

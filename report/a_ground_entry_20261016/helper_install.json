@@ -1,0 +1,8 @@
+{
+  "remote": "/home/nvidia/payload_catch_deploy/ground/runtime_20261016",
+  "sha256": {
+    "run_a_ground_live.py": "ef13b3d653f9f02d26fb6257f08abe23bfe7f7c627d00f6ffe6097fcbd82e69d",
+    "run_a_ground_live.sh": "e41eefc576bed7e332cd91e1b81d82c56d99f4f2896c2661cef3b8280bfb4dbe"
+  },
+  "mission_release_unchanged": true
+}

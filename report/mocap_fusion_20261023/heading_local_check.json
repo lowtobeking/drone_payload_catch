@@ -1,0 +1,36 @@
+{
+  "syntax_checked": [
+    "payload_catch/mocap_odometry.py",
+    "payload_catch/mocap_odometry_node.py",
+    "tools/test_mocap_heading_candidate.py",
+    "tools/check_mocap_odometry_ros.py",
+    "report/mocap_fusion_20261023/heading_probe_runtime_a.py",
+    "report/mocap_fusion_20261023/run_heading_probe_on_a.py",
+    "report/mocap_fusion_20261023/run_heading_candidate_on_a.py",
+    "report/mocap_fusion_20261023/receive_ground_runtime_a.py",
+    "report/mocap_fusion_20261023/receive_parameter_guard_a.py",
+    "report/mocap_fusion_20261023/summarize_heading_candidate.py"
+  ],
+  "removed_task_owned_helpers": [
+    {
+      "path": "report/mocap_fusion_20261023/prepare_heading_probe.py",
+      "sha256": "6757eb24df805e1cd485a306ba6dbf4e4e776738c4ff0f64db955aaeb0946156"
+    },
+    {
+      "path": "report/mocap_fusion_20261023/implement_heading_candidate.py",
+      "sha256": "f3169f390d3133addaf1366e65aa3eabb705f6a6b76f44de294aa61f645aaa1b"
+    },
+    {
+      "path": "report/mocap_fusion_20261023/prepare_heading_test.py",
+      "sha256": "756559e72795c079d9441bbf1d5ef01bcdb9aaac1f5af162d6334dbe21f2fbe2"
+    },
+    {
+      "path": "report/mocap_fusion_20261023/refine_heading_startup.py",
+      "sha256": "701113fc703c60140d46c472388bfac97ab73444ec1a1ee7f63803473c404914"
+    },
+    {
+      "path": "report/mocap_fusion_20261023/extend_heading_ros.py",
+      "sha256": "68b454a529f424fb5e8e3cc7491800c3d6bc2cac129e41ccc79847046fdd5a88"
+    }
+  ]
+}

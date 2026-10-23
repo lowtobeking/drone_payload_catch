@@ -1,0 +1,61 @@
+{
+  "kind": "forward_translation_after_level_left_turn",
+  "recorded_at_utc": "2026-10-21 08:28:59 UTC",
+  "before": {
+    "tracker": "planeA",
+    "count": 1198,
+    "invalid": 0,
+    "nonincreasing_timestamps": 1,
+    "connected": true,
+    "rate_hz": 120.01935397811,
+    "age_s": 0.00637352,
+    "position": [
+      2.2006689453125,
+      0.172671432495117,
+      0.289739105224609
+    ],
+    "quaternion_xyzw": [
+      -0.0029168426990509,
+      0.00157833099365234,
+      -0.743626415729523,
+      0.668587327003479
+    ],
+    "forwarded_to_px4": false
+  },
+  "after": {
+    "tracker": "planeA",
+    "count": 1198,
+    "invalid": 0,
+    "nonincreasing_timestamps": 1,
+    "connected": true,
+    "rate_hz": 120.554120361103,
+    "age_s": 0.005309549,
+    "position": [
+      1.22060546875,
+      0.15631787109375,
+      0.291866851806641
+    ],
+    "quaternion_xyzw": [
+      0.00117829442024231,
+      -0.00776228308677673,
+      -0.713667631149292,
+      0.700440406799316
+    ],
+    "forwarded_to_px4": false
+  },
+  "delta_position_m": [
+    -0.9800634765625,
+    -0.016353561401366984,
+    0.0021277465820320196
+  ],
+  "horizontal_distance_m": 0.9801999066834697,
+  "observed_forward_heading_deg": -179.0440383473732,
+  "raw_rigidbody_yaw_start_deg": -96.08279316034404,
+  "raw_rigidbody_yaw_end_deg": -91.07518309490423,
+  "yaw_change_during_translation_deg": 5.007610065439849,
+  "approximate_forward_minus_marker_yaw_deg": -87.96885525246898,
+  "earlier_forward_heading_deg": 94.2341735620228,
+  "earlier_forward_minus_marker_yaw_deg": -84.34509289316333,
+  "finding": "Predominantly -world X translation agrees with predicted new forward direction. Both forward tests suggest approximate -90deg nose relative to marker +X, requiring explicit mounting transform rather than passing quaternion unchanged. Hand movement is approximate, not precision calibration. Physical distance not independently measured.",
+  "forwarded_to_px4": false
+}

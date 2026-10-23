@@ -1,0 +1,281 @@
+{
+  "date": "2026-10-19",
+  "scope": "A-only functional validation",
+  "real_hardware": false,
+  "gazebo_runs": [
+    {
+      "run": "run_103809",
+      "estimated_max_height_m": 1.0116245576937217,
+      "gazebo_max_z_m": 0.9974927110413577,
+      "landed": true,
+      "armed": false
+    },
+    {
+      "run": "run_104115",
+      "estimated_max_height_m": 1.0172026457439642,
+      "gazebo_max_z_m": 1.0091211779817795,
+      "landed": true,
+      "armed": false
+    }
+  ],
+  "ros_cases": [
+    {
+      "case": "missing",
+      "mock_only": true,
+      "real_px4": false,
+      "b_present": false,
+      "commands": [],
+      "phases": [
+        "CHECK"
+      ],
+      "setpoints": 0,
+      "offboard_modes": 0,
+      "release_events": [],
+      "worker_pids": [
+        57,
+        58
+      ],
+      "passed": true,
+      "final_phase": "CHECK",
+      "landed": true,
+      "final_position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "workers_stopped": true
+    },
+    {
+      "case": "low_battery",
+      "mock_only": true,
+      "real_px4": false,
+      "b_present": false,
+      "commands": [],
+      "phases": [
+        "CHECK"
+      ],
+      "setpoints": 0,
+      "offboard_modes": 0,
+      "release_events": [],
+      "worker_pids": [
+        97,
+        98
+      ],
+      "passed": true,
+      "final_phase": "CHECK",
+      "landed": true,
+      "final_position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "workers_stopped": true
+    },
+    {
+      "case": "conflict",
+      "mock_only": true,
+      "real_px4": false,
+      "b_present": false,
+      "commands": [],
+      "phases": [
+        "CHECK"
+      ],
+      "setpoints": 0,
+      "offboard_modes": 0,
+      "release_events": [],
+      "worker_pids": [
+        143,
+        144
+      ],
+      "passed": true,
+      "final_phase": "CHECK",
+      "landed": true,
+      "final_position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "workers_stopped": true
+    },
+    {
+      "case": "check_only",
+      "mock_only": true,
+      "real_px4": false,
+      "b_present": false,
+      "commands": [],
+      "phases": [
+        "CHECK",
+        "READY"
+      ],
+      "setpoints": 0,
+      "offboard_modes": 0,
+      "release_events": [],
+      "worker_pids": [
+        183,
+        184
+      ],
+      "passed": true,
+      "final_phase": "READY",
+      "landed": true,
+      "final_position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "workers_stopped": true
+    },
+    {
+      "case": "normal",
+      "mock_only": true,
+      "real_px4": false,
+      "b_present": false,
+      "commands": [
+        176,
+        400,
+        21
+      ],
+      "phases": [
+        "CHECK",
+        "READY",
+        "PRESTREAM",
+        "MODE",
+        "ARM",
+        "FLY",
+        "LAND",
+        "DONE"
+      ],
+      "setpoints": 150,
+      "offboard_modes": 150,
+      "release_events": [],
+      "worker_pids": [
+        223,
+        224
+      ],
+      "passed": true,
+      "final_phase": "DONE",
+      "landed": true,
+      "final_position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "workers_stopped": true
+    },
+    {
+      "case": "operator_stop",
+      "mock_only": true,
+      "real_px4": false,
+      "b_present": false,
+      "commands": [
+        176,
+        400,
+        21
+      ],
+      "phases": [
+        "CHECK",
+        "READY",
+        "PRESTREAM",
+        "MODE",
+        "ARM",
+        "FLY",
+        "LAND",
+        "DONE"
+      ],
+      "setpoints": 46,
+      "offboard_modes": 46,
+      "release_events": [],
+      "worker_pids": [
+        263,
+        264
+      ],
+      "passed": true,
+      "final_phase": "DONE",
+      "landed": true,
+      "final_position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "workers_stopped": true
+    },
+    {
+      "case": "task_loss",
+      "mock_only": true,
+      "real_px4": false,
+      "b_present": false,
+      "commands": [
+        176,
+        400,
+        21
+      ],
+      "phases": [
+        "CHECK",
+        "READY",
+        "PRESTREAM",
+        "MODE",
+        "ARM",
+        "FLY",
+        "LAND",
+        "DONE"
+      ],
+      "setpoints": 45,
+      "offboard_modes": 45,
+      "release_events": [],
+      "worker_pids": [
+        303,
+        304
+      ],
+      "passed": true,
+      "final_phase": "DONE",
+      "landed": true,
+      "final_position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "workers_stopped": true
+    },
+    {
+      "case": "manual",
+      "mock_only": true,
+      "real_px4": false,
+      "b_present": false,
+      "commands": [
+        176,
+        400
+      ],
+      "phases": [
+        "CHECK",
+        "READY",
+        "PRESTREAM",
+        "MODE",
+        "ARM",
+        "FLY",
+        "MANUAL"
+      ],
+      "setpoints": 44,
+      "offboard_modes": 44,
+      "release_events": [],
+      "worker_pids": [
+        343,
+        344
+      ],
+      "passed": true,
+      "final_phase": "MANUAL",
+      "landed": false,
+      "final_position": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "workers_stopped": true
+    }
+  ],
+  "unit_tests": 26,
+  "takeoff_gate_tests": 10,
+  "mavlink_protocol_tests": 7,
+  "fcu_parameter_tests": "passed",
+  "diff_check": "passed",
+  "task_processes_remaining": [],
+  "limitation": "Earlier battery/magnetometer telemetry interruptions remain unexplained; two later consecutive flights passed. No real flight, PWM release, or B coordination tested."
+}

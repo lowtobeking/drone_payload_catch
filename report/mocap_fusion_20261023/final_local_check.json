@@ -1,0 +1,15 @@
+{
+  "syntax_checked": [
+    "payload_catch/mocap_odometry.py",
+    "payload_catch/mocap_odometry_node.py",
+    "tools/test_mocap_receive_ground.py",
+    "tools/check_mocap_odometry_ros.py",
+    "report/mocap_fusion_20261023/receive_parameter_guard_a.py",
+    "report/mocap_fusion_20261023/receive_ground_runtime_a.py",
+    "report/mocap_fusion_20261023/run_receive_ground_on_a.py",
+    "report/mocap_fusion_20261023/verify_receive_after.py",
+    "report/mocap_fusion_20261023/summarize_receive_ground.py"
+  ],
+  "evidence_consistent": true,
+  "flight_approval": false
+}

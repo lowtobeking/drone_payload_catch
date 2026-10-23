@@ -1,0 +1,69 @@
+{
+  "kind": "level_counterclockwise_yaw_test",
+  "recorded_at_utc": "2026-10-21 08:24:37 UTC",
+  "before": {
+    "tracker": "planeA",
+    "count": 1198,
+    "invalid": 0,
+    "nonincreasing_timestamps": 1,
+    "connected": true,
+    "rate_hz": 120.012963216765,
+    "age_s": 0.011817986,
+    "position": [
+      2.23557763671875,
+      0.22160905456543,
+      0.290974334716797
+    ],
+    "quaternion_xyzw": [
+      0.00397935602813959,
+      0.00692921876907349,
+      0.999914944171906,
+      0.0103143136948347
+    ],
+    "forwarded_to_px4": false
+  },
+  "after": {
+    "tracker": "planeA",
+    "count": 1198,
+    "invalid": 0,
+    "nonincreasing_timestamps": 1,
+    "connected": true,
+    "rate_hz": 120.01935397811,
+    "age_s": 0.00637352,
+    "position": [
+      2.2006689453125,
+      0.172671432495117,
+      0.289739105224609
+    ],
+    "quaternion_xyzw": [
+      -0.0029168426990509,
+      0.00157833099365234,
+      -0.743626415729523,
+      0.668587327003479
+    ],
+    "forwarded_to_px4": false
+  },
+  "delta_position_m": [
+    -0.03490869140624975,
+    -0.04893762207031302,
+    -0.001235229492188017
+  ],
+  "relative_rotation_world_xyzw": [
+    0.009421577272165658,
+    0.004573947908671649,
+    0.6761738321489794,
+    0.7366676737845888
+  ],
+  "relative_angle_deg": 85.1033583353429,
+  "axis_in_raw_world": [
+    0.01393199039484777,
+    0.006763644397250666,
+    0.9998800691873528
+  ],
+  "raw_yaw_before_deg": 178.81488697774589,
+  "raw_yaw_after_deg": -96.08279316034404,
+  "yaw_delta_deg": 85.10231986191008,
+  "convention": "standard active body-to-world xyzw interpretation",
+  "finding": "Operator reports level left turn; relative rotation predominantly +world Z, agreeing with earlier +Z up observation. Body-to-marker mounting rotation not yet fully calibrated; raw quaternion must not be passed directly as PX4 FRD orientation.",
+  "forwarded_to_px4": false
+}

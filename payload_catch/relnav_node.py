@@ -1,250 +1,141 @@
 #!/usr/bin/env python3
-"""relnav_node.py —— 相对定位驱动节点（真机 A 机状态源）。
-
-把 A 的位置/速度发布到 **/drone_a/state**（`[t, pA_world_NED(3), vA_world_NED(3)]`），
-与现有 `a_node` 的接口完全一致 → b_node 无需改动（把 rel_* 噪声参数置 0 即可）。
-
-三种 source：
-  · rtk  —— 真机：订阅 A、B 两机 RTK（大地坐标或本地 NED）+ B 姿态，做**杆臂补偿**后相对化；
-  · px4  —— SITL/联调：直接读两机 PX4 local_position（drone0=A / drone1=B）+ world_offset；
-  · sim  —— 透传外部真值（如从 gz 桥接）。
-
-RTK 消息类型：
-  · navsatfix : sensor_msgs/NavSatFix（lat/lon/alt + status）；
-  · array     : std_msgs/Float64MultiArray，`use_geodetic=true` 时为 [lat,lon,alt]，
-                否则为已在该公共 NED 系下的 [n,e,d]。
-
-用法（真机）：
-  ros2 run payload_catch relnav_node --ros-args \
-    -p source:=rtk -p a_rtk_topic:=/rtk/a -p b_rtk_topic:=/rtk/b \
-    -p a_lever:="[0.0,0.0,0.15]" -p b_lever:="[0.0,0.0,-0.21]"
-"""
+"""Fresh, quality-gated RTK relative navigation; never retimestamp cached fixes."""
 from __future__ import annotations
-
 import math
-
+import time
 import numpy as np
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
-from std_msgs.msg import Float64MultiArray
-
-from .relnav import (geodetic_to_ned, rpy_to_R, compensate_lever_arm,
-                     a_state_for_b, VelEstimator)
+from sensor_msgs.msg import NavSatFix
+from std_msgs.msg import Float64MultiArray, Bool
+from px4_msgs.msg import VehicleLocalPosition, VehicleAttitude
+from .px4_iface import qos_in
+from .relnav import geodetic_to_ned, compensate_lever_arm, a_state_for_b, VelEstimator
+from .safety_runtime import SourceWatch
 
 
 def quat_to_rpy(q):
-    w, x, y, z = q[0], q[1], q[2], q[3]
-    roll = math.atan2(2.0 * (w * x + y * z), 1.0 - 2.0 * (x * x + y * y))
-    pitch = math.asin(max(-1.0, min(1.0, 2.0 * (w * y - z * x))))
-    yaw = math.atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z))
-    return roll, pitch, yaw
-
-
-def qos_in():
-    return QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
-                      history=HistoryPolicy.KEEP_LAST, depth=5,
-                      durability=DurabilityPolicy.TRANSIENT_LOCAL)
+    w,x,y,z=q
+    return (math.atan2(2*(w*x+y*z),1-2*(x*x+y*y)),
+            math.asin(max(-1.,min(1.,2*(w*y-z*x)))),
+            math.atan2(2*(w*z+x*y),1-2*(y*y+z*z)))
 
 
 class RelNavNode(Node):
     def __init__(self):
         super().__init__('relnav_node')
-        self.declare_parameter('source', 'rtk')            # rtk | px4 | sim
-        self.declare_parameter('publish_hz', 50.0)
-        self.declare_parameter('out_topic', '/drone_a/state')
-        # RTK
-        self.declare_parameter('a_rtk_topic', '/rtk/a')
-        self.declare_parameter('b_rtk_topic', '/rtk/b')
-        self.declare_parameter('rtk_type', 'navsatfix')    # navsatfix | array
-        self.declare_parameter('use_geodetic', True)       # array 时是否 [lat,lon,alt]
-        self.declare_parameter('origin_lat', 0.0)          # 公共 NED 原点（默认取首个 B fix）
-        self.declare_parameter('origin_lon', 0.0)
-        self.declare_parameter('origin_alt', 0.0)
-        self.declare_parameter('a_lever', [0.0, 0.0, 0.0])  # A 天线→参考点（机体系）
-        self.declare_parameter('b_lever', [0.0, 0.0, 0.0])  # B 天线→末端（机体系）
-        # px4 模式（联调）
-        self.declare_parameter('a_lpos_topic', '/fmu/out/vehicle_local_position')
-        self.declare_parameter('b_lpos_topic', '/px4_1/fmu/out/vehicle_local_position')
-        self.declare_parameter('b_att_topic', '/px4_1/fmu/out/vehicle_attitude')
-        self.declare_parameter('a_world_offset', [0.0, 0.0, 0.0])
-        self.declare_parameter('b_world_offset', [0.0, 0.0, 0.0])
-        # 注入（可选，用于 sim 对照）
-        self.declare_parameter('noise_sigma', 0.0)
-        self.declare_parameter('latency_s', 0.0)
-        self.declare_parameter('seed', 0)
+        params=dict(source='rtk',publish_hz=50.,out_topic='/drone_a/state',
+            a_rtk_topic='/rtk/a',b_rtk_topic='/rtk/b',rtk_type='navsatfix',use_geodetic=True,
+            origin_lat=0.,origin_lon=0.,origin_alt=0.,a_lever=[0.,0.,0.],b_lever=[0.,0.,0.],
+            a_lpos_topic='/fmu/out/vehicle_local_position',b_lpos_topic='/px4_1/fmu/out/vehicle_local_position',
+            a_att_topic='/fmu/out/vehicle_attitude',b_att_topic='/px4_1/fmu/out/vehicle_attitude',
+            a_world_offset=[0.,0.,0.],b_world_offset=[0.,0.,0.],source_timeout_s=.5,
+            source_sync_s=.10,relative_sigma_max=.03)
+        for k,v in params.items():self.declare_parameter(k,v)
+        def value(k):return self.get_parameter(k).value
+        self.source=str(value('source'));self.rtk_type=str(value('rtk_type'))
+        if self.source not in ('rtk','px4'):raise ValueError('source must be rtk or px4')
+        self.use_geo=bool(value('use_geodetic'))
+        self.a_lever=np.asarray(value('a_lever'),float);self.b_lever=np.asarray(value('b_lever'),float)
+        self.a_off=np.asarray(value('a_world_offset'),float);self.b_off=np.asarray(value('b_world_offset'),float)
+        self.sync=float(value('source_sync_s'));self.sigma_max=float(value('relative_sigma_max'))
+        if not (0<self.sync<=.5 and 0<self.sigma_max<=.1):raise ValueError('invalid navigation quality bounds')
+        self.watch={k:SourceWatch(float(value('source_timeout_s'))) for k in ('a','b','a_pos','b_pos','a_att','b_att')}
+        self.fix={};self.sigma={};self.pose={};self.att={};self.px4_stamp={}
+        origin=tuple(float(value(k)) for k in ('origin_lat','origin_lon','origin_alt'))
+        self.origin=origin if any(origin) else None
+        self.vel=VelEstimator();self.last_source=None
+        self.pub=self.create_publisher(Float64MultiArray,str(value('out_topic')),10)
+        self.valid_pub=self.create_publisher(Bool,'/relnav/valid',10)
+        # B PX4 and both attitudes are required in RTK mode as well.
+        for who in ('a','b'):
+            self.create_subscription(VehicleLocalPosition,str(value(who+'_lpos_topic')),
+                lambda m,who=who:self._on_px4(m,who),qos_in())
+            self.create_subscription(VehicleAttitude,str(value(who+'_att_topic')),
+                lambda m,who=who:self._on_att(m,who),qos_in())
+            if self.source=='rtk':
+                self.create_subscription(NavSatFix if self.rtk_type=='navsatfix' else Float64MultiArray,
+                    str(value(who+'_rtk_topic')),lambda m,who=who:self._on_fix(m,who),10)
+        self.timer=self.create_timer(1./float(value('publish_hz')),self._tick)
 
-        self.source = str(self.get_parameter('source').value).lower()
-        self.rtk_type = str(self.get_parameter('rtk_type').value).lower()
-        self.use_geo = bool(self.get_parameter('use_geodetic').value)
-        self.a_lever = np.asarray(self.get_parameter('a_lever').value, float).reshape(3)
-        self.b_lever = np.asarray(self.get_parameter('b_lever').value, float).reshape(3)
-        self.a_off = np.asarray(self.get_parameter('a_world_offset').value, float).reshape(3)
-        self.b_off = np.asarray(self.get_parameter('b_world_offset').value, float).reshape(3)
-        self.noise_sigma = float(self.get_parameter('noise_sigma').value)
-        self.latency = float(self.get_parameter('latency_s').value)
-        self.rng = np.random.default_rng(int(self.get_parameter('seed').value))
+    def _now(self):return self.get_clock().now().nanoseconds*1e-9
 
-        self._origin = None      # (lat,lon,alt)
-        o_lat = float(self.get_parameter('origin_lat').value)
-        o_lon = float(self.get_parameter('origin_lon').value)
-        o_alt = float(self.get_parameter('origin_alt').value)
-        if abs(o_lat) + abs(o_lon) + abs(o_alt) > 1e-9:
-            self._origin = (o_lat, o_lon, o_alt)
-        self._a_fix = None       # (t, lat, lon, alt) 或 (t, n, e, d)
-        self._b_fix = None
-        self._a_prev_nav = None  # (t, ned)
-        self._b_att = np.zeros(3)     # rpy
-        self._b_px4_world = np.zeros(3)
-        self._a_px4_world = np.zeros(3)
-        self._vel = VelEstimator()
-        self._last_pub = None
-        self._lat_buf = []       # 延迟缓冲 [(t, payload)]
-
-        from sensor_msgs.msg import NavSatFix
-        # 订阅
-        if self.source == 'rtk':
-            if self.rtk_type == 'navsatfix':
-                self.create_subscription(NavSatFix, str(self.get_parameter('a_rtk_topic').value),
-                                         self._on_a_gps, 10)
-                self.create_subscription(NavSatFix, str(self.get_parameter('b_rtk_topic').value),
-                                         self._on_b_gps, 10)
-            else:
-                self.create_subscription(Float64MultiArray,
-                                         str(self.get_parameter('a_rtk_topic').value),
-                                         self._on_a_arr, 10)
-                self.create_subscription(Float64MultiArray,
-                                         str(self.get_parameter('b_rtk_topic').value),
-                                         self._on_b_arr, 10)
-        elif self.source == 'px4':
-            from px4_msgs.msg import VehicleLocalPosition
-            self.create_subscription(VehicleLocalPosition,
-                                     str(self.get_parameter('a_lpos_topic').value),
-                                     lambda m: self._on_px4(m, 'a'), qos_in())
-            self.create_subscription(VehicleLocalPosition,
-                                     str(self.get_parameter('b_lpos_topic').value),
-                                     lambda m: self._on_px4(m, 'b'), qos_in())
-            try:
-                from px4_msgs.msg import VehicleAttitude
-                self.create_subscription(VehicleAttitude,
-                                         str(self.get_parameter('b_att_topic').value),
-                                         self._on_b_att, qos_in())
-            except Exception:  # noqa: BLE001
-                pass
-
-        self.pub = self.create_publisher(Float64MultiArray,
-                                         str(self.get_parameter('out_topic').value), 10)
-        self.timer = self.create_timer(1.0 / float(self.get_parameter('publish_hz').value),
-                                       self._tick)
-        self.get_logger().info(f'[relnav] source={self.source} rtk_type={self.rtk_type} '
-                               f'out={self.get_parameter("out_topic").value}')
-
-    # --------------------------------------------------------------- 回调
-    def _stamp(self, msg=None):
-        return self.get_clock().now().nanoseconds * 1e-9
-
-    def _on_a_gps(self, msg):
-        if msg.status.status < 0:
-            return
-        self._a_fix = (self._stamp(), float(msg.latitude), float(msg.longitude), float(msg.altitude))
-        if self._origin is None:
-            self._origin = (float(msg.latitude), float(msg.longitude), float(msg.altitude))
-
-    def _on_b_gps(self, msg):
-        if msg.status.status < 0:
-            return
-        self._b_fix = (self._stamp(), float(msg.latitude), float(msg.longitude), float(msg.altitude))
-        if self._origin is None:
-            self._origin = (float(msg.latitude), float(msg.longitude), float(msg.altitude))
-
-    def _on_a_arr(self, msg):
-        d = list(msg.data)
-        if len(d) < 3:
-            return
-        if self.use_geo:
-            self._a_fix = (self._stamp(), d[0], d[1], d[2])
-            if self._origin is None:
-                self._origin = (d[0], d[1], d[2])
+    def _on_fix(self,m,who):
+        now=self._now();watch=self.watch[who]
+        if self.rtk_type=='navsatfix':
+            stamp=m.header.stamp.sec+m.header.stamp.nanosec*1e-9
+            xyz=(m.latitude,m.longitude,m.altitude)
+            cov=np.asarray(m.position_covariance,float)
+            good=(m.status.status>=0 and m.position_covariance_type!=0 and len(cov)==9
+                  and np.all(np.isfinite(cov)) and np.all(cov[[0,4,8]]>0)
+                  and float(np.sqrt(max(cov[0],cov[4],cov[8])))<=self.sigma_max)
+            if good:
+                matrix=cov.reshape(3,3)
+                good=bool(np.allclose(matrix,matrix.T) and np.min(np.linalg.eigvalsh(matrix))>=0)
+                sigma=float(np.sqrt(np.max(np.linalg.eigvalsh(matrix))))
         else:
-            self._a_fix = (self._stamp(), d[0], d[1], d[2])   # 已是 NED
+            # array contract: [source_stamp, x/lat, y/lon, z/alt, sigma_m].
+            if len(m.data)<5:watch.valid=False;return
+            stamp,*xyz,sigma=list(m.data[:5])
+            good=math.isfinite(sigma) and 0<sigma<=self.sigma_max
+        if not good:
+            watch.valid=False;return
+        if not watch.accept(stamp,xyz,now,time.monotonic()):return
+        if self.use_geo and not (-90<=xyz[0]<=90 and -180<=xyz[1]<=180):
+            watch.valid=False;return
+        if self.origin is None and self.use_geo:self.origin=tuple(xyz)
+        self.fix[who]=(stamp,np.asarray(xyz,float))
+        self.sigma[who]=sigma
 
-    def _on_b_arr(self, msg):
-        d = list(msg.data)
-        if len(d) < 3:
-            return
-        if self.use_geo:
-            self._b_fix = (self._stamp(), d[0], d[1], d[2])
-            if self._origin is None:
-                self._origin = (d[0], d[1], d[2])
-        else:
-            self._b_fix = (self._stamp(), d[0], d[1], d[2])
+    def _px4_fresh(self,m,key,values):
+        if m.timestamp<=self.px4_stamp.get(key,0):return False
+        self.px4_stamp[key]=m.timestamp
+        return self.watch[key].accept(self._now(),values,self._now(),time.monotonic())
 
-    def _on_b_att(self, msg):
-        self._b_att = np.array(quat_to_rpy(msg.q), float)
+    def _on_px4(self,m,who):
+        key=who+'_pos';values=(m.x,m.y,m.z,m.vx,m.vy,m.vz)
+        if not (m.xy_valid and m.z_valid and m.v_xy_valid and m.v_z_valid):
+            self.watch[key].valid=False;return
+        if self._px4_fresh(m,key,values):
+            self.pose[who]=np.asarray(values[:3],float)+(self.a_off if who=='a' else self.b_off)
 
-    def _on_px4(self, msg, who):
-        p = np.array([msg.x, msg.y, msg.z], float)
-        if who == 'a':
-            self._a_px4_world = self.a_off + p
-        else:
-            self._b_px4_world = self.b_off + p
-
-    # ----------------------------------------------------------- 核心计算
-    def _fix_to_ned(self, fix):
-        t, x, y, z = fix
-        if self.use_geo and self.source == 'rtk':
-            lat0, lon0, alt0 = self._origin
-            return t, geodetic_to_ned(x, y, z, lat0, lon0, alt0)
-        return t, np.array([x, y, z], float)
+    def _on_att(self,m,who):
+        key=who+'_att'
+        if not (np.all(np.isfinite(m.q)) and .8<=float(np.dot(m.q,m.q))<=1.2):
+            self.watch[key].valid=False;return
+        if self._px4_fresh(m,key,m.q):self.att[who]=quat_to_rpy(m.q)
 
     def _tick(self):
-        if self.source == 'px4':
-            p_a_ref = self._a_px4_world + \
-                rpy_to_R(0.0, 0.0, 0.0) @ np.zeros(3)      # px4 模式杆臂已在 offset 内
-            p_b_ref = self._b_px4_world
-            p_a_world = a_state_for_b(p_a_ref, p_b_ref, self._b_px4_world)
-            v = self._vel.update(self._stamp(), p_a_world)
-            self._pub(p_a_world, v)
-            return
-        if self._a_fix is None or self._b_fix is None:
-            return
-        t_a, a_ned = self._fix_to_ned(self._a_fix)
-        t_b, b_ned = self._fix_to_ned(self._b_fix)
-        # 杆臂补偿（B 用自身姿态；A 姿态若未提供，按水平处理）
-        a_ref = compensate_lever_arm(a_ned, self.a_lever, 0.0, 0.0, 0.0)
-        b_ref = compensate_lever_arm(b_ned, self.b_lever, *self._b_att)
-        p_a_world = a_state_for_b(a_ref, b_ref, self._b_px4_world)
-        if self.noise_sigma > 0:
-            p_a_world = p_a_world + self.rng.normal(0.0, self.noise_sigma, 3)
-        v = self._vel.update(self._stamp(), p_a_world)
-        self._pub(p_a_world, v)
-
-    def _pub(self, p, v):
-        now = self._stamp()
-        payload = (now, p, v)
-        if self.latency > 0:
-            self._lat_buf.append(payload)
-            cut = now - self.latency
-            while len(self._lat_buf) > 1 and self._lat_buf[0][0] < cut:
-                payload = self._lat_buf.pop(0)
-        t, p, v = payload
-        m = Float64MultiArray()
-        m.data = [float(t), float(p[0]), float(p[1]), float(p[2]),
-                  float(v[0]), float(v[1]), float(v[2])]
-        self.pub.publish(m)
+        now=self._now();mono=time.monotonic()
+        required=('a','b','b_pos','a_att','b_att') if self.source=='rtk' else ('a_pos','b_pos')
+        good=all(self.watch[k].fresh(now,mono) for k in required)
+        if self.source=='rtk' and good:
+            good=abs(self.fix['a'][0]-self.fix['b'][0])<=self.sync
+            good=good and math.hypot(self.sigma['a'],self.sigma['b'])<=self.sigma_max
+        self.valid_pub.publish(Bool(data=good))
+        if not good:return
+        source=min(self.watch[k].stamp for k in required)
+        if self.last_source is not None and source<=self.last_source:return
+        if self.source=='rtk':
+            a,b=(self.fix[k][1] for k in ('a','b'))
+            if self.use_geo:
+                a=geodetic_to_ned(*a,*self.origin);b=geodetic_to_ned(*b,*self.origin)
+            # Publish A vehicle origin in B world frame, so B's geometry isn't shifted twice.
+            # Compare antenna references, compensate A antenna->vehicle; B remains antenna
+            # plus its measured antenna->vehicle correction in the common NED frame.
+            a=compensate_lever_arm(a,self.a_lever,*self.att['a'])
+            b=compensate_lever_arm(b,self.b_lever,*self.att['b'])
+            p=a_state_for_b(a,b,self.pose['b'])
+        else:p=self.pose['a']
+        v=self.vel.update(source,p)
+        self.last_source=source
+        self.pub.publish(Float64MultiArray(data=[float(source),*p.tolist(),*v.tolist()]))
 
 
 def main(args=None):
-    rclpy.init(args=args)
-    node = RelNavNode()
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
+    rclpy.init(args=args);node=RelNavNode()
+    try:rclpy.spin(node)
+    except KeyboardInterrupt:pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
-
-
-if __name__ == '__main__':
-    main()
+        if rclpy.ok():rclpy.shutdown()

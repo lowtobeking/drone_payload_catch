@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "disarmed": true,
+  "remaining_task_processes": [],
+  "control_publishers": {
+    "/fmu/in/vehicle_command": 0,
+    "/fmu/in/offboard_control_mode": 0,
+    "/fmu/in/trajectory_setpoint": 0,
+    "/px4_1/fmu/in/vehicle_command": 0,
+    "/px4_1/fmu/in/offboard_control_mode": 0,
+    "/px4_1/fmu/in/trajectory_setpoint": 0
+  },
+  "pid": 7427
+}

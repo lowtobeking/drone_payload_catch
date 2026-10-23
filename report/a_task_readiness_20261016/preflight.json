@@ -1,0 +1,577 @@
+[
+  {
+    "name": "config/catch_scenarios.yaml",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "models/ 目录",
+    "status": "fail",
+    "detail": "Gazebo 模型缺失"
+  },
+  {
+    "name": "launch/ 目录",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "python:numpy",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "python:scipy",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "python:yaml",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "python:acados_template",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "python:rclpy",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "python:px4_msgs",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "PX4_DIR 已设置",
+    "status": "warn",
+    "detail": "未 source env.sh"
+  },
+  {
+    "name": "SITL_WORLD 存在",
+    "status": "warn",
+    "detail": "未设置"
+  },
+  {
+    "name": "RMW_IMPLEMENTATION=rmw_fastrtps_cpp",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "GZ_SIM_RESOURCE_PATH 非空",
+    "status": "warn",
+    "detail": "Gazebo 找不到 PX4 模型"
+  },
+  {
+    "name": "ACADOS_SOURCE_DIR 存在",
+    "status": "warn",
+    "detail": "未设置（MPC 不可用 / libqpOASES 可能缺失）"
+  },
+  {
+    "name": "binary:gz",
+    "status": "warn",
+    "detail": "未在 PATH"
+  },
+  {
+    "name": "binary:ros2",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "binary:MicroXRCEAgent",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: vehicle_local_position",
+    "status": "ok",
+    "detail": "299 帧（至少两帧且源时间戳递增）"
+  },
+  {
+    "name": "d0: vehicle_local_position 新鲜",
+    "status": "ok",
+    "detail": "age=0.01s"
+  },
+  {
+    "name": "d0: vehicle_attitude",
+    "status": "ok",
+    "detail": "301 帧（至少两帧且源时间戳递增）"
+  },
+  {
+    "name": "d0: vehicle_attitude 新鲜",
+    "status": "ok",
+    "detail": "age=0.00s"
+  },
+  {
+    "name": "d0: vehicle_status",
+    "status": "ok",
+    "detail": "6 帧（至少两帧且源时间戳递增）"
+  },
+  {
+    "name": "d0: vehicle_status 新鲜",
+    "status": "ok",
+    "detail": "age=0.40s"
+  },
+  {
+    "name": "d0: failsafe_flags",
+    "status": "ok",
+    "detail": "6 帧（至少两帧且源时间戳递增）"
+  },
+  {
+    "name": "d0: failsafe_flags 新鲜",
+    "status": "ok",
+    "detail": "age=0.01s"
+  },
+  {
+    "name": "d0: estimator_status_flags",
+    "status": "ok",
+    "detail": "3 帧（至少两帧且源时间戳递增）"
+  },
+  {
+    "name": "d0: estimator_status_flags 新鲜",
+    "status": "ok",
+    "detail": "age=0.93s"
+  },
+  {
+    "name": "d0: battery_status",
+    "status": "ok",
+    "detail": "30 帧（至少两帧且源时间戳递增）"
+  },
+  {
+    "name": "d0: battery_status 新鲜",
+    "status": "ok",
+    "detail": "age=0.07s"
+  },
+  {
+    "name": "d0: vehicle_gps_position",
+    "status": "ok",
+    "detail": "15 帧（至少两帧且源时间戳递增）"
+  },
+  {
+    "name": "d0: vehicle_gps_position 新鲜",
+    "status": "ok",
+    "detail": "age=0.14s"
+  },
+  {
+    "name": "d0: manual_control_setpoint(RC)",
+    "status": "fail",
+    "detail": "0 帧（至少两帧且源时间戳递增）"
+  },
+  {
+    "name": "d0: manual_control_setpoint(RC) 新鲜",
+    "status": "fail",
+    "detail": "age=infs"
+  },
+  {
+    "name": "d0: 关键数据有限且完整",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: PX4 pre_flight_checks_pass",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d0: 姿态有效",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: xy_valid 持续",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d0: z_valid 持续",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: v_xy/z_valid 持续",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d0: 非 dead_reckoning",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d0: heading_good_for_control",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d0: eph ≤ 0.5",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: epv ≤ 0.5",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: failsafe: 本地位置无效",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d0: failsafe: 本地速度无效",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d0: failsafe: 姿态无效",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: failsafe: 越界",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: failsafe: 临界故障",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: battery_unhealthy",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: failsafe: offboard 信号",
+    "status": "warn",
+    "detail": "起飞前未发送 Offboard 心跳时可为 true"
+  },
+  {
+    "name": "d0: tilt/yaw 对齐",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: estimator: cs_mag_fault",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: estimator: cs_mag_field_disturbed",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: estimator: fs_bad_mag_x",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: estimator: fs_bad_mag_y",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: estimator: fs_bad_mag_z",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: estimator: fs_bad_hdg",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: estimator: fs_bad_acc_vertical",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: estimator: fs_bad_acc_clipping",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: GPS eph ≤ 1.5",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d0: GPS epv ≤ 2.5",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d0: GPS sats ≥ 20",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d0: 电池已连接",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: 电池 warning = 0",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d0: 独立 RC 信号有效",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d0: 电池 remaining ≥ 0.40",
+    "status": "ok",
+    "detail": "remaining=0.910"
+  },
+  {
+    "name": "d1: vehicle_local_position",
+    "status": "fail",
+    "detail": "0 帧（至少两帧且源时间戳递增）"
+  },
+  {
+    "name": "d1: vehicle_local_position 新鲜",
+    "status": "fail",
+    "detail": "age=infs"
+  },
+  {
+    "name": "d1: vehicle_attitude",
+    "status": "fail",
+    "detail": "0 帧（至少两帧且源时间戳递增）"
+  },
+  {
+    "name": "d1: vehicle_attitude 新鲜",
+    "status": "fail",
+    "detail": "age=infs"
+  },
+  {
+    "name": "d1: vehicle_status",
+    "status": "fail",
+    "detail": "0 帧（至少两帧且源时间戳递增）"
+  },
+  {
+    "name": "d1: vehicle_status 新鲜",
+    "status": "fail",
+    "detail": "age=infs"
+  },
+  {
+    "name": "d1: failsafe_flags",
+    "status": "fail",
+    "detail": "0 帧（至少两帧且源时间戳递增）"
+  },
+  {
+    "name": "d1: failsafe_flags 新鲜",
+    "status": "fail",
+    "detail": "age=infs"
+  },
+  {
+    "name": "d1: estimator_status_flags",
+    "status": "fail",
+    "detail": "0 帧（至少两帧且源时间戳递增）"
+  },
+  {
+    "name": "d1: estimator_status_flags 新鲜",
+    "status": "fail",
+    "detail": "age=infs"
+  },
+  {
+    "name": "d1: battery_status",
+    "status": "fail",
+    "detail": "0 帧（至少两帧且源时间戳递增）"
+  },
+  {
+    "name": "d1: battery_status 新鲜",
+    "status": "fail",
+    "detail": "age=infs"
+  },
+  {
+    "name": "d1: vehicle_gps_position",
+    "status": "fail",
+    "detail": "0 帧（至少两帧且源时间戳递增）"
+  },
+  {
+    "name": "d1: vehicle_gps_position 新鲜",
+    "status": "fail",
+    "detail": "age=infs"
+  },
+  {
+    "name": "d1: manual_control_setpoint(RC)",
+    "status": "fail",
+    "detail": "0 帧（至少两帧且源时间戳递增）"
+  },
+  {
+    "name": "d1: manual_control_setpoint(RC) 新鲜",
+    "status": "fail",
+    "detail": "age=infs"
+  },
+  {
+    "name": "d1: 关键数据有限且完整",
+    "status": "fail",
+    "detail": "att.q,batt.connected,batt.remaining,batt.warning,est.cs_mag_fault,est.cs_mag_field_disturbed,est.cs_tilt_align,est.cs_yaw_align,est.fs_bad_acc_clipping,est.fs_bad_acc_vertical,est.fs_bad_hdg,est.fs_bad_mag_x,est.fs_bad_mag_y,est.fs_bad_mag_z,failsafe.attitude_invalid,failsafe.battery_unhealthy,failsafe.fd_critical_failure,failsafe.geofence_breached,failsafe.local_position_invalid,failsafe.local_velocity_invalid,failsafe.offboard_control_signal_lost,lpos.dead_reckoning,lpos.eph,lpos.epv,lpos.heading_good_for_control,lpos.v_xy_valid,lpos.vx,lpos.vy,lpos.vz,lpos.x,lpos.xy_valid,lpos.y,lpos.z,lpos.z_valid,status.pre_flight_checks_pass"
+  },
+  {
+    "name": "d1: PX4 pre_flight_checks_pass",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d1: 姿态有效",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d1: xy_valid 持续",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d1: z_valid 持续",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d1: v_xy/z_valid 持续",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d1: 非 dead_reckoning",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d1: heading_good_for_control",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d1: eph ≤ 0.5",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d1: epv ≤ 0.5",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d1: failsafe: 本地位置无效",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d1: failsafe: 本地速度无效",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d1: failsafe: 姿态无效",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d1: failsafe: 越界",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d1: failsafe: 临界故障",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d1: battery_unhealthy",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d1: failsafe: offboard 信号",
+    "status": "ok",
+    "detail": "起飞前未发送 Offboard 心跳时可为 true"
+  },
+  {
+    "name": "d1: tilt/yaw 对齐",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d1: estimator: cs_mag_fault",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d1: estimator: cs_mag_field_disturbed",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d1: estimator: fs_bad_mag_x",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d1: estimator: fs_bad_mag_y",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d1: estimator: fs_bad_mag_z",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d1: estimator: fs_bad_hdg",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d1: estimator: fs_bad_acc_vertical",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d1: estimator: fs_bad_acc_clipping",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d1: GPS eph ≤ 1.5",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d1: GPS epv ≤ 2.5",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d1: GPS sats ≥ 20",
+    "status": "ok",
+    "detail": ""
+  },
+  {
+    "name": "d1: 电池已连接",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d1: 电池 warning = 0",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d1: 独立 RC 信号有效",
+    "status": "fail",
+    "detail": ""
+  },
+  {
+    "name": "d1: 电池 remaining ≥ 0.40",
+    "status": "fail",
+    "detail": "remaining=nan"
+  }
+]

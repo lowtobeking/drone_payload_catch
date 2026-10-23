@@ -1,0 +1,43 @@
+{
+  "kind": "planeA_axis_check_baseline",
+  "started_at_utc": "2026-10-21T07:58:08.320400+00:00",
+  "completed_at_utc": "2026-10-21T07:58:18.656795+00:00",
+  "source": "A Jetson native VRPN probe; 192.168.1.111:3883",
+  "coordinates": "raw motion-capture world; axis directions not yet established",
+  "quaternion_order": "xyzw",
+  "statistic": "latest sample after ~10 seconds, not sample mean",
+  "operator_request": "record current reference before manual movement",
+  "position_m": [
+    1.11255249023438,
+    -0.382717529296875,
+    0.290719421386719
+  ],
+  "quaternion_xyzw": [
+    0.00416755676269531,
+    0.00421950221061707,
+    0.999940872192383,
+    -0.00911006517708302
+  ],
+  "forwarded_to_px4": false,
+  "raw_probe": {
+    "tracker": "planeA",
+    "count": 1199,
+    "invalid": 0,
+    "nonincreasing_timestamps": 1,
+    "connected": true,
+    "rate_hz": 120.008442423629,
+    "age_s": 0.004249932,
+    "position": [
+      1.11255249023438,
+      -0.382717529296875,
+      0.290719421386719
+    ],
+    "quaternion_xyzw": [
+      0.00416755676269531,
+      0.00421950221061707,
+      0.999940872192383,
+      -0.00911006517708302
+    ],
+    "forwarded_to_px4": false
+  }
+}

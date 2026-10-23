@@ -1,4 +1,74 @@
+> **2026-10-16 本机旧参数场景评估**：用户确认drone_package_20260908曾部署在当前无人机。核对真实params快照后发现0.30/0.50悬停推力、3/12m/s限速等版本差异，不把配置脚本建议当已写实机值。当前B规划a_brake=6m/s²而旧MPC_ACC_UP_MAX约1.95/4，需按实际固件及B接物后能力重验规划，不能照抄或宣称6已实现。建议先静止投放、任务分阶段限速、分别验证A减重/B增重响应，下洗及桨盘通道也需考虑。4S历史不能代替16.44V/1芯当前遥测来源排查。分析见docs/旧工程电机控制参考.md补充；本轮仅文档，无SSH/代码或参数更改/硬件动作。
+
+> **2026-10-16 用户指定旧工程电机控制参考**：只读检查Ubuntu24.04的drone_package_20260908/Multi-UAV-simulation-full。旧mpc_node使用PX4 Offboard / TrajectorySetpoint，并非单电机RPM直控；当前px4_iface同类控制链，fcu_params已有部分旧工程限速/推力关系建议。旧机悬停推力、约0.5秒速度滞后及降落/失联时长不能直接套用A/B。记录docs/旧工程电机控制参考.md；本轮仅文档与记忆，无任务代码/飞控参数变更、无SSH或电机动作。
+
+> **2026-10-16 最新：用户无锁扣传感器，改用定时动作模式**：confirmation_mode=timed，授权后直出1700µs，从实际写入计时约1.5秒后先停输出再发布ACTION_COMPLETE；physically_confirmed=false/detached_at=null，不生成物理released Bool。A验计划/会话/指纹后清场并标记release_unconfirmed，B只记录estimated_release_at，接取仍需真实下落观测；sensor模式保留。无锁扣反馈不再阻止timed readiness，其他40%/RC/双机/自检/一次性/急停/看门狗不变。enabled/calibrated仍false，未部署或动作硬件。quick39/39、10新增回归、3隔离ROS定时场景及原sensor/launch通过。见docs/无反馈定时释放模式.md、report/timed_release_20261016。覆盖旧“必须锁扣真实反馈”的约定；无反馈无法自动检测卡扣/卡物。
+
+> **2026-10-16 最新：第一步固定A机地面入口完成**：工程tools/run_a_ground_live.py/.sh，A机独立入口/home/nvidia/payload_catch_deploy/ground/runtime_20261016/run_a_ground_live.sh，加载current真实节点/遥测，A角色/完整性/落地未解锁/源时间及新鲜度检查，输出重映射、auto_arm=false、/dev/null无批准、PWM禁用，保留全部飞行门禁。机载20.05秒PID7308运行通过，消息0、清理复查通过，两通信服务保持0重启；quick38/38、4遥测故障测试通过。current及接管回退未变。每次机载ground/reports独立日志。下一步先查电池16.44V/1芯不一致，暂不动作舵机或飞行。见docs/A机地面检查与后续验收.md及report/a_ground_entry_20261016。
+
+> **2026-10-16 最新：A机真实节点地面启动通过**：SSH在Jetson运行已部署ANode/SafetySupervisor/ReleaseGuard/PayloadServo约20.02秒（PID6807），真实遥测、auto_arm=false、缺批准/require_fleet_link门禁保留，飞控全部输出重映射诊断话题且实际消息0，PWM disabled/无输出。真实飞控始终未解锁，结束后无任务进程/控制发布者。不是完整fleet launch或飞行：B/RC/有效水平定位/现场fleet配置/真实反馈与标定/双机参数批准缺失。电池约91%、16.44V但1芯不一致；通用预检models目录与真机包范围差异待修。日志report/a_task_readiness_20261016。所有辅助文件今后只放Ubuntu22.04工程内，旧Windows资料已移至report/workfiles/windows_home_20261016。
+
+> **2026-10-16 最新：A机以本工程独立主导**：current=13c1e49da415339aa236e19547c63a809de15e55235584917a700e964dd1702a、previous=8accbc…；旧microxrce-agent/mav-relay均inactive/masked，新payload-catch-agent与payload-catch-mav-relay active/enabled。程序/Agent库/独立px4_msgs在/opt/payload_catch/managed_20261016且root保护，不再运行依赖旧工程或/home/nvidia/ros2_ws；旧bashrc域42停用，交互域0。迁移使用真实落地/未解锁保护与180秒自动回退，验收后已提交取消定时器，备份/人工回退保留。真实通信与启动/进程/环境审计通过，quick37/37和机载10+8+16+35+24+10项、27.74秒隔离模拟通过；无实机解锁/PWM、无任务自启或残留。中继离线发送超时已修复为非阻塞丢包，重启后连续45秒无重启。用户换电已重启Jetson，新boot95cbe7b2…；33脚临时PWM模式失效，现pad0x54、控制器未使能/未导出，未重新开启；旧PWM基线须重新核验。两项通信服务自启验收通过，飞控仍未解锁。旧工程仅保留回退。详见report/jetson_ownership_20261016/A机工程独立接管.md，覆盖此前直接引用旧工程服务/消息的方案。
+
+> **2026-10-16 最新：复用A机现有通信基础设施**：已部署current=8accbc1eca8dcba99b747f953e33ffddee2ac55f16d09db4d48a6df77a4781dd、previous=fa46032…；host/runtime.yaml绑定现有Humble/px4_msgs@392e831、Agent8888域0、中继14550和实测网络，不改服务/飞控参数/自启，PID1003/1002保持。新增只读deploy/check_jetson.sh、host_runtime和启动前核验，run_fleet自动采用域0并核对完整fleet配置一致；fleet域0需domain_zero_confirmed=true，B/几何/全部起飞门禁保留。真实域42→0读取FC状态/姿态/位置/电池通过，quick36/36与机载9+16+35+24+10项、27.89秒隔离任务模拟通过。无实机解锁/PWM/后台测试残留。可回退版本和绑定，见report/jetson_reuse_20261016/A机现有服务复用验收.md及deploy/README_jetson_reuse.md。
+
+> **2026-10-16 最新：已在A机部署并运行完整隔离模拟**：current=fa46032caae12d28676da9014545e6b888a944572744ad205e50fcb0812c026a、previous=e27cb2…；Jetson ARM构建及35释放/24安全/10起飞测试通过，分进程完整模拟约27.89秒通过并清理退出。机载入口tools/run_a_full_mission_isolated.py兼容版本包，独立netns/普通用户/MockPWM，边沿为理想命令+1.5秒模型，反馈延迟另记；未放宽安全阈值。真实飞控未解锁，PWM仍20ms/duty0/enable0，原服务与已核对boot文件不变，真实舵机禁用/未标定。正常降落释放误报修复已部署。详见report/a_onboard_sim_20261016/A机部署与机载模拟.md。
+
+> **2026-10-16 A机完整流程隔离模拟通过**：Ubuntu-22.04独立netns/普通用户MockPWM，真实任务节点完成自检→模拟起飞→直出1700µs→约1.493秒模拟脱离→清场→先B后A模拟落地，约28.08秒；缺数据/39%电量拒飞，连续健康3秒门禁保留。修复已完成释放被正常降落停止通知误报FAULT，新增回归保留开锁中止和原故障锁存/单次保护。释放35项、quick35/35、完整流程和diff检查通过。无真实飞控指令/PWM输出，未部署，A实机仍e27cb2…；轻量运动学及合成B/GPS/RC/反馈不等于SITL或实机验收。证据report/a_full_mission_20261016/A机完整流程模拟.md。
+
+> **2026-10-16 A机实机无桨短测**：无QGC，PX4 ACTUATOR_TEST逐电机1..4各8%/1秒，ACK/退出接受，用户确认四只均转停；始终未解锁。33脚独立重核本boot64244966…后临时PWM直出1700µs约0.8秒，用户确认转停；当前0x405/20ms/duty0/enable0。未部署新版本、未改飞控参数/启动文件/原通信服务。定时清理not-loaded已处理并核对无残留。报告report/a_ground_debug_20261016；物理方向/真实PWM波形/释放标定未验收，电池4S配置与1芯遥测来源待查。
+
+> **2026-10-16 A 机地面联调优先**：A/B/guard 取消锁存、源时间/顺序/计划校验；B 从当前观测位置速度规划剩余接取并保留真实脱离时间；开锁全过程复核双机权限。新增独立 netns/普通用户 Mock 联调入口 tools/run_a_ground_isolated.py，正常/动作前中急停/B 就绪中断均通过，飞控输出为零。真实 PWM 仍禁用/未标定；未 SSH/重新部署，已部署 A 仍 e27cb2caa69a0ff8fc9cf4d43adbcc3a40419dc07c803536187a1a3608a9d9cb。详见 report/ab_optimization_20261016/A机联调与双机优化说明.md。
+
+> **2026-10-15 最新时序对齐**：用户确认重新测量直出1700µs→脱离仍约1.5秒，配置operator_direct记录；双方T脱离/T-1.5秒直出。新增真实worker写入截止时间与时间回执，真实release_event带传感器边沿/会话/nonce/签名，B不再以Bool接收时间判释放。仍disabled/uncalibrated，真实反馈和时钟/HIL验收不变。验证report/timing_alignment_20261015；本轮无硬件动作。
+
+> **2026-10-15 最新：直接1700µs释放**：用户取消缓变，飞行worker与地面GUI/agent首个输出即目标脉宽，限1200–1800、停止及看门狗保留。旧GUI缓变观测1.5秒不能当直出延迟；配置仍1.5历史参考但unmeasured_direct/disabled/uncalibrated。真实启用须本地直出→脱离重新测量、local_command_direct口径；双方按脱离时刻协调。仅软件，不SSH/部署/动作。见report/direct_release_20261015。
+
+> **2026-10-15 当前投放延迟已接入**：连续舵机50Hz、1500→1700µs/100µs每秒缓变，1.5秒GUI点击→脱离初测估计。真实启动A/B提前量1.7秒，guard提前1.5秒执行，B保持对正等待真实下落；worker2秒上限/0.25秒失联保护，传感器确认后即停。仍disabled/uncalibrated/gui_apply；本地时序重新测量后才允许local_command标定。详见释放接入说明；本轮仅软件修改、无实机输出。
+
+> **2026-10-15 当前实物与最新限幅**：用户确认360°连续旋转，1500µs附近中立，两侧控制方向/速度。地面GUI与远端输出固定1200–1800µs，移除扩展开关；无时长/心跳保护不变。仅软件修改，无新实机输出，飞行配置未改。实际波形与中立点待测；旧位置解释及宽范围属于历史。
+
+> **2026-10-15 用户改回脉宽界面（最新）**：GUI直接输入整数µs，默认1500，默认1400–1600/确认扩展1000–2000；移除角度输入/换算/反馈，无输出时长，始终seconds=0持续保持；保留100µs/s缓变、停止/Esc/断线保护、只读基线门禁及硬件量化说明。飞行代码和远端agent未改，不新发实机脉冲。关闭旧窗口再启动。pwm_angle.py仅保留历史辅助/测试，当前GUI不导入。
+
+> **2026-10-15 用户授权开启PWM模式（最新实机状态）**：已独立核对板卡、原pad0x54、通道未export、GPIO unused、启动哈希未变、无飞行任务并持独占锁；归档旧baseline/state/helper/manifest与前后快照到Jetson `/home/nvidia/pwm_pin33_safety/boot_recheck_841a584a-abd2-43d8-b005-b208a8a9c764_20261015T154611`，建立当前boot841a...有效基线。现33脚0x405，50Hz(period20000000)、duty0、enable0、normal；仅PWM模式保持，无舵机脉冲。真实上位机status/ping/close握手通过。恢复原GPIO用sudo -n python3 /home/nvidia/pwm_pin33_safety/pin33_pwm_safe.py restore（先退出占用GUI）。旧只读过期状态已解除；连续转圈根因未排除，此次未发送运动信号。
+
+> **2026-10-15 重启后上位机只读连接修复**：最新日志明确Boot changed导致agent构造退出，SSH本身正常。现在板卡/boot哈希核对通过且33脚原值、通道未export时，旧boot基线允许只读连接，显示基线过期；prepare/output/restore三条写路径均远端拒绝，GUI亦拒绝发送；stop/close仅重新确认idle而不写入。旧baseline/temporary_state未变，不绕过写门禁。异常非原始引脚/已export通道仍拒绝接管。未输出PWM。
+
+> **2026-10-15 实际PWM驱动精度确认**：用户要求现有电源/信号接线不改，不做回环；用户原装舵机、未注意1500µs表现。只读反汇编实际pwm-tegra.ko确认round(duty*256/period)量化：50Hz每档约78.125µs/标称7.03°，sysfs为请求值非实际精确波形；GUI新增说明并改请求值标签。1500请求估算约1484.375、1533约1562.5（按标称20ms，非实测）。量化不能解释连续转圈，根因未定；不提高频率、不新发脉冲、不改跨boot基线。旧程序/循环角度未发现。记录report/pwm_link_fix_20261015/continuous_rotation_diagnosis.md及installed_pwm_driver_disassembly.txt。输入回读工具已准备且7项离线测试通过，用户拒绝改接线，未实机运行。
+
+> **2026-10-15 断电后已重连（最新实机状态）**：IP仍192.168.155.186；新boot_id=841a584a-abd2-43d8-b005-b208a8a9c764。只读核对33脚寄存器0x54（初始GPIO），32c0000.pwm通道未export，无PWM输出；extlinux.conf/DTB哈希与原manifest一致。旧基线及temporary_state.json仍记上次boot 588d2395-ab3e-4ec5-9eeb-497bf00967d4，属于过期记录，不能直接prepare/restore或只替换boot ID绕过核验。本轮未改远端文件/引脚，未更新基线、未发脉冲。原装ES08MD II连续转圈原因仍未明，用户无示波器/测试器；后续可考虑独立GPIO输入回读，须先断开舵机信号并核对接线。只读映射物理7=PAC.06/gpiochip0 offset144、29=PQ.05/105、31=PQ.06/106均显示unused input；尚未请求输入或确认其pad复用，不可直接视为已验收接线方案。
+
+> **2026-10-15 紧急：ES08MD II实物连续转圈**：用户确认朝同一方向转超过一整圈，位置控制实物验证失败。事前只读sysfs为50Hz/1533µs/enable=1；已仅终止专用锁的台架agent PID8766，停脉冲、不回中、不恢复GPIO，用户确认已停下。再次只读核对period=20000000、duty=0、enable=0、pinmux=0x405、boot未变。不能从规格书推定这只实物的位置型/实际角度已验证；可能连续旋转版本/模式/改装、反馈故障或实际波形问题，原因未定。暂不再发运动指令；先核对实物标签/购买版本/改装及实际波形。问用户是否有360°/连续/可编程标记，待回复。证据report/pwm_link_fix_20261015/continuous_rotation_incident.json。
+
+> **2026-10-15 用户PDF纠正ES08MD II角度**：已读取用户Downloads/YX65566-12g金属数字舵机ES08MD+II-200803.pdf第2页，原件副本docs/hardware/ES08MD_II_specification.pdf。1000–2000µs为总90°±10°，1500µs中立；900–2100µs为最大总110°±10°，并非180°。标称线性换算改1000/90µs每度，以中立为相对0°，正常±45°；实际位置精度/机构尚未标定。GUI默认软件±9°=1400–1600µs，确认后扩展±45°=1000–2000µs，后端限正常1000–2000µs，未用900/2100极值。PDF无频率参数，50Hz仍为地面起点。旧10µs/°暂定比例弃用。本轮未动作真实舵机，SSH仅只读和纯Mock协议测试。
+
+> **2026-10-15 PWM断线修复**：状态过期不再禁止心跳；输出失联看门狗仍2秒，停脉冲后保持SSH等待恢复，30秒无有效心跳关闭空闲会话；恢复不自动输出，须手动再次应用。旧挑战/重复命令停脉冲并报告但不销毁会话，硬件错误仍退出。新增本地诊断日志（Windows %LOCALAPPDATA%/PWM33/logs）。当前角度依旧未标定：10µs/°仅暂定显示，±5/10是软件限幅而非舵机总行程，尚无180°脉宽映射依据；不得称角度准确或直接扩到机械端点。本轮仅只读SSH诊断，测试用Mock后端不触碰真实PWM。
+
+> **2026-10-15 ES08MD角度保持更新**：用户将当前地面调试舵机更正为EMAX ES08MD II（用户已确认II版）。上位机改为相对估算角度，无输出时长、始终持续保持，停止/断线关闭脉冲并保留PWM模式。临时换算1500µs=相对0°、10µs/°（未标定），默认±5°=1450–1550µs，确认扩展±10°=1400–1600µs；50Hz为保守地面起点，官方频率/角度映射未确认。旧GDW的333Hz/1520µs只作历史验证，不可继承。连接不改频率，显式prepare仅在关闭输出时将旧333Hz通道改50Hz，后端独立限幅/心跳保护保留。本轮未SSH、未驱动新舵机、未修改飞行servo配置。21项模拟测试、工程quick 33/33、Windows窗口断言检查通过，证据report/pwm_angle_es08mdii_20261015。详见PWM33上位机使用说明.md。
+
+> **2026-10-15 PWM33上位机**：新增Windows/Tkinter GUI、SSH临时远端控制、2秒心跳看门狗、缓变/限幅/定时与持续输出、停止保留PWM模式、显式恢复。见 `PWM33上位机使用说明.md`。用户目前要求保持33脚PWM复用(0x405)，空闲enable=0、duty=0；不可在测试结束自动恢复GPIO。Jetson本次boot已重新核验备份。1800µs请求被中断，尚未执行；GUI本轮仅模拟及真实只读握手，无新动作。
+
+> **2026-10-15 双机部署代码**：新增 `catch_real_a/b_launch.py`、`fleet_runtime.py` / `fleet_link.py`、`tools/fleet_configure.py` / `fleet_probe.py` / `fleet_deploy.py`、`deploy/run_fleet.sh`。A 唯一安全监督/释放门禁/PWM，B 接取及 relnav；通过双方心跳与过期回执、代码+配置指纹、实际 SYSID A1/B2、图与发布者唯一性门禁。任务基类新增 require_fleet_link，起飞/任务/释放都检查。部署打包当前工作区，校验、分版本原机构建、显式激活/回退，不自动启动。root PWM 服务仅提供保护路径的模板，尚未安装。配置模板信息未填、PWM 未标定，不能真飞；本轮未连接/部署 Jetson。详见 `双机部署与通信说明.md`。
+
+> **2026-10-14 PWM 释放链已接入**：后续以 `Jetson_PWM_释放逻辑接入说明.md` 为准。新增纯逻辑 `payload_servo.py`、ROS 驱动 `payload_servo_node.py`、临时 PWM 与独立心跳/回退 `servo_pwm.py`；真机启动及 B 门禁已对接。候选锁/开脉宽 1440/1600µs，延迟 0.08s 为模拟占位，默认 disabled/uncalibrated。没有实测标定与真实 `/payload/latch_feedback` 时禁止真实 PWM/起飞；PWM 写入不能冒充 `/payload/released`。命令前持久记录防止重启重复动作，停止不自动重新锁扣。所有本轮工作在 Ubuntu-22.04，未操作 Jetson。
+
+> **2026-10-14 释放机构确认**：用户确认A机舵机打开锁扣，让物块自由下落，不是主动推动。物块脱离时继承A机运动状态；应标定舵机命令到真实脱离的延迟及变化范围，不能把PWM写入成功当成已经释放。锁住/释放脉宽尚未标定。
+
+> **2026-10-14 用户开发约定与舵机用途**：后续开发仅在 Ubuntu-22.04 的本工程进行，Ubuntu-24.04 旧副本保留。A 机以舵机释放物块、B 机协调接取；已验证的 Jetson 物理33脚 PWM 是真实释放执行接口，需要接入现有 authorized_release 安全链。硬件驱动尚未集成，锁住/释放脉宽及脱离延迟尚待确认；空载测试幅度不能直接作为机构参数。详细约定见 AGENTS.md。
+
+> **2026-10-14 Humble 迁移**：本副本位于 Ubuntu-22.04，新开发入口与验收记录见 [Ubuntu22.04_Humble_迁移与使用说明.md](Ubuntu22.04_Humble_迁移与使用说明.md)。下文 Jazzy 环境和历史 SITL 成绩属于原环境记录。
+
 # MEMORY.md — 项目记忆（给下一个 AI / 未来的自己）
+
+> **2026-10-13 新增强制起飞门禁**：`preflight_health.py` 是 CLI／节点共用的纯逻辑。
+> 关键数据缺失、非有限值、源时间戳不递增、数据过期、PX4 自检未通过、任一电池 <40% 都拒飞。
+> `preflight_check --live --param-mavlink-a ... --param-mavlink-b ... --write-approval ...`
+> 完整通过后生成 60 秒检查记录；节点必须收到该记录，并连续 3 秒核验双机健康后才允许自动解锁。
+> 真机、M1/M6 SITL 启动均强制自检；真机需要 `PARAM_MAVLINK_A/B`；直接 launch 要传 `preflight_report`。
+> 旧自检跳过／可选说明已失效。室外 GPS 严格；室内须显式选择动捕策略。
+> 测试新增 `tools/test_takeoff_gate.py`，无 ROS 离线执行；尚未验证 HIL／真机。
+> 2026-10-13 后续安全修改已落实：独立 safety_supervisor、release_guard；停止锁存／显式双机恢复、命令回执与模式确认、B 先降落、HOLD/PULLBACK 清除任务前馈、RTK 源时间／质量门禁、真实捕获保持确认、RC 自检。
+> 操作与限制见 `report/safety_followup_plan.md`；新增 tools/test_safety_runtime.py 在离线执行真实节点方法。硬件释放驱动尚未提供，必须改接 authorized_release 并台架/HIL 验收。历史 SITL 成绩不代表本轮验证。
 
 > 最后更新：2026-10-09（新增离线自检套件）。**新对话请先读本文件**，再按需读 `README.md`、`report/`。
 > 目标读者：接手本项目的 AI 助手。读完应能直接继续干活，不必重跑全部排查。
@@ -535,3 +605,140 @@ f382a0a M5 step2: b_node 接入 acados 终端 MPC (controller:=mpc), 预测速�
 
 > 注：`b78bf5c`/`60b0847` 记录的是"在错误的 PX4 main 树上排查"，**结论已被 §2 取代**——
 > 直接看 §2，不必重读那两个 commit 的细节。
+
+2026-10-15 释放延迟验收记录：report/release_delay_20261015/validation.json；工程quick 34/34、释放单元28项、安全运行23项、双机启动参数及本机ROS正常释放/动作前急停/动作中急停全部通过，git diff --check通过。测试仅Mock；未连接或部署Jetson。初次quick的测试管道竞态已修正，历史日志保留quick_initial_test_race.log。
+
+2026-10-15 直出验证：工程quick34/34、GUI模拟直接1700µs、ROS正常/前后急停、独立2秒上限与0.25秒失联保护均通过；证据report/direct_release_20261015。旧缓变1.5秒未被作为有效直出标定，未动作硬件/部署。
+
+2026-10-15 时序对齐最终验证：工程quick34/34、释放测试32项、安全运行24项、ROS正常/动作前中急停与Fast DDS双进程通信全部通过，git diff --check通过。证据report/timing_alignment_20261015/validation.json；未部署或驱动硬件。
+
+2026-10-15 用户授权A机室内无桨部署已完成：nvidia@192.168.155.186，current=/home/nvidia/payload_catch_deploy/current，release=e27cb2caa69a0ff8fc9cf4d43adbcc3a40419dc07c803536187a1a3608a9d9cb、ROLE=a。ARM构建/32释放+24安全+10起飞测试/ROS隔离验收通过，控制输出均0。真实PWM disabled，当前period20ms/duty0/enable0，boot哈希未变。未启动任务/服务、未改旧ros2_ws。首次部署回退unselect_a.py只撤current链接保留版本。详见report/a_deployment_20261015/A机部署说明.md及日志。
+
+
+## A 机独立起降验收（2026-10-19）
+
+用户要求先验证 A、不依赖 B。新增独立 a_solo_validation_launch.py / deploy/run_a_solo.sh，默认 check/execute=false，起飞需当次 A-only 实时参数+遥测检查和显式 start；强制电量≥40%、定位、RC、飞控自检、身份/电池一致性及控制互斥。任务为低速垂直起飞1m、稳定悬停10秒、降落并确认着陆上锁；无负载释放/PWM/B接口，正式双机门禁不变。独立监督处理任务失联与故障，人工接管不抢回，stop降落/kill切动力分开。26逻辑+8隔离ROS场景及原双机10/安全24/定时释放10回归通过，Humble构建通过。本次仅Ubuntu22.04开发，未部署Jetson、未真实解锁或动作。上次实机无RC/水平定位且电池节数不一致仍是阻塞，未新读确认。操作与限制见docs/A机单机起降验收.md；证据report/a_solo_validation_20261019/validation.json。
+
+
+## A 机单机 Gazebo 功能验证（2026-10-19）
+
+本机 Ubuntu22.04 / PX4 1.16 SITL / Gazebo GUI 连续两次完成自检、Offboard、解锁、1m起飞、稳定悬停10s、正常降落并上锁；Gazebo最高z分别0.997m和1.009m。8个隔离ROS场景、26逻辑、10起飞门禁、7参数协议及飞控参数测试通过。修正转发GCS心跳、_HASH_CHECK元数据和BAT_*共享阈值兼容；仿真时钟仅隔离测试注入，真实默认不变。早期电池/磁力计遥测中断曾触发保护，根因尚未最终定位，不能据两次通过宣称长期稳定。模拟RC+外部定位，不验收真实A/B/PWM；本次未SSH/部署/真实动作。证据report/a_solo_gazebo_20261019/A机单机功能检查.md。临时编辑脚本已归档diagnostic_helpers，任务进程已退出。
+
+
+## A 机单机版实机部署（2026-10-19，仅部署不运行）
+
+用户最新指示：先部署，不用跑。已在 A 机 nvidia@192.168.155.186 完成 ARM64 构建，current 已切换至 b4453dd12c8482d808613769fb6c781bd7debff566633bf0fc4827a6d2654d37；previous 保留旧版 13c1e49da415339aa236e19547c63a809de15e55235584917a700e964dd1702a。入口 /home/nvidia/payload_catch_deploy/current/src/deploy/run_a_solo.sh；配置 /home/nvidia/payload_catch_deploy/a_solo.yaml 保留 site_checked=false/payload_removed=false。此次未运行测试、ROS任务、飞行或PWM，未设置开机自启。文件/进程复核确认无任务和测试进程残留，服务、PWM、boot配置和host/runtime.yaml不变。单元测试此前通过；机载隔离ROS验收因新建report目录归属导致PermissionError，尚未通过。此前中断的目录修复未执行到源码，部署的是已编译的b4453dd版本。保留起飞门禁，不代表具备真实起飞条件。部署报告及精确回退命令见 report/a_solo_deployment_20261019/A机仅部署记录.md。
+
+
+## A 机动捕与 SSH（2026-10-21，当前）
+
+A 仍为 192.168.1.4，序列号1612425621719；用户将A刚体改名planeA。使用电脑临时辅助源地址192.168.1.3成功SSH，在A上原生VRPN接收192.168.1.111:3883，默认/显式绑定Wi-Fi两次各10秒均1199帧、约120Hz、无无效值/非递增时间戳；未转发飞控或动作。普通SSH失败已确认：电脑现IP192.168.1.2，A的有线192.168.1.101/24优先于Wi-Fi /22，给.2回包走错有线；我此前仅为旧电脑.3加/32路由的方案不完善。尝试新增.2路由后nmcli reapply未即时生效，已验证失败自动回退至原.3/.111两条路由。后续管理员UAC被取消，未继续修改。电脑临时.3已删、DHCP仍.2、共存选项恢复disabled，本任务进程已退出，不保持SSH；普通连接长期修复未完成。证据及细节见report/mocap_connection_20261019/A机动捕实测_20261021.md。
+
+
+## A 机保持 SSH（2026-10-21，覆盖前条未修复状态）
+
+用户要求现在保持连接，再次授权后已成功恢复：Wi-Fi profile 5bf25dec-358c-4a85-9eed-ee5b19a254ca 新增192.168.1.2/32 metric10；nmcli reapply 后等待约0.25秒，实际路由已走wlP1p1s0，不需手工ip route。由电脑正常源地址.2验证A序列号成功后commit。原.3/.111路由与其他网卡保留；网段重叠整体问题尚未解决，电脑未来换IP仍需处理。临时电脑.3已移除，原DHCP .2保留，管理员恢复PID26572已退出。保留用户明确要求的一个SSH交互会话：工具session_id=18922，ServerAliveInterval=15/CountMax=3，目标nvidia@192.168.1.4，HostKeyAlias=192.168.155.186；关闭须向该会话发送exit，不要误清理用户要求的连接。无飞行/PWM/ROS任务运行。正常SSH下再次在A原生采集planeA，10秒1198帧/120.0177Hz/invalid0/非递增0，forwarded_to_px4=false。记录report/mocap_connection_20261019/active_ssh_session_20261021.json，实时回包问题本次已修复，重启持久性未实测。
+
+
+## A 机起飞条件实测（2026-10-21，最新）
+
+按用户要求先重新SSH成功，序列号正确，boot846ff451-5740-4778-ba6e-71eaf9072602。在已部署环境只订阅8秒：77%/15.796875V/电池warning0，独立RC有效，自检标志true、已着陆未解锁、姿态有效；但xy/水平速度/可控航向无效，dead_reckoning=true，EKF全部EV融合false，无外部里程计输入发布者。电池仍cell_count1 vs expected4。配置仍outdoor_gps且无GPS，site_checked/payload_removed=false。GCS丢失/relay目标.123，power_input_valid=false需核查。未写参数、未发控制、未启动任务；完整安全参数清单本次未读，不能宣称已全部通过。SSH后期超时，电脑网卡已被改为手动192.168.1.124/24（非本轮修改），A现有/32只覆盖.2/.3/.111，未改用户手动配置；当前不宣称保活连接。报告report/mocap_connection_20261019/A机当前起飞条件_20261021.md。后续优先恢复网络、动捕桥接/EKF、修正电池来源后再做无桨接管/失联验收和A空载首飞。
+
+2026-10-21 QGC连通后再次只读实测：电脑Wi-Fi恢复DHCP .2/22，有线.123/24，SSH正常；QGC gcs_connection_lost=false，relay双向计数增长，未改网络/转发。A原始planeA约120Hz/1199帧但未送入PX4；8秒遥测：69%/15.46V，电池cell_count1与预期4不符；xy/vxy/航向无效、dead_reckoning=true、EV融合全false，无外部里程计发布者；RC有效、着陆未解锁，配置仍outdoor_gps，现场/空载确认未登记。结论不满足工程自主起飞；未写参数或运行飞行/PWM。完整安全参数、RC接管/急停/失联仍待验收。证据report/mocap_connection_20261019/A机QGC连通后起飞条件_20261021.md。旧SSH会话74182已断线，按用户要求保留新的ssh -N会话28664（15秒保活）。
+
+2026-10-21 动捕坐标转换预览：仅Ubuntu22.04工程新增mocap_transform/mocap_preview_node/config/mocap_a.preview.yaml及ROS入口。候选world->local=[Y,X,-Z]，机体->marker=[-Y,-X,-Z]，完整双侧姿态变换；候选安装、杠杆臂和服务器时序均未标定。10项逻辑测试、隔离ROS预览6接受/4拒绝/失效检测/fmu发布者0通过，实测位姿离线换算与手动左转相符。未部署A、未改参数、未向飞控发布，不是已完成PX4桥接。详见docs/A机动捕转换预览.md。测试进程正常退出。
+
+2026-10-21 A机实时动捕转换预览完成：A=192.168.1.4/serial1612425621719/boot846ff451；planeA约120Hz正常，旧450_1仍广播导致vrpn_mocap自动发现崩溃，实参不支持trackers。仅预览改用原生planeA专用接收+ROS源，哈希/语法检查部署到/home/nvidia/payload_catch_mocap_preview_20261021/9695526c87f980d0。18秒raw2139/preview2125，状态rejected0、无过期；同戳位置转换核对通过。domain191+localhost隔离，无fmu输入发布，无解锁/PWM/参数/网络修改，current仍b4453dd。预览与原生子进程退出，查询daemon191 PID7351已正常停止。旧SSH28664断线，新ssh-N保活43619保留。候选安装、杠杆臂、服务器时序未验收；源时间与A墙钟约差12小时，不可直接用于PX4采样时间。证据report/mocap_connection_20261019/preview_on_a_20261021T091329Z；未完成PX4发送或融合。
+
+2026-10-21 planeA实时人工移动方向核对完成：在A机已部署隔离预览逐步采集baseline/forward/right/up/yaw_baseline/yaw_left。机体前+0.9367m（用户确认实际接近1m）、右+0.8782m伴前偏0.077m、实验室Z抬高-0.2501m；抬高有倾斜故重取水平转向基准，左转相对yaw-86.31度，最终roll0.292/pitch0.179/yaw-89.130度。四项方向与手动动作相符，六次流程均正常清理。完整姿态安装、精确尺度、杠杆臂、源时间/跟踪失效仍未验收，不改mounting_confirmed等标志。未发送PX4/改参数/运行飞行或PWM。证据report/mocap_connection_20261019/axis_check_results_20261021.json及planeA实时方向验证_20261021.md；采集状态当前yaw_left，未来新一轮baseline应显式重取。
+
+
+## 2026-10-21 当日进度文档入口
+
+已整理项目根目录 2026-10-21_A机动捕接入与实机验证进度.md，集中记录 SSH/QGC、planeA 原始接收、转换预览与 A 机六步人工方向验证、代码/部署/日志入口、未完成项及继续顺序。docs/A机动捕转换预览.md 已同步更新，移除过时的“未部署 A”状态。当前仍仅预览，未实现 PX4 VehicleOdometry 发送/融合，安装/杠杆臂/源时序确认项仍 false；方向检查通过不代表可起飞。本次仅整理文档，未操作设备。
+
+## 2026-10-23 动捕→PX4 地面桥接实现与诊断（最新）
+
+用户确认仍无桨/未解锁、偏移未测，随后明确暂时无法操作动捕服务器，先完成桥接和诊断验证。Ubuntu22.04新增 mocap_odometry/mocap_odometry_node/mocap_source_node、原生显式planeA接收器、config/mocap_a.bridge.yaml和独立ROS入口。默认disabled、scope=ground_only、确认项false；无真实PX4发布。支持FRD任意朝向、xyzw→wxyz、未知速度NaN；源/接收双时间、排队/倒退/过期/断流锁存，真实输出要求A身份、未解锁已着陆、稳定DDS时间同步及显式启用。它是限时地面工具，不是可直接飞行的常驻服务。
+
+PX4只读确认1.16.0；完整1127参数前后快照一致（含类型/索引）；EKF2_EV_CTRL=0、UXRCE_DDS_SYNCT=1。源时间仍相对Jetson快约12小时并有数秒偏差，映射/不确定度未验证，不自动用到达时间猜源偏移。23逻辑+10转换回归+ROS域192localhost合成检查通过，日志report/mocap_fusion_20261023。
+
+A独立诊断暂存到/home/nvidia/payload_catch_mocap_fusion_20261023/diagnostic_*，精确哈希看manifest。域191localhost，18秒raw1919/odometry333，同戳333对换算通过，最大算术差5.91e-8m（不代表物理精度）。出现一次原生接收间隙277642us（该处源间隔17012us），超过150ms，停发锁存正确；validation.passed=false，连续健康未通过，不能掩盖/放宽阈值。网络或进程调度根因未定位，安装/杠杆臂/服务器时序/跟踪失效仍待验收。最终本地又补严格sensor类型和真实输出竞争发布者检查，隔离回归通过，不把A历史暂存当最终发布。
+
+没有写参数、切current、修改网络或自启、解锁/飞行/PWM。current仍b4453dd，原Agent1019和relay1023保持active；final_audit确认本轮机载进程无残留。后续先解决源时间、偏移及接收间隙，再无桨验证实际里程计输入/EKF。详见docs/A机动捕PX4桥接与诊断_20261023.md；最终参数与进程核对report/mocap_fusion_20261023/final_verification.json。
+
+2026-10-23 用户说明服务器日期正常北京时间后，再次只读采集6秒planeA716帧：Jetson14:33:23.731+08、VRPN回调末帧按Unix解释为次日02:33:27.228+08，仍约+12小时3.497秒。该差包含停止耗时，不是精确偏移；不能据此断言服务器系统时间错，须核对服务端编码及VRPN客户端时间校正语义。Jetson NTP状态正常，配置时序确认仍false。接收PID9859正常退出、无硬件修改。证据report/mocap_fusion_20261023/动捕时间核对_20261023.md及source_time_20261023T143314/result.json。
+
+2026-10-23 时间差进一步排查：仅读vrpn头文件并尝试被动报文/回调对照；首次sudo包装进程communicate超时，尚无有效结论，stderr保留wire_time_20261023T143955。本地修正后SSH已不可达，Wi-Fi.4/有线.101和有线.4均超时，用户确认仍上电，电脑IP仍.2/.123。未改任何时钟/网卡/路由/SSH/PX4配置，未启动融合。首次原生reader自身限30秒，但断连后未远端复核最终PID，不能宣称已确认清理。下一步先本地hostname -I核对A当前地址、只读SSH服务状态，再恢复检查。详见report/mocap_fusion_20261023/时间戳排查与连接中断记录_20261023.md。
+
+2026-10-23 SSH已恢复：显式网卡临时socket探测后普通SSH两条路径.2→.4及.123→.101均成功，严格主机密钥与serial1612425621719一致。新boot=a006295d-9ab4-41c6-a277-f0a2455a86a8（原cbbd1ba2），uptime118.22秒，uptime-s约14:53:14；证明期间重启过，但不能据此确认14:40左右最初断线的原因。SSH/Agent/relay均active，无planeA_stream/本轮桥接采集进程残留；/32 WiFi路由仍在，电脑网卡重叠也仍在。全程只读或每socket选择网卡，未改系统路由/配置/重启。证据report/mocap_fusion_20261023/reconnect_readonly.json及per_interface_probe.json。之前“无法远端复核进程”状态已被此次新boot和进程检查覆盖；不要把路由优先级线索当唯一已证实根因。
+
+2026-10-23继续接入最新：用户说明FZMotion（版本未知），原点不知道/尚不能测。wire_time_20261023T150023已证原始UDP字段与回调时间相同（快约12h3.5s），不归咎客户端转换；message_time_20261023T150644显示pong与pose同样偏差，ping为本地。NTP无响应；公开VRPN参考源码读取网络超时未成功，不能宣称已证应答时间语义。roundtrip_20261023T151229的20次标准ping均应答，RTT12.022–39.569ms，条件偏移交集[-43203513008,-43203501894]us（中点-43203507451、半宽5557us）；仅诊断假设，不是精度承诺，没写入配置。
+重启后真实桥接复测diagnostic_20261023T070724Z：18s raw2086/odometry577，同戳577对换算通过、最大间隙36.438ms、无拒绝/锁存；passed=true仅此次样本，之前278ms根因未解决/长期未验收。默认disabled+191隔离，真实PX4发送0，源时序/原点/跟踪失效确认仍false。未改时钟/网络/PX4参数/飞行或PWM。进程正常退出、current保持b4453dd、SSH与既有服务正常。进度入口report/mocap_fusion_20261023/FZMotion接入进度补充_20261023.md及fzmotion_timing_progress.json。下一步需FZMotion版本/时间语义和planeA原点/局部轴显示，测物理偏移；不能默认中心或硬减12h启用。
+
+
+## 2026-10-23 接收时间地面融合实机验证（覆盖此前“未向 PX4 发送”状态）
+
+用户明确授权后新增 receive_time_ground 独立配置与显式 CLI 确认，原严格默认配置仍 disabled、全部未标定确认仍 false。保留 UXRCE_DDS_SYNCT=1；timestamp_sample 使用原生回调接收时刻，不修改/猜测服务器时间，不关闭 DDS 同步。限定 A 身份、未解锁/着陆、1–120秒和失效锁存；新增相对时间漂移/完全不变位姿检查，仍不能证明绝对采样时刻或所有重放，非飞行模式。FZMotion 版本已确认3.0.0.9。
+
+本地23+9+10单元及隔离ROS通过。A真实Jetson执行 receive_ground_20261023T074805Z，临时EV_CTRL=9，仅水平位置+航向：cs_ev_pos/cs_ev_yaw真22帧跨度21.21s，末10s1000个xy/vxy均有效、dead_reckoning均false。最后桥接accepted3623/forwarded1112/rejected0/无锁存。**heading_good_for_control仍false，完整验收passed=false/exit2，未放行飞行。** 对应PX4源码FRD EVyaw启动会清yaw_align，isYawFinalAlignComplete仍要求它，与观测一致；当前labFRD非地理NED，不可只改frame数字绕过。待解决航向参考、人工移动核对融合、原点/延迟/丢跟踪，未解决电源/电池等既有门禁。
+
+全程观测未解锁/已着陆，无飞行/电机/PWM指令；独立参数守护实际正常回退EV_CTRL=0、SYNCT=1，前后1127参数含类型索引差异0。守护45秒超时路径未故障注入实测。正式current仍b4453dd，Agent1011/relay1013持续active，机载任务进程0残留。SSH/网络/时钟/自启未改，无常驻融合。代码仅Ubuntu22.04开发，A独立暂存。报告 docs/A机动捕接收时间地面融合_20261023.md；汇总report/mocap_fusion_20261023/receive_ground_summary.json、receive_final_audit.json；恢复快照parameters_20261023T075120Z。
+
+
+## 2026-10-23 航向候选地面静态测试通过（最新，覆盖“航向可控仍false”）
+
+用户确认A无桨未解锁放稳、planeA跟踪、QGC连通，并说明无北向标定。SSH仍.123→.101/serial1612425621719/boot a006295d。只读heading_probe_20261023T081303Z采集1586对，动捕labFRD yaw约-1.274543°、PX4磁估计yaw-47.109135°，差-45.834592°/std0.024870°。候选将Rz(delta)同时用于位置和完整姿态，对齐当次PX4参考并输出NED；**north_verified=false，仅地面候选，不宣称真实北向标定，不能直接用于双机共享轴**。配置要求来源、相同旋转、同boot和10分钟启动有效期，默认严格/普通FRD配置不变。
+
+首次heading_candidate_20261023T080951Z源间隙>150ms锁存，forwarded0/未改参数，证据保留；只调整源先预热4秒200帧，再启动桥接，阈值不放宽。第二次heading_candidate_20261023T081425Z通过：cs_ev_pos/cs_ev_yaw 22样本跨度21.210s，启用5秒后2206个位置/速度/航向可控同时有效，末10s全有效且dead_reckoning=false；桥接accepted3685/forwarded1117/rejected0。**静态候选通过不是飞行放行或动态/绝对方向验收**；启动间隙根因及长期稳定仍未证明。新增6航向单元及ROS位置姿态一致/过期拒绝/解锁停发，通过原23+9+10回归。
+
+全程观测未解锁着陆、无飞行/PWM指令。EV_CTRL临时9后已自动恢复0，SYNCT始终1，1127项参数数值类型索引前后0差异；current仍b4453dd，Agent1011/relay1013正常，任务进程0。没有常驻融合。最新完整参数parameters_20261023T081620Z；审计receive_final_audit.json。
+
+保存前移基准heading_movement_baseline.json：raw约[1.8785946,-.1999071,.2916852]，候选EV约[1.2082929,1.4522768,-.2916850]，PX4约[1.2080616,1.4526118,1.1031359]，yaw-.8219225rad。高度仍气压计且静止长期明显漂移，**不要把PX4 z与EV z当同基准或宣称高度验收**。下一步先人工前移/右移/转向，先比逐姿态融合位移再记录连续动态；若快照超时/重启须显式重采同基准，不能混参考相减。其后高度、刚体偏移、时延、遮挡断流/保护和持续飞行桥接，供电false/电池等既有门禁仍待解决。报告docs/A机航向参考与静态融合验证_20261023.md；汇总heading_candidate_summary.json，候选完整配置在通过run目录candidate_config.yaml。
+
+
+## 2026-10-23 前移59.7705厘米端点检查：磁航向参考跨位置/时间不稳定（最新）
+
+用户回复前移约59.7705cm。A同boot/serial、SSH.123→.101正常。本轮**只读**heading_probe_20261023T082553Z，1601配对，末半801raw位姿与heading_movement_baseline对比：总位移60.0873cm（比用户值+0.3168cm），按原机头水平分解前+59.8868cm/左4.9057cm，up约0.0072cm，相对yaw+1.7587°。方向基本符合；不是独立精度或连续运动验收。
+
+发现关键新问题：前后动捕yaw -1.274543°→+.483709°，PX4 -47.109135°→-86.288412°（变化-39.1793°），候选参考旋转 -45.834592°→-86.772121°，相对参考变化-40.9375°。当前mag_heading_consistent=false、heading_good=false、EV_CTRL0且不在融合。中间有上次临时融合/恢复，不能断言全部是移动本身/磁干扰所致；但**磁航向快照不能作为已稳定标定，静态通过不等于跨位置/时间可用**。
+
+没有重采新磁偏移来启用融合、没有更新旧时间冒充新参考。run_heading_candidate_on_a.py增加已有基准与新旋转>5°本地拒绝，实测-40.938°在任何SSH暂存/参数写前拒绝。离线--with-fusion也拒绝漂移；未修改核心桥接或门禁。只读完整1127参数与上轮恢复后差异0，EV_CTRL0/SYNCT1、任务进程0，current b4453dd/Agent1011/relay1013正常，无硬件/网络/时钟改变。源子进程正常退出。
+
+下一步先保持当前位置，不继续右移，把航向参考跨位置/时间变化排查清楚并建立固定独立参考，不能每个位置重设世界轴。此前“静态三标志通过”为单次事实，不是可靠北向/飞行标定完成；本次尚未通过PX4融合位移验证。高度、偏移、时延、失效保护仍待。文档docs/A机前移验证与航向参考漂移_20261023.md；证据forward_597705_summary.json、forward_final_verification.json、forward_final_audit.json、parameters_20261023T082943Z。保留原heading_movement_baseline未覆盖，不把新点假称已融合基准。
+
+
+## 2026-10-23 固定动捕航向/MAG_NONE实机静态验证通过（最新）
+
+用户换电后继续授权无桨未解锁地面融合。A序列号1612425621719/Jetson boot39417b19保持，SSH .123→.4。实现独立fixed_lab_navigation配置，固定[Y,X,-Z]、world原点0和完整姿态同转；明确非地理北向的室内导航NED编码，fresh参数证明MAG5/EV9/SYNCT1、同boot与UID、磁/地理观测冲突即停发，不复用磁航向快照。PX4同版EKF库7场景、本地5固定+既有23/9/6/10及ROS、4事务/1重启证据/2批量证明验证通过。
+
+最终fixed_reference_20261023T094649Z机载passed=true：MAG5/EV9重启读回，静态25秒，EV位置+航向标志28样本跨度26.270秒，2627个位置样本xy/vxy/heading_good_for_control均true、dead_reckoning均false；磁航向/3D均false，真实输入1035帧。软件停止源后400ms无新输入并锁存，物理遮挡未测。先前4轮失败保留：约82秒飞控网络恢复超过早期时限、连续重启uptime判断、跨重启旧订阅、串行参数证明过期；最终修复且未放宽2秒证明过期/未解锁着陆门禁。
+
+结束EV0/MAG0/SYNCT1已恢复并再次重启飞控核验。独立after_20261023T095131Z1127参数读全，仅CAL_BARO0_OFF -48.375→-38.1484375变化，符合PX4启动自动相对气压计校准源码；不是全参数完全一致，不强行覆写。Agent1006/relay1008持续active、current仍b4453dd、本任务机载进程0，未改网络/时钟/自启，未解锁/飞行/电机/PWM。核心目标已在静态通过；当前不常驻融合。人工连续移动/转向、精确安装偏移/源延迟/物理遮挡/高度/飞行桥接及失效策略仍待，不能用地面工具直接飞行。报告docs/A机固定动捕航向实机验证_20261023.md；证据report/fixed_reference_20261023/final_summary.json。所有本轮文件留在Ubuntu22.04工程，旧工程及C盘无新辅助文件。
+
+
+## 2026-10-23 动捕Z参考实机静止融合通过（最新）
+
+用户明确要求“你来融合z”。新增config/mocap_a.xyz_ground.yaml及显式height_fusion=external_vision_reference/height_origin=固定实验室marker原点非AGL；核心XYZ路径严格要求MAG5/EV11/HGT3/SYNCT1同boot新鲜重启证明，旧XY路径不放宽。位置仍[Y,X,-Z]、固定world原点0，未伪造安装/时序/遮挡标定。PX4同版EKF8场景、高度5/三参数回退5/既有23+9+6+10及隔离ROS通过。
+
+A机xyz_reference_20261023T101442Zpassed=true，静态25秒；EV位置/航向/高度标志共同有效跨度26.270秒，XYZ及速度/可控航向有效、磁航向/3D关闭。2000组稳定日志Z输入/估计差均值0.000641m/最大0.001618m，仅静态数据接近不是测量精度。软件断流400ms后无输入并锁存，物理遮挡与人工抬高/动态未测。
+
+测试后EV0/HGT1/MAG0/SYNCT1已恢复、飞控重启核验通过；完整1127参数独立审计after_20261023T101935Zpassed=true，差异{"CAL_BARO0_OFF": {"before": {"value": -38.1484375, "type": 9, "index": 59}, "after": {"value": -47.1484375, "type": 9, "index": 59}}}，自动校准候选保留，不宣称参数全部相同。Jetson未重启、Agent/relay与current不变、本轮进程0、未解锁/飞行/执行器/网络时钟自启修改。当前没有常驻XYZ融合。后续人工抬高/移动、起降平面与IMU偏移/源延迟/遮挡/飞行桥接及失效保护待。报告docs/A机动捕XYZ与航向融合_20261023.md，证据report/mocap_z_20261023/final_summary.json。
+
+
+## 2026-10-23 人工抬高连续融合验证（最新）
+
+用户确认无桨未解锁水平放稳/planeA跟踪无牵扯，执行lift_reference_20261023T102520Z。结果{"ground_test_passed": false, "post_audit_passed": true, "flight_approval": false, "run": "lift_reference_20261023T102520Z", "post": "after_20261023T103137Z", "phases": {"baseline": {"label": "baseline", "monotonic": 6129.477717295, "input_xyz": [0.39766841325908897, 1.8219980359077455, -0.2917708531022072], "px4_xyz": [0.396642729267478, 1.8217230749130249, -0.2918688065558672], "px4_z_span_m": 0.0008093118667602539, "input_z_span_m": 0.00013631582260131836, "input_yaw_deg": 2.5246609006182212, "px4_yaw_deg": 2.5301278201986133, "local_samples": 400, "input_samples": 160, "flags_samples": 3}}, "lift": null, "error": "RuntimeError('manual interaction window expired')", "all_disarmed": true, "all_landed": true, "restored": {"changed": true, "restored": true, "restore_restart_verified": true, "flight_approval": false, "flight_commands": 0, "fc_only_reboots": 2, "lease_ended": true}, "parameter_differences": {"CAL_BARO0_OFF": {"before": {"value": -47.1484375, "type": 9, "index": 59}, "after": {"value": -48.21875, "type": 9, "index": 59}}}, "remaining_task_processes": [], "passed": false}
+原landed/未解锁/新鲜时间及参数门禁保留，PX4源码未解锁landed强制true，不代表手持飞机物理接地。未解锁/执行器/网络时钟自启修改；当前测试结束不常驻融合。详见docs/A机动捕高度抬高验证_20261023.md。
+
+
+## 2026-10-23 用户结束今日工作（最后状态）
+
+用户暂不能抬高，随后明确先结束、保存今日成果并退出工作状态。手动验证只完成baseline，原始程序因手动窗口到期退出，EV0/HGT1/MAG0/SYNCT1已恢复且飞控重启核验；after_20261023T103137Z独立1127参数审计通过，仅自动气压计校准候选差异，本轮机载进程0。已完成XY/yaw与XYZ/yaw静止融合仍有效，动态抬高待测，当前没有常驻融合。Jetson/SSH/网络及既有服务未变，没有自动继续任务。成果快照及继续入口report/session_close_20261023，用户再次要求继续前不再设备操作。
+
+
+## 2026-10-23 用户授权整理工作区与 Git
+
+用户要求整理干净。完成本地成果检查、源码快照与 SHA256 清单，原始采样、日志、历史备份及现场凭据辅助脚本保留原处并精确忽略；源码、配置、部署入口、文档和顶层关键结果纳入本地版本保存。report/README.md、ARTIFACTS_20261023.json 与 docs/工作区与Git管理.md 说明边界；原始归档不会随 Git 克隆获得。没有删除/移动成果，没有推送或连接无人机，没有改变已部署版本和飞控状态。
+
+离线 quick 检查47组全通过；暂存内容Python305/Bash59/YAML13/JSON141语法及解析检查通过，diff格式检查通过。仅移除一处GUI源码行尾空格和一份历史诊断脚本末尾空行，原字节已在本地源码ZIP保存、索引注明。3047个原有文件SHA256一致；原始采样/日志未变。完整核验日志在report/workspace_cleanup_20261023，未启动后台进程或常驻服务。该版本保存不代表动态抬高验证/飞行放行完成。

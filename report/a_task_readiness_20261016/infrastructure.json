@@ -1,0 +1,117 @@
+{
+  "passed": true,
+  "profile": "/home/nvidia/payload_catch_deploy/host/runtime.yaml",
+  "profile_sha256": "1752e0550ea832ca9a8f6459b17f2c14651bebfe70922e4b10ff790bf5a771ac",
+  "reused_existing_services": false,
+  "managed_runtime": true,
+  "flight_approval": false,
+  "actuator_commands_sent": 0,
+  "observations": {
+    "hostname": "nvidia-desktop",
+    "environment_domain": "0",
+    "environment_rmw": "rmw_fastrtps_cpp",
+    "ros_localhost_only": "0",
+    "overlay_exists": true,
+    "interfaces": {
+      "lo": [
+        "127.0.0.1"
+      ],
+      "wlP1p1s0": [
+        "192.168.155.186"
+      ],
+      "enx00e04c680065": [
+        "192.168.1.101"
+      ],
+      "eno1": [
+        "10.41.10.100"
+      ],
+      "docker0": [
+        "172.17.0.1"
+      ]
+    },
+    "px4_msgs_commit": "392e831c1f659429ca83902e66820d7094591410",
+    "px4_msgs_clean": true,
+    "agent": {
+      "pid": 1000,
+      "active": "active",
+      "enabled": "enabled",
+      "argv": [
+        "/opt/payload_catch/managed_20261016/bin/MicroXRCEAgent",
+        "udp4",
+        "-p",
+        "8888"
+      ],
+      "environment": {
+        "ROS_DOMAIN_ID": "0",
+        "RMW_IMPLEMENTATION": "rmw_fastrtps_cpp",
+        "LD_LIBRARY_PATH": "/opt/payload_catch/managed_20261016/lib"
+      }
+    },
+    "relay": {
+      "pid": 1010,
+      "active": "active",
+      "enabled": "enabled",
+      "argv": [
+        "/usr/bin/python3",
+        "/opt/payload_catch/managed_20261016/mavlink_relay.py",
+        "--fc-ip",
+        "10.41.10.2",
+        "--gcs-ip",
+        "192.168.1.123",
+        "--port",
+        "14550"
+      ],
+      "environment": {},
+      "script_sha256": "918eea71c416e58e81d2dbac560c3cd5a90e9a9125a387b8e63e36561529e419"
+    },
+    "agent_pids": [
+      1000
+    ],
+    "udp_owners": {
+      "8888": [
+        1000
+      ],
+      "14550": [
+        1010
+      ]
+    },
+    "managed_tree_protected": true,
+    "agent_bundle_intact": true,
+    "legacy_services": {
+      "microxrce-agent.service": {
+        "active": "inactive",
+        "enabled": "masked"
+      },
+      "mav-relay.service": {
+        "active": "inactive",
+        "enabled": "masked"
+      }
+    }
+  },
+  "ros": {
+    "status": {
+      "samples": 8,
+      "latest_age_s": 0.404180537000002,
+      "source_time_increases": true
+    },
+    "position": {
+      "samples": 400,
+      "latest_age_s": 0.007057028999952308,
+      "source_time_increases": true
+    },
+    "attitude": {
+      "samples": 401,
+      "latest_age_s": 7.526699982918217e-05,
+      "source_time_increases": true
+    },
+    "battery": {
+      "samples": 40,
+      "latest_age_s": 0.10018304999994143,
+      "source_time_increases": true
+    },
+    "fcu_system_id": 1,
+    "fcu_disarmed": true,
+    "control_publishers": {}
+  },
+  "failures": []
+}

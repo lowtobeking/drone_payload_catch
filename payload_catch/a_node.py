@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import numpy as np
 import rclpy
-from std_msgs.msg import Bool, Float64, Float64MultiArray
+from std_msgs.msg import Bool, Float64, Float64MultiArray, String
 
 from .px4_iface import Px4Drone
 from .stack_drop import _horiz_drift
@@ -86,6 +86,7 @@ class ANode(Px4Drone):
         self._ready = None
         self._ready_t = 0.0
         self._released = False
+        self._release_cancelled = False
         self._released_at = None      # 已提交释放的绝对时刻（lead 窗口内复核用）
         self._commit_t0 = None        # 提交窗口起点
         self.release_xy_tol = float(self.get_parameter('release_xy_tol').value)
@@ -110,6 +111,13 @@ class ANode(Px4Drone):
                                        float).reshape(3)
         self.clear_enable = bool(self.get_parameter('clear_enable').value)
         self._payload_released = False
+        self._release_unconfirmed = False
+        self.declare_parameter('release_confirmation_mode','sensor')
+        self.release_confirmation_mode=self.get_parameter('release_confirmation_mode').value
+        self.declare_parameter('expected_release_id','')
+        self.declare_parameter('expected_servo_signature','')
+        self.expected_release_id=self.get_parameter('expected_release_id').value
+        self.expected_servo_signature=self.get_parameter('expected_servo_signature').value
         self.pub_state = self.create_publisher(Float64MultiArray, '/drone_a/state', 10)
         self.pub_intent = self.create_publisher(Float64MultiArray, '/drone_a/intent', 10)
         self.pub_release_cmd = self.create_publisher(Float64MultiArray, '/drone_a/release_cmd', 10)
@@ -117,7 +125,10 @@ class ANode(Px4Drone):
         self.pub_release_at = self.create_publisher(Float64, '/payload/release_at', 10)
         self.create_subscription(Bool, '/payload/caught', self._on_caught, 10)
         self.create_subscription(Bool, '/payload/released', self._on_released, 10)
+        self.create_subscription(String,'/payload/release_action_complete',self._on_action_complete,10)
         self.pub_pong = self.create_publisher(Float64MultiArray, '/coord/pong', 10)
+        self._a_pub_stamp=None
+        if self.publish_state:self.create_timer(.05,self._pub_state)
         self.create_subscription(Float64MultiArray, '/coord/ping', self._on_ping, 10)
         self.use_px4_wind = bool(self.get_parameter('use_px4_wind').value)
         if self.use_px4_wind:
@@ -139,7 +150,7 @@ class ANode(Px4Drone):
             self.get_logger().warn(f'A: 编队模式 formation_vel={self.formation_vel}')
 
     def _on_formation_start(self, msg):
-        if msg.data and self._form_t0 is None:
+        if msg.data and self.mission_allowed() and self._form_t0 is None:
             self._form_t0 = self.get_clock().now().nanoseconds * 1e-9
             self._form_p0 = self.pos_world[:2].copy()
             self.get_logger().warn(
@@ -150,10 +161,33 @@ class ANode(Px4Drone):
         self.wind_est[0] = float(msg.windspeed_north)
         self.wind_est[1] = float(msg.windspeed_east)
 
+    def _on_action_complete(self,msg):
+        import json
+        try:
+            d=json.loads(msg.data);now=self.get_clock().now().nanoseconds*1e-9
+            if (self.release_confirmation_mode!='timed' or d.get('confirmation_mode')!='timed'
+                    or d.get('mock') is not False or d.get('physically_confirmed') is not False
+                    or d.get('detached_at') is not None or d.get('session')!=self._supervisor_session
+                    or not isinstance(d.get('nonce'),str) or not d['nonce']
+                    or not self._released or self._release_cancelled or self._payload_released
+                    or (self.expected_release_id and d.get('release_id')!=self.expected_release_id)
+                    or (self.expected_servo_signature and d.get('servo_signature')!=self.expected_servo_signature)):
+                return
+            stamp,done,edge,planned=d['stamp'],d['action_completed_at'],d['estimated_detach_at'],d['planned_at']
+            if (any(type(v) not in (int,float) or not np.isfinite(v) for v in (stamp,done,edge,planned))
+                    or not 0<=now-stamp<=.2 or not 0<=stamp-done<=.2
+                    or not 0<=done-edge<=.05 or abs(planned-self._released_at)>.02):return
+            self._release_unconfirmed=True
+            self._on_released(Bool(data=True))
+        except (KeyError,ValueError,TypeError):return
+
     def _on_released(self, msg):
+        if (getattr(self,'release_confirmation_mode','sensor')=='timed'
+                and not getattr(self,'_release_unconfirmed',False)):return
         if msg.data and not self._payload_released:
             self._payload_released = True
-            self.get_logger().warn('A: /payload/released → 开始定向清场（离开 B 空域）')
+            evidence='定时开锁动作完成，物块脱离未确认' if getattr(self,'_release_unconfirmed',False) else '传感器报告脱离'
+            self.get_logger().warn('A: '+evidence+' → 开始定向清场（离开 B 空域）')
 
     def _on_abort(self, msg):
         """编队释放超时中止：A 停止巡航，保留载荷并进入降落流程。"""
@@ -170,8 +204,16 @@ class ANode(Px4Drone):
 
     def _on_b_ready(self, msg):
         """B 报就绪：data=[ready(0/1), rel_xy, spd_xy, stamp, (sigma_abs), (sigma_rel)]。"""
+        if (len(msg.data)<7 or not np.all(np.isfinite(msg.data))
+                or msg.data[0] not in (0.,1.) or msg.data[6] not in (0.,1.)
+                or any(msg.data[i]<0 for i in (1,2,4,5))):
+            self._ready=None;return
+        if self._ready is not None and float(msg.data[3])<=float(self._ready[3]):return
+        now=self.get_clock().now().nanoseconds*1e-9
+        if not 0 <= now-float(msg.data[3]) <= self.ready_timeout:
+            self._ready=None;return
         self._ready = list(msg.data)
-        self._ready_t = self.get_clock().now().nanoseconds * 1e-9
+        self._ready_t = float(msg.data[3])
         if len(msg.data) >= 5:
             self._b_sigma = float(msg.data[4])
         if len(msg.data) >= 6:
@@ -179,6 +221,7 @@ class ANode(Px4Drone):
 
     def _on_ping(self, msg):
         """时钟同步：回显 B 的发送时刻 + A 的接收时刻。"""
+        if len(msg.data)!=1 or not np.all(np.isfinite(msg.data)):return
         now = self.get_clock().now().nanoseconds * 1e-9
         r = Float64MultiArray()
         r.data = [float(msg.data[0]), float(now)]
@@ -186,6 +229,13 @@ class ANode(Px4Drone):
 
     def _coord_tick(self, now):
         """广播意图（悬停目标 / 编队移动参考点）；handshake 时作释放权威发释放时刻 + ack。"""
+        if self._release_cancelled:
+            self.publish_release_permit(False);return
+        if not self.mission_allowed():
+            self.publish_release_permit(False)
+            if self._released and self._released_at is not None and now<self._released_at:
+                self._abort_release(now,'safety / operator / Offboard interlock')
+            self._commit_t0=None;return
         in_formation = self._formation and self._form_t0 is not None
         if in_formation:
             ref_xy = self._form_p0 + self.formation_vel[:2] * (now - self._form_t0)
@@ -218,6 +268,8 @@ class ANode(Px4Drone):
             gate_ok, reason = False, 'ready 不新鲜'
         elif float(self._ready[0]) < 0.5:
             gate_ok, reason = False, 'B 未就绪'
+        elif len(self._ready)<7 or float(self._ready[6])<.5:
+            gate_ok,reason=False,'B 捕获／刹车规划不可行'
         elif len(self._ready) >= 3 and (float(self._ready[1]) > self.release_xy_tol
                                         or float(self._ready[2]) > self.release_spd_tol):
             gate_ok, reason = False, 'B 对正质量超门限'
@@ -263,11 +315,12 @@ class ANode(Px4Drone):
                 elif not settled:
                     gate_ok, reason = False, 'A 未就位'
 
-        # ── 已提交：lead 窗口内只复核 A 自身就位（B 已 ack 后会停发 ready）──
+        self.publish_release_permit(gate_ok)
+        # Lead window must recheck BOTH members, not just A settled position.
         if self._released:
             if (self._released_at is not None and now < self._released_at
-                    and not settled):
-                self._abort_release(now, 'A 释放前未就位')
+                    and not gate_ok):
+                self._abort_release(now, reason or 'dual-aircraft release interlock')
             return
 
         if not gate_ok:
@@ -295,15 +348,26 @@ class ANode(Px4Drone):
             f'(lead={self.release_lead}, σ={sigma:.3f})')
 
     def _abort_release(self, now, reason):
-        """在真正释放前撤销已排定的释放（重置状态，可重新尝试）。"""
+        """撤销释放并锁存本轮取消；恢复飞行不允许再次开锁。"""
         self.get_logger().error(f'A: 释放前复核失败 → 取消释放: {reason}')
         self.pub_release_abort.publish(Bool(data=True))
         c = Float64MultiArray()
         c.data = [-1.0, 0.0, now]
         self.pub_release_cmd.publish(c)
         self._released = False
+        self._release_cancelled = True
         self._released_at = None
         self._commit_t0 = None
+
+    def on_safety_stop(self,reason):
+        self._release_cancelled=True
+        self.publish_release_permit(False)
+        if getattr(self,'_released',False) and not getattr(self,'_payload_released',False):
+            self._abort_release(self.get_clock().now().nanoseconds*1e-9,reason)
+        self._ready=None;self._commit_t0=None;self._form_t0=None
+
+    def on_operator_resume(self):
+        self._ready=None;self._commit_t0=None;self._form_t0=None
 
     def control(self):
         now = self.get_clock().now().nanoseconds * 1e-9
@@ -355,9 +419,12 @@ class ANode(Px4Drone):
             self._pub_state()
 
     def _pub_state(self):
+        if not self._pos_ok or self._last_pos_t==self._a_pub_stamp:return
+        if self.get_clock().now().nanoseconds*1e-9-self._last_pos_t>1.:return
+        self._a_pub_stamp=self._last_pos_t
         pw = self.pos_world
         m = Float64MultiArray()
-        m.data = [float(self.get_clock().now().nanoseconds * 1e-9),
+        m.data = [float(self._last_pos_t),
                   float(pw[0]), float(pw[1]), float(pw[2]),
                   float(self.vel[0]), float(self.vel[1]), float(self.vel[2])]
         self.pub_state.publish(m)

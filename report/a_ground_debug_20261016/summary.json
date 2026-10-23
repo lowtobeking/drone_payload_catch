@@ -1,0 +1,223 @@
+{
+  "board": {
+    "boot_id": "64244966-0f68-4732-b814-1da1248c28e9",
+    "baseline_boot": "841a584a-abd2-43d8-b005-b208a8a9c764",
+    "register": "0x54",
+    "pwm_exported": false,
+    "pwm": null,
+    "boot_files_unchanged": true
+  },
+  "actuator_commands_sent": 0,
+  "parameter_writes": 0,
+  "streams": {
+    "/fmu/out/sensor_combined": {
+      "count": 832,
+      "rate_hz": 100.0672087017307,
+      "sample": {
+        "timestamp": 1792129110981228,
+        "accelerometer_m_s2": [
+          -0.02028702385723591,
+          -0.344685435295105,
+          -9.824020385742188
+        ],
+        "gyro_rad": [
+          0.002827014308422804,
+          -0.0028212813194841146,
+          -0.0022867259103804827
+        ]
+      }
+    },
+    "/fmu/out/vehicle_attitude": {
+      "count": 831,
+      "rate_hz": 100.06049214919237,
+      "sample": {
+        "timestamp": 1792129110971502,
+        "timestamp_sample": 1792129110971227,
+        "q": [
+          0.2108970731496811,
+          0.005143072456121445,
+          0.01710229180753231,
+          0.9773452281951904
+        ]
+      }
+    },
+    "/fmu/out/vehicle_local_position": {
+      "count": 831,
+      "rate_hz": 99.99235316309904,
+      "sample": {
+        "timestamp": 1792129110977125,
+        "timestamp_sample": 1792129110976226,
+        "x": -0.012012979947030544,
+        "y": -0.014897548593580723,
+        "z": -2.7009027004241943,
+        "vx": 0.0011777125764638186,
+        "vy": 0.000932550523430109,
+        "vz": -0.011071172542870045,
+        "xy_valid": false,
+        "z_valid": true,
+        "v_xy_valid": false,
+        "v_z_valid": true,
+        "eph": 0.01506187953054905,
+        "epv": 0.2843283414840698,
+        "dead_reckoning": true
+      }
+    },
+    "/fmu/out/battery_status": {
+      "count": 83,
+      "rate_hz": 10.000715513387458,
+      "sample": {
+        "timestamp": 1792129110892435,
+        "remaining": 0.9399999976158142,
+        "voltage_v": 16.546875,
+        "current_a": 0.07965087890625,
+        "connected": true,
+        "warning": 0,
+        "cell_count": 1,
+        "source": 0,
+        "id": 125,
+        "capacity": 0,
+        "serial_number": 1,
+        "voltage_cell_v": [
+          16.546875,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    "/fmu/out/vehicle_gps_position": {
+      "count": 42,
+      "rate_hz": 4.9970270132938746,
+      "sample": {
+        "timestamp": 1792129110936164,
+        "timestamp_sample": 1792128101758960,
+        "eph": 4294967.5,
+        "epv": 3750059.5,
+        "fix_type": 0,
+        "satellites_used": 0,
+        "latitude_deg": 0.0,
+        "longitude_deg": 0.0,
+        "altitude_msl_m": -17.0
+      }
+    },
+    "/fmu/out/vehicle_status_v1": {
+      "count": 16,
+      "rate_hz": 1.9761177532567025,
+      "sample": {
+        "timestamp": 1792129110476207,
+        "arming_state": 1,
+        "nav_state": 4,
+        "pre_flight_checks_pass": false,
+        "failsafe": false,
+        "system_id": 1,
+        "system_type": 2,
+        "safety_off": true
+      }
+    },
+    "/fmu/out/estimator_status_flags": {
+      "count": 8,
+      "rate_hz": 0.9902043485959096,
+      "sample": {
+        "timestamp": 1792129110106838,
+        "timestamp_sample": 1792129109916222,
+        "cs_tilt_align": true,
+        "cs_yaw_align": true,
+        "cs_in_air": false
+      }
+    }
+  },
+  "battery_parameters": {
+    "MAV_SYS_ID": {
+      "value": 1,
+      "type": 6,
+      "raw_float": 1.401298464324817e-45
+    },
+    "SYS_AUTOSTART": {
+      "value": 4019,
+      "type": 6,
+      "raw_float": 5.63181852812144e-42
+    },
+    "BAT1_N_CELLS": {
+      "value": 4,
+      "type": 6,
+      "raw_float": 5.605193857299268e-45
+    },
+    "BAT1_SOURCE": {
+      "value": -1,
+      "type": 6,
+      "raw_float": "nan"
+    },
+    "BAT1_V_EMPTY": {
+      "value": 3.5999999046325684,
+      "type": 9,
+      "raw_float": 3.5999999046325684
+    },
+    "BAT1_V_CHARGED": {
+      "value": 4.050000190734863,
+      "type": 9,
+      "raw_float": 4.050000190734863
+    },
+    "BAT1_CAPACITY": {
+      "value": 4000.0,
+      "type": 9,
+      "raw_float": 4000.0
+    },
+    "BAT1_V_DIV": {
+      "value": -1.0,
+      "type": 9,
+      "raw_float": -1.0
+    },
+    "BAT1_A_PER_V": {
+      "value": -1.0,
+      "type": 9,
+      "raw_float": -1.0
+    },
+    "BAT2_SOURCE": {
+      "value": -1,
+      "type": 6,
+      "raw_float": "nan"
+    },
+    "BAT2_N_CELLS": {
+      "value": 0,
+      "type": 6,
+      "raw_float": 0.0
+    },
+    "CAL_GYRO0_ID": {
+      "value": 3407882,
+      "type": 6,
+      "raw_float": 4.775459813200186e-39
+    },
+    "CAL_ACC0_ID": {
+      "value": 3407882,
+      "type": 6,
+      "raw_float": 4.775459813200186e-39
+    },
+    "CAL_MAG0_ID": {
+      "value": 396833,
+      "type": 6,
+      "raw_float": 5.560814734934101e-40
+    },
+    "SENS_BOARD_ROT": {
+      "value": 0,
+      "type": 6,
+      "raw_float": 0.0
+    }
+  },
+  "indoor_gps": "not a bench sensor-pass requirement; flight gates remain unchanged",
+  "unresolved": [
+    "reported cell_count=1 while BAT1_N_CELLS=4; inspect battery source before changing parameters",
+    "real PWM baseline belongs to previous boot; current pad 0x54, channel unexported",
+    "manual control and GCS link reported lost; no dynamic attitude/operator-input check yet"
+  ],
+  "actuator_tests_performed": false
+}

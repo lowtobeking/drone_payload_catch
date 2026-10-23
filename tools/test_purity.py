@@ -25,7 +25,7 @@ PURE_MODULES = [
     'payload_model', 'rendezvous', 'sim_core', 'payload_filter', 'stack_drop',
     'relnav', 'contact_detect', 'uncertainty', 'dynamics', 'impact',
     'perception', 'stats', 'coord_cert', 'keepout', 'safety_logic', 'telemetry',
-    'fcu_params', 'safety_matrix',
+    'fcu_params', 'safety_matrix', 'preflight_health', 'safety_runtime', 'payload_servo', 'servo_pwm', 'fleet_runtime',
 ]
 
 FAIL = []

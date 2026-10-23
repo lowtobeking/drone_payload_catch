@@ -1,0 +1,57 @@
+{
+  "kind": "manual_right_translation",
+  "recorded_at_utc": "2026-10-21 08:14:25 UTC",
+  "baseline_file": "planeA_forward_result_20261021.json (after)",
+  "before": {
+    "tracker": "planeA",
+    "count": 1198,
+    "invalid": 0,
+    "nonincreasing_timestamps": 0,
+    "connected": true,
+    "rate_hz": 120.011559308862,
+    "age_s": 0.006374768,
+    "position": [
+      1.02970300292969,
+      0.187830795288086,
+      0.291765747070312
+    ],
+    "quaternion_xyzw": [
+      -0.00107053015381098,
+      0.00059133768081665,
+      0.999922335147858,
+      0.0123985344544053
+    ],
+    "forwarded_to_px4": false
+  },
+  "after": {
+    "tracker": "planeA",
+    "count": 1198,
+    "invalid": 0,
+    "nonincreasing_timestamps": 1,
+    "connected": true,
+    "rate_hz": 120.058362951937,
+    "age_s": 0.006372976,
+    "position": [
+      2.2070205078125,
+      0.288998107910156,
+      0.290943542480469
+    ],
+    "quaternion_xyzw": [
+      0.00431094504892826,
+      0.00484082102775574,
+      0.999462246894836,
+      0.0321435406804085
+    ],
+    "forwarded_to_px4": false
+  },
+  "delta_position_m": [
+    1.17731750488281,
+    0.10116731262207002,
+    -0.0008222045898430008
+  ],
+  "horizontal_displacement_m": 1.1816561819948546,
+  "orientation_change_deg": 2.3957893754181665,
+  "operator_action": "translated toward aircraft right side while maintaining heading",
+  "forwarded_to_px4": false,
+  "finding": "At this tested heading, operator-described right translation predominantly increases raw mocap X. Combined with forward predominantly +Y and upward +Z. Approximate direction observations, not an accepted exact rotation calibration; rigid-body orientation to aircraft-body rotation remains unverified."
+}

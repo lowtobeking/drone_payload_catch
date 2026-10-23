@@ -13,6 +13,13 @@
   <maintainer email="caolihao@todo.local">caolihao</maintainer>
   <license>MIT</license>
 
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-scipy</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+
   <depend>rclpy</depend>
   <depend>px4_msgs</depend>
   <depend>std_msgs</depend>

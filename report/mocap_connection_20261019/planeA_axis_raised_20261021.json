@@ -1,0 +1,38 @@
+{
+  "kind": "manual_raise_axis_check",
+  "recorded_at_utc": "2026-10-21 08:03:13 UTC",
+  "baseline_file": "planeA_axis_baseline_20261021T075808Z.json",
+  "baseline_position_m": [
+    1.11255249023438,
+    -0.382717529296875,
+    0.290719421386719
+  ],
+  "raw_probe": {
+    "tracker": "planeA",
+    "count": 1199,
+    "invalid": 0,
+    "nonincreasing_timestamps": 0,
+    "connected": true,
+    "rate_hz": 119.99785927425,
+    "age_s": 0.002225685,
+    "position": [
+      1.06149328613281,
+      -0.473057464599609,
+      1.18380737304688
+    ],
+    "quaternion_xyzw": [
+      -0.0133960284292698,
+      -0.00687432289123535,
+      0.999751806259155,
+      0.0164167918264866
+    ],
+    "forwarded_to_px4": false
+  },
+  "delta_position_m": [
+    -0.051059204101570055,
+    -0.09033993530273399,
+    0.8930879516601611
+  ],
+  "finding": "Upward manual movement primarily increases raw mocap Z; observed +0.893m, rather than requested ~0.2m. Scale not independently validated.",
+  "forwarded_to_px4": false
+}

@@ -1,0 +1,59 @@
+{
+  "ground_test_passed": false,
+  "post_audit_passed": true,
+  "flight_approval": false,
+  "run": "lift_reference_20261023T102520Z",
+  "post": "after_20261023T103137Z",
+  "phases": {
+    "baseline": {
+      "label": "baseline",
+      "monotonic": 6129.477717295,
+      "input_xyz": [
+        0.39766841325908897,
+        1.8219980359077455,
+        -0.2917708531022072
+      ],
+      "px4_xyz": [
+        0.396642729267478,
+        1.8217230749130249,
+        -0.2918688065558672
+      ],
+      "px4_z_span_m": 0.0008093118667602539,
+      "input_z_span_m": 0.00013631582260131836,
+      "input_yaw_deg": 2.5246609006182212,
+      "px4_yaw_deg": 2.5301278201986133,
+      "local_samples": 400,
+      "input_samples": 160,
+      "flags_samples": 3
+    }
+  },
+  "lift": null,
+  "error": "RuntimeError('manual interaction window expired')",
+  "all_disarmed": true,
+  "all_landed": true,
+  "restored": {
+    "changed": true,
+    "restored": true,
+    "restore_restart_verified": true,
+    "flight_approval": false,
+    "flight_commands": 0,
+    "fc_only_reboots": 2,
+    "lease_ended": true
+  },
+  "parameter_differences": {
+    "CAL_BARO0_OFF": {
+      "before": {
+        "value": -47.1484375,
+        "type": 9,
+        "index": 59
+      },
+      "after": {
+        "value": -48.21875,
+        "type": 9,
+        "index": 59
+      }
+    }
+  },
+  "remaining_task_processes": [],
+  "passed": false
+}

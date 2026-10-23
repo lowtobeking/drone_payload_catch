@@ -1,0 +1,87 @@
+{
+  "passed": true,
+  "scope": "real A task nodes on Jetson, ground startup only",
+  "real_flight_completed": false,
+  "hostname": "nvidia-desktop",
+  "architecture": "aarch64",
+  "pid": 6807,
+  "boot_id": "95cbe7b2-836e-4add-9e46-9c2b5aa6ea7c",
+  "release": "13c1e49da415339aa236e19547c63a809de15e55235584917a700e964dd1702a",
+  "duration_s": 20.023637939000082,
+  "real_telemetry": true,
+  "source_files": {
+    "ANode": "/home/nvidia/payload_catch_deploy/releases/13c1e49da415339aa236e19547c63a809de15e55235584917a700e964dd1702a/src/payload_catch/a_node.py",
+    "SafetySupervisor": "/home/nvidia/payload_catch_deploy/releases/13c1e49da415339aa236e19547c63a809de15e55235584917a700e964dd1702a/src/payload_catch/safety_supervisor.py",
+    "ReleaseGuard": "/home/nvidia/payload_catch_deploy/releases/13c1e49da415339aa236e19547c63a809de15e55235584917a700e964dd1702a/src/payload_catch/release_guard.py",
+    "PayloadServo": "/home/nvidia/payload_catch_deploy/releases/13c1e49da415339aa236e19547c63a809de15e55235584917a700e964dd1702a/src/payload_catch/payload_servo_node.py"
+  },
+  "nodes": [
+    "safety_supervisor",
+    "release_guard",
+    "payload_servo",
+    "a_node"
+  ],
+  "auto_arm": false,
+  "flight_approval": false,
+  "required_fleet_link": true,
+  "flight_gate_allowed": false,
+  "control_output_remaps": {
+    "/fmu/in/vehicle_command": "/payload_ground_check/fmu/in/vehicle_command",
+    "/fmu/in/offboard_control_mode": "/payload_ground_check/fmu/in/offboard_control_mode",
+    "/fmu/in/trajectory_setpoint": "/payload_ground_check/fmu/in/trajectory_setpoint",
+    "/px4_1/fmu/in/vehicle_command": "/payload_ground_check/px4_1/fmu/in/vehicle_command",
+    "/px4_1/fmu/in/offboard_control_mode": "/payload_ground_check/px4_1/fmu/in/offboard_control_mode",
+    "/px4_1/fmu/in/trajectory_setpoint": "/payload_ground_check/px4_1/fmu/in/trajectory_setpoint"
+  },
+  "observed_counts": {
+    "/fmu/in/vehicle_command": 0,
+    "/payload_ground_check/fmu/in/vehicle_command": 0,
+    "/fmu/in/offboard_control_mode": 0,
+    "/payload_ground_check/fmu/in/offboard_control_mode": 0,
+    "/fmu/in/trajectory_setpoint": 0,
+    "/payload_ground_check/fmu/in/trajectory_setpoint": 0,
+    "/px4_1/fmu/in/vehicle_command": 0,
+    "/payload_ground_check/px4_1/fmu/in/vehicle_command": 0,
+    "/px4_1/fmu/in/offboard_control_mode": 0,
+    "/payload_ground_check/px4_1/fmu/in/offboard_control_mode": 0,
+    "/px4_1/fmu/in/trajectory_setpoint": 0,
+    "/payload_ground_check/px4_1/fmu/in/trajectory_setpoint": 0,
+    "/payload/authorized_release": 0
+  },
+  "status_samples": 46,
+  "physical_pwm_output": false,
+  "pwm_controller": "platform/32c0000.pwm, 1 PWM device\n pwm-0   ((null)              ): period: 0 ns duty: 0 ns polarity: normal",
+  "hardware_status_samples": 1000,
+  "servo_state": "DISABLED",
+  "safety_status_samples": 400,
+  "safety_permits": {
+    "0": false,
+    "1": false
+  },
+  "safety_reasons": {
+    "0": "",
+    "1": ""
+  },
+  "a_sensor_frames": {
+    "0": {
+      "lpos": 300,
+      "att": 301,
+      "status": 6,
+      "failsafe": 5,
+      "est": 3,
+      "batt": 30,
+      "gps": 15,
+      "rc": 0
+    },
+    "1": {
+      "lpos": 0,
+      "att": 0,
+      "status": 0,
+      "failsafe": 0,
+      "est": 0,
+      "batt": 0,
+      "gps": 0,
+      "rc": 0
+    }
+  }
+}

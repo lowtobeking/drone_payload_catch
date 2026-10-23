@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "parameter_count": 1127,
+  "parameter_changes": {},
+  "before": "report/mocap_fusion_20261023/parameters_20261023T060446Z/parameters_backup.json",
+  "after": "report/mocap_fusion_20261023/parameters_20261023T062624Z/parameters_backup.json",
+  "remaining_task_processes": [],
+  "flight_release_unchanged": true
+}

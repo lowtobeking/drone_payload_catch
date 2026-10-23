@@ -26,7 +26,26 @@ export LD_LIBRARY_PATH="/usr/local/lib:$ACADOS_SOURCE_DIR/lib:${LD_LIBRARY_PATH:
 export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-0}"
 export RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION_OVERRIDE:-rmw_fastrtps_cpp}"
 set +u
-source /opt/ros/jazzy/setup.bash
+# 根据发行版选择 ROS；禁止在已加载另一 ROS 的 shell 中混用。
+_payload_os_codename="$(. /etc/os-release; printf '%s' "$VERSION_CODENAME")"
+case "$_payload_os_codename" in
+  jammy) _payload_ros_default=humble ;;
+  noble) _payload_ros_default=jazzy ;;
+  *) _payload_ros_default=humble ;;
+esac
+_payload_ros_distro="${PAYLOAD_ROS_DISTRO:-$_payload_ros_default}"
+if [ -n "${ROS_DISTRO:-}" ] && [ "$ROS_DISTRO" != "$_payload_ros_distro" ]; then
+  echo "拒绝混用 ROS：已加载 $ROS_DISTRO，目标 $_payload_ros_distro。请打开新终端。" >&2
+  return 1 2>/dev/null || exit 1
+fi
+if [ ! -f "/opt/ros/$_payload_ros_distro/setup.bash" ]; then
+  echo "ROS 未安装：$_payload_ros_distro" >&2
+  return 1 2>/dev/null || exit 1
+fi
+source "/opt/ros/$_payload_ros_distro/setup.bash"
+# Python 3.10 开发依赖独立存放，保留系统 ROS Python 包可见性。
+[ -f "$BASE/venv/bin/activate" ] && source "$BASE/venv/bin/activate"
+[ -d "$HOME/.local/bin" ] && export PATH="$HOME/.local/bin:$PATH"
 # px4_msgs v1.16.2（参考项目工作区）
 [ -f "$BASE/ros2_ws/install/setup.bash" ] && source "$BASE/ros2_ws/install/setup.bash"
 # 本项目工作区（若已构建）

@@ -1,0 +1,76 @@
+{
+  "passed": true,
+  "flight_approval": false,
+  "scope": "XYZ_yaw_static_ground_only",
+  "run": "xyz_reference_20261023T101442Z",
+  "post_audit": "after_20261023T101935Z",
+  "ev_xyz_yaw_sample_span_s": 26.269977754000138,
+  "comparison": {
+    "run": "xyz_reference_20261023T101442Z",
+    "passed": true,
+    "scope": "static_ground_only",
+    "physical_height_accuracy_verified": false,
+    "all_disarmed": true,
+    "all_landed": true,
+    "pairs": 2000,
+    "z_abs_error_m": {
+      "mean": 0.0006411963105201721,
+      "maximum": 0.0016181766986846924,
+      "p95": 0.001411139965057373
+    },
+    "xy_error_m": {
+      "mean": 0.0007503828020148979,
+      "maximum": 0.001763441137602545,
+      "p95": 0.0014010414711529467
+    },
+    "yaw_abs_error_deg": {
+      "mean": 0.014179103475873953,
+      "maximum": 0.036553596467021714,
+      "p95": 0.026224464653993806
+    },
+    "input_xyz_mean_m": [
+      0.39767042176425454,
+      1.8220042550563813,
+      -0.29177692636847496
+    ],
+    "px4_xyz_mean_m": [
+      0.39785324500501157,
+      1.8217079361081123,
+      -0.2923993109166622
+    ],
+    "ev_xyz_yaw_flags_samples": 28,
+    "ev_xyz_yaw_sample_span_s": 26.269977754000138,
+    "magnetic_heading_or_3d_during_ev": false,
+    "position_pairing": "nearest preceding input by observer receive time <=60ms; not acquisition-time alignment"
+  },
+  "source_loss": {
+    "no_input_after_400ms": true,
+    "bridge_latched": true,
+    "physical_tracking_loss_tested": false,
+    "ev_height_active_after_3s": false
+  },
+  "restored": {
+    "EKF2_EV_CTRL": 0,
+    "EKF2_MAG_TYPE": 0,
+    "EKF2_HGT_REF": 1,
+    "UXRCE_DDS_SYNCT": 1
+  },
+  "restore_restart_verified": true,
+  "parameter_differences": {
+    "CAL_BARO0_OFF": {
+      "before": {
+        "value": -38.1484375,
+        "type": 9,
+        "index": 59
+      },
+      "after": {
+        "value": -47.1484375,
+        "type": 9,
+        "index": 59
+      }
+    }
+  },
+  "jetson_boot_unchanged": true,
+  "remaining_task_processes": [],
+  "permanent_fusion_enabled": false
+}

@@ -1,0 +1,26 @@
+{
+  "case": "missing",
+  "mock_only": true,
+  "real_px4": false,
+  "b_present": false,
+  "commands": [],
+  "phases": [
+    "CHECK"
+  ],
+  "setpoints": 0,
+  "offboard_modes": 0,
+  "release_events": [],
+  "worker_pids": [
+    57,
+    58
+  ],
+  "passed": true,
+  "final_phase": "CHECK",
+  "landed": true,
+  "final_position": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "workers_stopped": true
+}

@@ -15,11 +15,14 @@
 from __future__ import annotations
 
 import math
+import time
+import json
 from typing import Optional
 
 import numpy as np
 import rclpy
-from px4_msgs.msg import (BatteryStatus, OffboardControlMode, TrajectorySetpoint,
+from px4_msgs.msg import (BatteryStatus, EstimatorStatusFlags, FailsafeFlags, SensorGps, ManualControlSetpoint,
+                         OffboardControlMode, TrajectorySetpoint,
                           VehicleAttitude, VehicleCommand, VehicleLocalPosition,
                           VehicleStatus)
 from rclpy.node import Node
@@ -28,7 +31,9 @@ from rclpy.qos import (DurabilityPolicy, HistoryPolicy, QoSProfile,
 
 from .safety_logic import (attitude_govern, battery_land_reason,
                            clip_to_estimator_limits, fence_velocity, limit_jerk,
-                           safety_decision, scale01, sensor_health_reasons)
+                            safety_decision, scale01, sensor_health_reasons)
+from .preflight_health import TakeoffGate, read_approval
+from .safety_runtime import SourceWatch, flight_reasons, final_setpoint
 
 PREFIX = {0: 'out/vehicle_status_v1', 1: 'out/vehicle_status_v1'}   # 1.16
 
@@ -72,6 +77,26 @@ class Px4Drone(Node):
         self.declare_parameter('control_hz', control_hz)
         self.declare_parameter('px4_version', px4_version)
         self.declare_parameter('auto_arm', auto_arm)
+        self.declare_parameter('preflight_report', '')
+        self.declare_parameter('preflight_require_gps', True)
+        self.declare_parameter('preflight_require_rc', True)
+        self._takeoff_gate = TakeoffGate(
+            require_gps=bool(self.get_parameter('preflight_require_gps').value),
+            require_rc=bool(self.get_parameter('preflight_require_rc').value))
+        self._operator_paused = False
+        self._supervisor_watch = SourceWatch()
+        self._supervisor_permit = False
+        self._supervisor_session = None
+        self._resume_token = ''
+        self._resuming = False
+        self._ever_offboard = False
+        self._report_at = -float('inf')
+        self._stop_requested_at = -float('inf')
+        self._self_stamps = {}
+        self._preflight_report = str(self.get_parameter('preflight_report').value)
+        self._gate_log_at = -float('inf')
+        self._approval_read_at = -float('inf')
+        self._approval_error = '等待自检'
         self.declare_parameter('world_offset', [0.0, 0.0, 0.0])   # 本机 PX4 原点在世界 NED 中的位置
         self.declare_parameter('sp_rate_limit', 0.0)   # 速度设定点变化率上限 (m/s²)，0=不限
         self.declare_parameter('jerk_max', 0.0)        # 加速度变化率上限 (m/s³)，0=不限
@@ -112,6 +137,12 @@ class Px4Drone(Node):
         self.declare_parameter('battery_land_enable', True)
         self.declare_parameter('battery_critical_remaining', 0.07)   # 剩余<此→Land
         self.drone_id = int(self.get_parameter('drone_id').value)
+        self.declare_parameter('require_fleet_link',False)
+        self.require_fleet_link=bool(self.get_parameter('require_fleet_link').value)
+        self._fleet_watch=SourceWatch(.2);self._fleet_ok=False
+        if self.require_fleet_link:
+            from std_msgs.msg import String
+            self.create_subscription(String,'/fleet/link_'+('a' if self.drone_id==0 else 'b'),self._on_fleet_link,10)
         self.hz = float(self.get_parameter('control_hz').value)
         self.auto_arm = bool(self.get_parameter('auto_arm').value)
         self.world_offset = np.asarray(self.get_parameter('world_offset').value,
@@ -128,6 +159,21 @@ class Px4Drone(Node):
                           else 'out/vehicle_local_position_v1')
 
         qi, qo = qos_in(), qos_out()
+        # Each node observes BOTH aircraft independently; no enable/skip switch.
+        for peer in (0, 1):
+            for msg_type, key, suffix in (
+                (VehicleStatus, 'status', self._vs_topic),
+                (VehicleLocalPosition, 'lpos', self._lp_topic),
+                (VehicleAttitude, 'att', 'out/vehicle_attitude'),
+                (BatteryStatus, 'batt', 'out/battery_status'),
+                (FailsafeFlags, 'failsafe', 'out/failsafe_flags'),
+                (EstimatorStatusFlags, 'est', 'out/estimator_status_flags'),
+                (SensorGps, 'gps', 'out/vehicle_gps_position')):
+                self.create_subscription(msg_type, topic_for(peer, suffix),
+                    lambda m, peer=peer, key=key: self._takeoff_gate.health[peer].record(
+                        key, m, time.monotonic()), qi)
+            self.create_subscription(ManualControlSetpoint,topic_for(peer,'out/manual_control_setpoint'),
+                lambda m,peer=peer:self._takeoff_gate.health[peer].record('rc',m,time.monotonic()),qi)
         self._pos = np.zeros(3)          # PX4 本地系 NED
         self._vel = np.zeros(3)
         self._yaw = 0.0
@@ -202,6 +248,13 @@ class Px4Drone(Node):
         self._safety_reason = ''
         self._hold_since = None
         from std_msgs.msg import Bool
+        from std_msgs.msg import String
+        self._safety_request_pub = self.create_publisher(String,'/safety/request',10)
+        self._task_report_pub = self.create_publisher(String,
+            '/safety/task_a' if self.drone_id==0 else '/safety/task_b',10)
+        self._release_abort_pub = self.create_publisher(Bool,'/payload/release_abort',10)
+        self._release_permit_pub = self.create_publisher(String,'/payload/release_permit',10)
+        self.create_subscription(String,'/safety/state',self._on_supervisor,10)
         self.create_subscription(Bool, str(self.get_parameter('safety_kill_topic').value),
                                  self._on_kill, 10)
 
@@ -230,11 +283,13 @@ class Px4Drone(Node):
 
     # ------------------------------------------------------------------ 状态
     def _on_status(self, msg):
+        if not self._accept_px4('status',msg): return
         self._armed = (msg.arming_state == 2)
         self._nav_state = msg.nav_state
 
     def _on_lpos(self, msg):
-        if math.isfinite(msg.x) and math.isfinite(msg.y) and math.isfinite(msg.z):
+        if not self._accept_px4('lpos',msg): return
+        if all(math.isfinite(x) for x in (msg.x,msg.y,msg.z,msg.vx,msg.vy,msg.vz)):
             self._pos = np.array([msg.x, msg.y, msg.z])
             self._vel = np.array([msg.vx, msg.vy, msg.vz])
             self._pos_ok = bool(msg.xy_valid and msg.z_valid)
@@ -242,8 +297,8 @@ class Px4Drone(Node):
         # ── 传感器/估计器派生量（约束用，全部来自已有 EKF 输出）──
         self._lpos_valid = bool(msg.xy_valid and msg.z_valid
                                 and msg.v_xy_valid and msg.v_z_valid)
-        self._eph = float(msg.eph) if math.isfinite(msg.eph) else 0.0
-        self._epv = float(msg.epv) if math.isfinite(msg.epv) else 0.0
+        self._eph = float(msg.eph) if math.isfinite(msg.eph) else float('inf')
+        self._epv = float(msg.epv) if math.isfinite(msg.epv) else float('inf')
         self._evh = float(msg.evh) if math.isfinite(msg.evh) else 0.0
         self._evv = float(msg.evv) if math.isfinite(msg.evv) else 0.0
         self._dead_reckoning = bool(msg.dead_reckoning)
@@ -262,11 +317,15 @@ class Px4Drone(Node):
         self._reset_counters = counters
 
     def _on_batt(self, msg):
+        if not self._accept_px4('batt',msg): return
         self._batt_connected = bool(msg.connected)
         self._batt_warning = int(msg.warning)
         self._batt_remaining = float(msg.remaining)
 
     def _on_att(self, msg):
+        if not self._accept_px4('att',msg): return
+        if not all(math.isfinite(x) for x in msg.q):
+            self._att_ok=False; return
         yaw = yaw_from_quat(msg.q)
         roll, pitch = roll_pitch_from_quat(msg.q)
         # 角速率：对角姿态时间序列做有限差分（vehicle_angular_velocity 在本 RMW 未发布）
@@ -283,6 +342,88 @@ class Px4Drone(Node):
         self._att_ok = True
 
     # ------------------------------------------------------------ 安全监督
+    def _accept_px4(self,key,msg):
+        if msg.timestamp <= self._self_stamps.get(key,0): return False
+        self._self_stamps[key]=msg.timestamp
+        return True
+
+    def _safety_request(self,action,reason):
+        from std_msgs.msg import String
+        self._safety_request_pub.publish(String(data=json.dumps(dict(
+            action=action,drone_id=self.drone_id,reason=reason,stamp=time.time()))))
+
+    def _pause_task(self,reason):
+        from std_msgs.msg import Bool
+        if self._operator_paused:return
+        self.get_logger().error(f'[{self.drone_id}] TASK PAUSED (latched): {reason}')
+        self._operator_paused=True;self._supervisor_permit=False
+        self._release_abort_pub.publish(Bool(data=True))
+        self.on_safety_stop(reason)
+
+    def on_safety_stop(self,reason):
+        """Subclasses cancel planned release and ready; never auto-resume."""
+
+    def on_operator_resume(self):
+        """Subclasses restart pre-release alignment, never a stale trajectory."""
+
+    def _on_supervisor(self,msg):
+        try:
+            d=json.loads(msg.data)
+            if not self._supervisor_watch.accept(d['stamp'],[],time.time(),time.monotonic()): return
+            key=str(self.drone_id);action=d['actions'][key];token=d['resume_tokens'][key]
+            if self._supervisor_session is not None and d['session']!=self._supervisor_session and self._ever_offboard:
+                self._pause_task('supervisor restarted');self._safety_request('pause','supervisor restart')
+                self._supervisor_session=d['session'];self._resume_token=token
+                return
+            self._supervisor_session=d['session']
+            if action!='run':
+                self._pause_task(d['reasons'].get(key,action))
+            elif self._operator_paused and token and token!=self._resume_token:
+                if (not self._killed and not self._landing and not getattr(self,'released',False)
+                        and not getattr(self,'_payload_released',False)):
+                    self._operator_paused=False;self._resuming=self._ever_offboard
+                    self._offboard_confirmed=False;self._safety_state='OK'
+                    self.on_operator_resume()
+            self._resume_token=token
+            self._supervisor_permit=bool(d['permits'][key]) and not self._operator_paused
+        except (ValueError,KeyError,TypeError):
+            self._supervisor_watch.valid=False;self._supervisor_permit=False
+
+    def _on_fleet_link(self,m):
+        try:
+            d=json.loads(m.data)
+            if self._fleet_watch.accept(d['stamp'],[],time.time(),time.monotonic()):self._fleet_ok=d.get('ready') is True
+        except (ValueError,KeyError,TypeError):self._fleet_watch.valid=False
+
+    def _fleet_ready(self):
+        return (not getattr(self,'require_fleet_link',False) or
+                (self._fleet_ok and self._fleet_watch.fresh(time.time(),time.monotonic())))
+
+    def _task_report(self):
+        now=time.monotonic()
+        if now-self._report_at < .1:return
+        from std_msgs.msg import String
+        self._report_at=now
+        self._task_report_pub.publish(String(data=json.dumps(dict(stamp=time.time(),
+            ever_offboard=self._ever_offboard,safety=self._safety_state,
+            paused=self._operator_paused,phase=getattr(self,'phase','A'),
+            sources_ready=self.extra_sources_ready() and self._fleet_ready(),
+            release_unconfirmed=bool(getattr(self,'_release_unconfirmed',False) or
+                (getattr(self,'_estimated_release_at',None) is not None and getattr(self,'_measured_release_at',None) is None)),
+            released=bool(getattr(self,'released',False) or getattr(self,'_payload_released',False))))))
+
+    def extra_sources_ready(self):return True
+
+    def mission_allowed(self):
+        return (self._fleet_ready() and self._supervisor_permit and not self._operator_paused
+                and self._supervisor_watch.fresh(time.time(),time.monotonic())
+                and self._armed and self._nav_state==14 and self._safety_state=='OK')
+
+    def publish_release_permit(self,allow):
+        from std_msgs.msg import String
+        self._release_permit_pub.publish(String(data=json.dumps(dict(stamp=time.time(),
+            allow=bool(allow and self.mission_allowed()),owner=self.drone_id))))
+
     def _on_kill(self, msg):
         """外部 kill（Bool）：真则立即飞行终止。"""
         if bool(msg.data):
@@ -291,14 +432,14 @@ class Px4Drone(Node):
     def kill(self, reason: str = '') -> None:
         """飞行终止（切动力）：发 MAV_CMD_DO_FLIGHTTERMINATION 并停发 offboard。"""
         if self._killed:
-            return
+            self._safety_request('kill',reason);return
         self._killed = True
         self._safety_state = 'KILL'
         self._landing = True           # 停止 offboard setpoint
-        cmd = getattr(VehicleCommand, 'VEHICLE_CMD_DO_FLIGHTTERMINATION', 185)
-        self.send_command(cmd, p1=1.0)
+        self._pause_task(reason)
+        self._safety_request('kill',reason)
         self.get_logger().error(
-            f'[{self.drone_id}] *** SAFETY KILL（飞行终止）*** reason={reason}')
+            f'[{self.drone_id}] SAFETY KILL REQUESTED (await PX4 confirmation): {reason}')
 
     def request_hold(self, reason: str = '') -> None:
         """请求 HOLD（原地悬停，停止任务追击，可恢复）。"""
@@ -308,6 +449,7 @@ class Px4Drone(Node):
             self.get_logger().warn(f'[{self.drone_id}] SAFETY HOLD: {reason}')
         self._safety_state = 'HOLD'
         self._safety_reason = reason
+        self._pause_task(reason);self._safety_request('pause',reason)
 
     def request_land(self, reason: str = '') -> None:
         """请求分级安全响应中的 LAND（交接给 PX4 AUTO_LAND）。"""
@@ -377,6 +519,8 @@ class Px4Drone(Node):
         stale_reason = (f'pos_stale={now - self._last_pos_t:.1f}s' if stale else '')
         health = (self._sensor_health_reasons(now)
                   if self.sensor_constraints_enable else [])
+        health += flight_reasons(self._takeoff_gate.health[self.drone_id].snapshot(time.monotonic()),
+                                 require_rc=self._takeoff_gate.require_rc)
         d = safety_decision(
             now, self._safety_state, self._safety_reason,
             self._bad_since, self._hold_since,
@@ -439,6 +583,8 @@ class Px4Drone(Node):
         分级安全响应：HOLD 覆盖为原地悬停；PULLBACK 在任务速度上做软围栏限制。
         sp_rate_limit > 0 时只对**正常态**速度指令做变化率限幅（安全指令不被拖延）。
         """
+        if self._operator_paused or self._killed or self._landing: return
+        vel_ned,acc_ff=final_setpoint(self._safety_state,vel_ned,acc_ff)
         if self._safety_state == 'HOLD':
             vel_ned = [0.0, 0.0, 0.0]
         elif self._safety_state == 'PULLBACK':
@@ -481,6 +627,9 @@ class Px4Drone(Node):
         self.pub_sp.publish(m)
 
     def publish_position(self, pos_ned, vel_ff=(0.0, 0.0, 0.0), yaw=0.0):
+        if self._operator_paused or self._killed or self._landing:return
+        if self._safety_state!='OK':
+            self.publish_velocity([0.,0.,0.],yaw=yaw);return
         m = TrajectorySetpoint()
         m.position = [float(p) for p in pos_ned]
         m.velocity = [float(v) for v in vel_ff]
@@ -505,15 +654,37 @@ class Px4Drone(Node):
 
     def arm_and_offboard(self):
         """重试 ARM + OFFBOARD，直到确认。auto_arm=False 时只等待外部解锁。"""
+        if not self._takeoff_ready():
+            return
         if self.auto_arm:
             if self._nav_state != 14:
                 self.send_command(VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1.0, 6.0)
-            if not self._armed:
+            if not self._armed and not self._resuming:
                 self.send_command(VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, 1.0)
         if self._nav_state == 14 and self._armed:
             if not self._offboard_confirmed:
                 self._offboard_confirmed = True
+                self._ever_offboard=True;self._resuming=False
                 self.get_logger().info(f'[{self.drone_id}] OFFBOARD + ARMED confirmed')
+
+    def _takeoff_ready(self):
+        """Runtime gate before any autonomous arming, heartbeat or task action."""
+        now = time.monotonic()
+        if not self._fleet_ready():return False
+        if self._operator_paused or not self._supervisor_permit or not self._supervisor_watch.fresh(time.time(),now):
+            return False
+        if self._resuming:
+            return self._armed and all(not flight_reasons(acc.snapshot(now),
+                require_rc=self._takeoff_gate.require_rc) for acc in self._takeoff_gate.health.values())
+        if now - self._approval_read_at >= 0.25:
+            self._approval_error = read_approval(self._preflight_report,
+                require_gps=self._takeoff_gate.require_gps,require_rc=self._takeoff_gate.require_rc)
+            self._approval_read_at = now
+        ready, reason = self._takeoff_gate.check(now, self._approval_error)
+        if not ready and now - self._gate_log_at >= 2.0:
+            self.get_logger().error(f'[{self.drone_id}] TAKEOFF BLOCKED: {reason}')
+            self._gate_log_at = now
+        return ready
 
     # ------------------------------------------------------------------ 循环
     def land(self):
@@ -524,26 +695,44 @@ class Px4Drone(Node):
         self._land_cmd_count = 0
         self.get_logger().warn(
             f'[{self.drone_id}] LAND：发出着陆指令 @世界={self.pos_world.round(2)}，停止 offboard')
+        self._pause_task('land requested');self._safety_request('land','task landing')
 
     def _tick(self):
+        self._task_report()
         if self._killed:
             return
         if self._landing:
-            # 重复发几次确保 commander 收到；之后只保持节点存活
-            if self._land_cmd_count < 5:
-                self.send_command(VehicleCommand.VEHICLE_CMD_NAV_LAND)
-                self._land_cmd_count += 1
             return
+        if self._ever_offboard and self._nav_state!=14 and not self._resuming:
+            self._pause_task('PX4/RC left Offboard')
+            self._safety_request('pause','PX4/RC left Offboard');return
+        if self._operator_paused:return
+        if self._ever_offboard and not self._fleet_ready():
+            self._pause_task('fleet communication / identity / topology lost')
+            self._safety_request('pause','fleet link lost');return
+        if self._ever_offboard and (not self._supervisor_watch.fresh(time.time(),time.monotonic())
+                                    or not self._supervisor_permit):
+            self._pause_task('safety supervisor lease expired/revoked')
+            self._safety_request('pause','supervisor lease revoked');return
+        if not self._offboard_confirmed and not self._takeoff_ready():
+            return  # No Offboard heartbeat, ARM, setpoint, or release while blocked.
         self.broadcast_offboard_mode()
         self._tick_count += 1
         # 每 1s 重试一次 ARM/OFFBOARD
         if not self._offboard_confirmed and (self._tick_count % int(self.hz) == 1):
             self.arm_and_offboard()
+        if not self._offboard_confirmed:
+            # Prime Offboard with a safe zero-velocity setpoint; no mission yet.
+            self.publish_velocity([0.0, 0.0, 0.0], yaw=self.yaw)
+            return
         now = self.get_clock().now().nanoseconds * 1e-9
         # 先做安全评估：HOLD/PULLBACK 会在 publish_velocity 中覆盖任务指令；
         # LAND/KILL 直接终止 offboard。
         self._safety_update(now)
         if self._killed or self._landing:
+            return
+        if self._safety_state!='OK':
+            self._pause_task(self._safety_reason);self._safety_request('pause',self._safety_reason)
             return
         self.control()
 

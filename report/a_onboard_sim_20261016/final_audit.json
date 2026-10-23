@@ -1,0 +1,8 @@
+{
+  "current": "/home/nvidia/payload_catch_deploy/releases/fa46032caae12d28676da9014545e6b888a944572744ad205e50fcb0812c026a",
+  "previous": "/home/nvidia/payload_catch_deploy/releases/e27cb2caa69a0ff8fc9cf4d43adbcc3a40419dc07c803536187a1a3608a9d9cb",
+  "verified_release": "fa46032caae12d28676da9014545e6b888a944572744ad205e50fcb0812c026a",
+  "real_servo_enabled": false,
+  "real_servo_calibrated": false,
+  "remaining_test_processes": []
+}

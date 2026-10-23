@@ -1,0 +1,35 @@
+{
+  "checks": {
+    "ros": {
+      "exit_code": 0,
+      "log": "ros.log"
+    },
+    "quick": {
+      "exit_code": 0,
+      "log": "quick.log"
+    },
+    "diff": {
+      "exit_code": 0,
+      "log": "diff.log"
+    }
+  },
+  "hardware_access": false,
+  "observed_delay_s": 1.5,
+  "reference": "gui_apply",
+  "target_us": 1700,
+  "neutral_us": 1500,
+  "slew_us_s": 100,
+  "flight_enabled": false,
+  "flight_calibrated": false,
+  "sha256": {
+    "payload_catch/payload_servo.py": "30c90e4f3f1f0f2c651e9ada6edb53cf0372315ecb1a78b5a75b52be027ce297",
+    "payload_catch/servo_pwm.py": "436711f86723bfca2ab6d6bf5a1c3224dad5028bbe3c3ae3979631efa2cc1864",
+    "payload_catch/release_guard.py": "57c4b8d0cd005d965e192420731e5f4899e7977712f69b09bd1a65408c393c68",
+    "payload_catch/payload_servo_node.py": "2a0a78e5199c5430b46331486ef6f226a99910588f6251c508224fa25e6e1cb4",
+    "payload_catch/b_node.py": "9c9e45ec4bb3d15cc064bcc2d4919d3526d611944a1325ce74472e8952a65413",
+    "launch/catch_real_launch.py": "b0732d542a48b20c97306577a841141d391e9fc8e2ddc29d217a6aa619ba2926",
+    "config/payload_servo.yaml": "2ab8cc1cfc5509a2c80d62bf3035c0cb81afdef47d39a25dfaa4395565e014da",
+    "tools/test_payload_servo.py": "ea3f4a7906543b16001a94683f69ec7fac11c40531ed95b62b28cd80beb22d3e",
+    "tools/test_safety_runtime.py": "cfd87f1cda286b4ac1f50ee21273c5df92d86bebcf66061e324271defbba778e"
+  }
+}

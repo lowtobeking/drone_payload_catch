@@ -14,7 +14,7 @@
 """
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
@@ -40,6 +40,7 @@ def generate_launch_description():
 
     # ── 可扫描参数（默认值 = 标称）─────────────────────────────────────────
     args = {
+        'preflight_report': '',
         'rel_pos_sigma': '0.03', 'rel_latency': '0.05', 'rel_jitter': '0.02',
         'rel_dropout': '0.0', 'rel_bias': '0.0', 'rel_seed': '0', 'est_lpf_alpha': '0.30',
         'payload_meas_sigma': '0.0', 'payload_meas_latency': '0.0', 'payload_dropout': '0.0',
@@ -134,6 +135,9 @@ def generate_launch_description():
 
     a = Node(package='payload_catch', executable='a_node', name='a_node', output='screen',
              parameters=[{'drone_id': 0, 'hover_world': a_hover, 'publish_state': True,
+                          'preflight_report': LaunchConfiguration('preflight_report'),
+                          'preflight_require_gps': False,
+                          'preflight_require_rc': False,
                           'formation_vel': LaunchConfiguration('formation_vel'),
                           'formation_topic': LaunchConfiguration('formation_topic'),
                           'coord_mode': LaunchConfiguration('coord_mode'),
@@ -178,6 +182,9 @@ def generate_launch_description():
     b = Node(package='payload_catch', executable='b_node', name='b_node', output='screen',
              parameters=[{
                  'drone_id': 1, 'mode': 'stack',
+                 'preflight_report': LaunchConfiguration('preflight_report'),
+                 'preflight_require_gps': False,
+                 'preflight_require_rc': False,
                  'standby_world': b_standby, 'world_offset': b_offset,
                  'a_release_world': a_hover, 'a_state_topic': '/drone_a/state',
                  'track_payload': _b('track_payload'),
@@ -290,5 +297,9 @@ def generate_launch_description():
         DeclareLaunchArgument('release_offset', default_value='[0.0, 0.0, 0.15]'),
         DeclareLaunchArgument('model_path',
                               default_value='/home/caolihao/drone_payload_catch/models/payload/model.sdf'),
-        *decls, a, b, payload,
+        *decls,
+        Node(package='payload_catch',executable='safety_supervisor',output='screen',parameters=[{'require_rc':False}]),
+        Node(package='payload_catch',executable='release_guard',output='screen',parameters=[{
+            'authority':ParameterValue(PythonExpression(["0 if '",LaunchConfiguration('coord_mode'),"' == 'handshake' else 1"]),value_type=int)}]),
+        a, b, payload,
     ])

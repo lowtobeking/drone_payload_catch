@@ -1,0 +1,224 @@
+{
+  "system_service_files": [
+    "mav-relay.service                          enabled         enabled",
+    "microxrce-agent.service                    enabled         enabled"
+  ],
+  "system_service_details": {
+    "mav-relay.service": {
+      "exit": 0,
+      "stdout": "ExecStart={ path=/usr/bin/python3 ; argv[]=/usr/bin/python3 /home/nvidia/Multi-UAV-simulation/tools/mav_relay.py 192.168.1.123 ; ignore_errors=no ; start_time=[Thu 1970-01-01 08:04:51 CST] ; stop_time=[n/a] ; pid=1002 ; code=(null) ; status=0/0 }\nWorkingDirectory=\nActiveState=active\nSubState=running\nFragmentPath=/etc/systemd/system/mav-relay.service\nUnitFileState=enabled",
+      "stderr": ""
+    },
+    "microxrce-agent.service": {
+      "exit": 0,
+      "stdout": "ExecStart={ path=/usr/local/bin/MicroXRCEAgent ; argv[]=/usr/local/bin/MicroXRCEAgent udp4 -p 8888 ; ignore_errors=no ; start_time=[Thu 1970-01-01 08:04:51 CST] ; stop_time=[n/a] ; pid=1003 ; code=(null) ; status=0/0 }\nWorkingDirectory=\nActiveState=active\nSubState=running\nFragmentPath=/etc/systemd/system/microxrce-agent.service\nUnitFileState=enabled",
+      "stderr": ""
+    }
+  },
+  "system_timer_files": [],
+  "system_running_service_names": [
+    "accounts-daemon.service",
+    "avahi-daemon.service",
+    "bluetooth.service",
+    "chrony.service",
+    "colord.service",
+    "containerd.service",
+    "cron.service",
+    "dbus.service",
+    "docker.service",
+    "fwupd.service",
+    "gdm.service",
+    "haveged.service",
+    "jtop.service",
+    "kerneloops.service",
+    "mav-relay.service",
+    "microxrce-agent.service",
+    "ModemManager.service",
+    "networkd-dispatcher.service",
+    "NetworkManager.service",
+    "nv-tee-supplicant.service",
+    "nvargus-daemon.service",
+    "nvfancontrol.service",
+    "nvidia-pva-allowd.service",
+    "nvmemwarning.service",
+    "nvphs.service",
+    "nvs-service.service",
+    "packagekit.service",
+    "polkit.service",
+    "power-profiles-daemon.service",
+    "rpcbind.service",
+    "rsyslog.service",
+    "rtkit-daemon.service",
+    "seatd.service",
+    "serial-getty@ttyGS0.service",
+    "serial-getty@ttyTCU0.service",
+    "snap.cups.cups-browsed.service",
+    "snap.cups.cupsd.service",
+    "snapd.service",
+    "ssh.service",
+    "switcheroo-control.service",
+    "systemd-journald.service",
+    "systemd-logind.service",
+    "systemd-resolved.service",
+    "systemd-udevd.service",
+    "udisks2.service",
+    "upower.service",
+    "user@1000.service",
+    "wpa_supplicant.service"
+  ],
+  "user_service_files": [],
+  "user_service_details": {},
+  "user_timer_files": [],
+  "user_running_service_names": [
+    "at-spi-dbus-bus.service",
+    "dbus.service",
+    "dconf.service",
+    "evolution-addressbook-factory.service",
+    "evolution-calendar-factory.service",
+    "evolution-source-registry.service",
+    "gnome-session-manager@ubuntu.service",
+    "gnome-session-monitor.service",
+    "gvfs-afc-volume-monitor.service",
+    "gvfs-daemon.service",
+    "gvfs-goa-volume-monitor.service",
+    "gvfs-gphoto2-volume-monitor.service",
+    "gvfs-metadata.service",
+    "gvfs-mtp-volume-monitor.service",
+    "gvfs-udisks2-volume-monitor.service",
+    "org.freedesktop.IBus.session.GNOME.service",
+    "org.gnome.SettingsDaemon.A11ySettings.service",
+    "org.gnome.SettingsDaemon.Color.service",
+    "org.gnome.SettingsDaemon.Datetime.service",
+    "org.gnome.SettingsDaemon.Housekeeping.service",
+    "org.gnome.SettingsDaemon.Keyboard.service",
+    "org.gnome.SettingsDaemon.MediaKeys.service",
+    "org.gnome.SettingsDaemon.Power.service",
+    "org.gnome.SettingsDaemon.PrintNotifications.service",
+    "org.gnome.SettingsDaemon.Rfkill.service",
+    "org.gnome.SettingsDaemon.ScreensaverProxy.service",
+    "org.gnome.SettingsDaemon.Sharing.service",
+    "org.gnome.SettingsDaemon.Smartcard.service",
+    "org.gnome.SettingsDaemon.Sound.service",
+    "org.gnome.SettingsDaemon.Wacom.service",
+    "org.gnome.SettingsDaemon.XSettings.service",
+    "org.gnome.Shell@x11.service",
+    "pipewire-media-session.service",
+    "pipewire.service",
+    "pulseaudio.service",
+    "tracker-miner-fs-3.service",
+    "xdg-desktop-portal-gnome.service",
+    "xdg-desktop-portal-gtk.service",
+    "xdg-desktop-portal.service",
+    "xdg-document-portal.service",
+    "xdg-permission-store.service"
+  ],
+  "related_processes": [
+    {
+      "pid": 1002,
+      "args": [
+        "/usr/bin/python3",
+        "/home/nvidia/Multi-UAV-simulation/tools/mav_relay.py",
+        "192.168.1.123"
+      ],
+      "cwd": "/"
+    },
+    {
+      "pid": 1003,
+      "args": [
+        "/usr/local/bin/MicroXRCEAgent",
+        "udp4",
+        "-p",
+        "8888"
+      ],
+      "cwd": "/"
+    }
+  ],
+  "listening_ports": {
+    "exit": 0,
+    "stdout": "Netid State  Recv-Q Send-Q   Local Address:Port  Peer Address:PortProcess                                   \nudp   UNCONN 0      0              0.0.0.0:40087      0.0.0.0:*    users:((\"MicroXRCEAgent\",pid=1003,fd=16))\nudp   UNCONN 0      0              0.0.0.0:7400       0.0.0.0:*    users:((\"MicroXRCEAgent\",pid=1003,fd=13))\nudp   UNCONN 0      0              0.0.0.0:7410       0.0.0.0:*    users:((\"MicroXRCEAgent\",pid=1003,fd=14))\nudp   UNCONN 0      0              0.0.0.0:7411       0.0.0.0:*    users:((\"MicroXRCEAgent\",pid=1003,fd=15))\nudp   UNCONN 0      0           127.0.0.53:53         0.0.0.0:*                                             \nudp   UNCONN 0      0              0.0.0.0:111        0.0.0.0:*                                             \nudp   UNCONN 0      0         10.41.10.100:45276      0.0.0.0:*    users:((\"MicroXRCEAgent\",pid=1003,fd=19))\nudp   UNCONN 0      0            127.0.0.1:323        0.0.0.0:*                                             \nudp   UNCONN 0      0      192.168.155.186:37548      0.0.0.0:*    users:((\"MicroXRCEAgent\",pid=1003,fd=17))\nudp   UNCONN 0      0              0.0.0.0:8888       0.0.0.0:*    users:((\"MicroXRCEAgent\",pid=1003,fd=3)) \nudp   UNCONN 0      0              0.0.0.0:5353       0.0.0.0:*                                             \nudp   UNCONN 0      0              0.0.0.0:55093      0.0.0.0:*                                             \nudp   UNCONN 0      0        192.168.1.101:59509      0.0.0.0:*    users:((\"MicroXRCEAgent\",pid=1003,fd=18))\nudp   UNCONN 0      94464          0.0.0.0:14550      0.0.0.0:*    users:((\"python3\",pid=1002,fd=3))        \nudp   UNCONN 0      0                    *:57367            *:*                                             \nudp   UNCONN 0      0                    *:111              *:*                                             \nudp   UNCONN 0      0                [::1]:323              *:*                                             \nudp   UNCONN 0      0                    *:5353             *:*                                             \ntcp   LISTEN 0      4096     127.0.0.53%lo:53         0.0.0.0:*                                             \ntcp   LISTEN 0      128            0.0.0.0:22         0.0.0.0:*                                             \ntcp   LISTEN 0      4096           0.0.0.0:111        0.0.0.0:*                                             \ntcp   LISTEN 0      4096         127.0.0.1:38633      0.0.0.0:*                                             \ntcp   LISTEN 0      4096           0.0.0.0:631        0.0.0.0:*                                             \ntcp   LISTEN 0      128               [::]:22            [::]:*                                             \ntcp   LISTEN 0      4096              [::]:111           [::]:*                                             \ntcp   LISTEN 0      4096              [::]:631           [::]:*",
+    "stderr": ""
+  },
+  "docker": {
+    "exit": 1,
+    "stdout": "",
+    "stderr": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+  },
+  "user_crontab": {
+    "exit": 1,
+    "stdout": "",
+    "stderr": "no crontab for nvidia"
+  },
+  "startup_entries": [],
+  "shell_ros_setup": {
+    "/home/nvidia/.bashrc": [
+      "    . ~/.bash_aliases",
+      "    . /usr/share/bash-completion/bash_completion",
+      "    . /etc/bash_completion",
+      "source /opt/ros/humble/setup.bash ",
+      "export ROS_DOMAIN_ID=42",
+      "export ROS_DOMAIN_ID=42"
+    ],
+    "/home/nvidia/.profile": [
+      "\t. \"$HOME/.bashrc\""
+    ]
+  },
+  "home_project_directories": [
+    "payload_catch_upload_51d02c034687",
+    "payload_catch_upload_1c25753ef3ce",
+    "payload_catch_upload_e27cb2caa69a",
+    ".fishros",
+    "xrce_mirror",
+    "xrce_agent",
+    ".ros",
+    "ros2_ws",
+    "payload_catch_onboard_sim_20261016",
+    "flights",
+    "payload_catch_upload_701ad70c3ecb",
+    "payload_catch_deploy",
+    "pwm_pin33_safety"
+  ],
+  "deployment_current": "/home/nvidia/payload_catch_deploy/releases/fa46032caae12d28676da9014545e6b888a944572744ad205e50fcb0812c026a",
+  "pwm": {
+    "/sys/class/pwm/pwmchip2/pwm0": {
+      "period": "20000000",
+      "duty_cycle": "0",
+      "enable": "0"
+    }
+  },
+  "ros_domain": "0",
+  "ros_nodes": [
+    [
+      "old_project_graph_readonly",
+      "/"
+    ]
+  ],
+  "ros_input_publishers": {
+    "/fmu/in/actuator_motors": [],
+    "/fmu/in/actuator_servos": [],
+    "/fmu/in/arming_check_reply": [],
+    "/fmu/in/aux_global_position": [],
+    "/fmu/in/config_control_setpoints": [],
+    "/fmu/in/config_overrides_request": [],
+    "/fmu/in/distance_sensor": [],
+    "/fmu/in/goto_setpoint": [],
+    "/fmu/in/manual_control_input": [],
+    "/fmu/in/message_format_request": [],
+    "/fmu/in/mode_completed": [],
+    "/fmu/in/obstacle_distance": [],
+    "/fmu/in/offboard_control_mode": [],
+    "/fmu/in/onboard_computer_status": [],
+    "/fmu/in/register_ext_component_request": [],
+    "/fmu/in/sensor_optical_flow": [],
+    "/fmu/in/telemetry_status": [],
+    "/fmu/in/trajectory_setpoint": [],
+    "/fmu/in/unregister_ext_component": [],
+    "/fmu/in/vehicle_attitude_setpoint": [],
+    "/fmu/in/vehicle_command": [],
+    "/fmu/in/vehicle_command_mode_executor": [],
+    "/fmu/in/vehicle_mocap_odometry": [],
+    "/fmu/in/vehicle_rates_setpoint": [],
+    "/fmu/in/vehicle_thrust_setpoint": [],
+    "/fmu/in/vehicle_torque_setpoint": [],
+    "/fmu/in/vehicle_visual_odometry": []
+  }
+}

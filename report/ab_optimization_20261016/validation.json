@@ -1,0 +1,92 @@
+{
+  "passed": true,
+  "quick": {
+    "passed": 35,
+    "failed": 0
+  },
+  "coordination_tests": 13,
+  "servo_tests": 33,
+  "safety_runtime_tests": 24,
+  "takeoff_tests": 10,
+  "a_ground_scenarios": [
+    {
+      "cancel_latched": false,
+      "flight_outputs": {
+        "command": 0,
+        "mode": 0,
+        "setpoint": 0
+      },
+      "mock_only": true,
+      "mode": "normal",
+      "passed": true,
+      "physical_feedback_events": 1,
+      "pulses_us": [
+        1700
+      ],
+      "release_delay_s": 1.5
+    },
+    {
+      "cancel_latched": true,
+      "flight_outputs": {
+        "command": 0,
+        "mode": 0,
+        "setpoint": 0
+      },
+      "mock_only": true,
+      "mode": "stop_before",
+      "passed": true,
+      "physical_feedback_events": 0,
+      "pulses_us": [],
+      "release_delay_s": 1.5
+    },
+    {
+      "cancel_latched": true,
+      "flight_outputs": {
+        "command": 0,
+        "mode": 0,
+        "setpoint": 0
+      },
+      "mock_only": true,
+      "mode": "stop_during",
+      "passed": true,
+      "physical_feedback_events": 0,
+      "pulses_us": [
+        1700
+      ],
+      "release_delay_s": 1.5
+    },
+    {
+      "cancel_latched": true,
+      "flight_outputs": {
+        "command": 0,
+        "mode": 0,
+        "setpoint": 0
+      },
+      "mock_only": true,
+      "mode": "b_ready_lost",
+      "passed": true,
+      "physical_feedback_events": 0,
+      "pulses_us": [
+        1700
+      ],
+      "release_delay_s": 1.5
+    }
+  ],
+  "git_diff_check": true,
+  "remaining_test_processes": [],
+  "physical_pwm_output": false,
+  "ssh_used": false,
+  "redeployed": false,
+  "source_sha256": {
+    "payload_catch/a_node.py": "b4b5aeaf18457e27392c0ad24bcf36caae4a3b244a129681be12276d0315b24b",
+    "payload_catch/b_node.py": "7c7e20dae7cea388f6a98025ee0edacbbcd42fa336b7f74b5785b6634c64b09c",
+    "payload_catch/release_guard.py": "efe01d0d7d9f41ece23c5d6c6df7b35c56072f354a41e2221325e6896c2cd782",
+    "payload_catch/payload_servo.py": "88e9717cda63aba3af1926fd3cdb05f6a2cf1d3c5c48c4508e4dcc15af308200",
+    "payload_catch/stack_drop.py": "2cf4e4a44eb8986629d0fee15fcf5fd166f156667a87914db1487d6fbe559e20",
+    "tools/test_ab_coordination.py": "ad81cbdfde66259e644bdc6f237250651fae800cb22bae52fdcd925d6192ee64",
+    "tools/test_payload_servo.py": "8dd6aa2b3b309cce500899d6833ec5e5d4e66e5ba2590d48dcfa22884710a9b1",
+    "tools/test_safety_runtime.py": "dfab29a4b8cfe4bb9f936d9acd6a78a9c5c8d917bfa8a8d0ecf7e066eec2110b",
+    "tools/check_a_ground_ros.py": "feaaab68d638824f6aa3d1062e1e25e0c5b89227a1a168f525d552aeda7b733b",
+    "tools/run_a_ground_isolated.py": "21f1dee631979e040c44b97a28c6c2a1536db375f5eb2f3c1beaf5d4a5d28511"
+  }
+}

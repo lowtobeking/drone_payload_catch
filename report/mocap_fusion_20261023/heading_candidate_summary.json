@@ -1,0 +1,427 @@
+{
+  "ground_static_candidate_passed": true,
+  "flight_approval": false,
+  "north_verified": false,
+  "reference_method": "px4_magnetic_snapshot",
+  "yaw_rotation_deg": -45.8345921030609,
+  "source_run": "heading_candidate_20261023T081425Z",
+  "source_probe": "heading_probe_20261023T081303Z",
+  "ev_both_active_samples": 22,
+  "ev_both_active_span_s": 21.21038974500061,
+  "local_all_valid_samples": 2206,
+  "tail_position_and_velocity_and_heading_all_valid": true,
+  "tail_not_dead_reckoning": true,
+  "tail_ev_pos_yaw": true,
+  "all_observed_disarmed": true,
+  "all_observed_landed": true,
+  "parameter_count": 1127,
+  "parameter_differences": {},
+  "restored_EKF2_EV_CTRL": 0,
+  "UXRCE_DDS_SYNCT": 1,
+  "final_bridge": {
+    "scope": "ground_only",
+    "send_to_px4_requested": true,
+    "accepted": 3685,
+    "rejected": 0,
+    "forwarded": 1117,
+    "stale": false,
+    "latched_fault": "",
+    "last_error": "",
+    "ground_gate_issues": [],
+    "configuration_issues": [],
+    "timestamp_mode": "receive_time_ground",
+    "output_pose_frame": "px4_heading_aligned_ned",
+    "heading_reference": {
+      "method": "px4_magnetic_snapshot",
+      "north_verified": false,
+      "yaw_offset_rad": -0.7999645435070049,
+      "std_deg": 0.024869987748205237,
+      "span_deg": 0.23432814482677367,
+      "collected_wall_us": 1792743220487733,
+      "boot_id": "a006295d-9ab4-41c6-a277-f0a2455a86a8",
+      "base_world_to_local": [
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ]
+      ],
+      "evidence_directory": "heading_probe_20261023T081303Z"
+    },
+    "lever_arm_measured": false,
+    "limitations": "receive time includes unknown acquisition/network delay; marker origin used; no flight approval",
+    "sample_time_verified": false,
+    "flight_approval": false,
+    "velocity_supplied": false
+  },
+  "parameter_lease": {
+    "changed": true,
+    "restored": true,
+    "flight_commands": 0,
+    "uxrce_sync_changed": false,
+    "lease_ended": true,
+    "sync_after": 1
+  },
+  "post_parameter_snapshot": "report/mocap_fusion_20261023/parameters_20261023T081620Z/parameters_backup.json",
+  "audit": {
+    "read_only": true,
+    "serial": "1612425621719",
+    "boot": "a006295d-9ab4-41c6-a277-f0a2455a86a8",
+    "current": "/home/nvidia/payload_catch_deploy/releases/b4453dd12c8482d808613769fb6c781bd7debff566633bf0fc4827a6d2654d37",
+    "remaining_task_processes": [],
+    "services": "MainPID=1011\nId=payload-catch-agent.service\nActiveState=active\n\nMainPID=1013\nId=payload-catch-mav-relay.service\nActiveState=active\n"
+  },
+  "baseline": {
+    "frame": "px4_heading_aligned_ned",
+    "north_verified": false,
+    "reference": {
+      "method": "px4_magnetic_snapshot",
+      "north_verified": false,
+      "yaw_offset_rad": -0.7999645435070049,
+      "std_deg": 0.024869987748205237,
+      "span_deg": 0.23432814482677367,
+      "collected_wall_us": 1792743220487733,
+      "boot_id": "a006295d-9ab4-41c6-a277-f0a2455a86a8",
+      "base_world_to_local": [
+        [
+          0,
+          1,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          -1
+        ]
+      ],
+      "evidence_directory": "heading_probe_20261023T081303Z"
+    },
+    "transform_world_to_local": [
+      [
+        0.7173313876720516,
+        0.6967321438404351,
+        0.0
+      ],
+      [
+        0.6967321438404351,
+        -0.7173313876720516,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        -1.0
+      ]
+    ],
+    "raw_position_mean_m": [
+      1.8785945952677325,
+      -0.19990713526600076,
+      0.29168523785569467
+    ],
+    "raw_quaternion_mean_xyzw": [
+      0.005587237369031415,
+      0.007820667738077722,
+      0.9998924271285684,
+      -0.01107484294925789
+    ],
+    "ev_position_mean_m": [
+      1.2082929157075428,
+      1.452276811563879,
+      -0.2916850101828276
+    ],
+    "px4_position_mean_m": [
+      1.208061632514,
+      1.4526117761135102,
+      1.1031358631849288
+    ],
+    "px4_heading_mean_rad": -0.8219224593043327,
+    "height_source": "barometer, not external vision",
+    "movement_not_yet_tested": true
+  },
+  "earlier_failures": [
+    {
+      "directory": "heading_candidate_20261023T080951Z",
+      "result": {
+        "passed": false,
+        "flight_approval": false,
+        "mode": "receive_time_ground",
+        "baseline": {
+          "local": {
+            "timestamp": 1792743014632338,
+            "timestamp_sample": 1792743014631436,
+            "xy_valid": false,
+            "z_valid": true,
+            "v_xy_valid": false,
+            "v_z_valid": true,
+            "x": -0.1997978240251541,
+            "y": 1.8789912462234497,
+            "z": -0.06857813149690628,
+            "delta_xy": [
+              0.0,
+              0.0
+            ],
+            "xy_reset_counter": 3,
+            "delta_z": 0.0,
+            "z_reset_counter": 1,
+            "vx": 0.0003766469017136842,
+            "vy": 0.0012512189568951726,
+            "vz": 0.0030337958596646786,
+            "z_deriv": 0.0032303384505212307,
+            "delta_vxy": [
+              0.0007293672533705831,
+              0.0005169287323951721
+            ],
+            "vxy_reset_counter": 2,
+            "delta_vz": -0.0007252191426232457,
+            "vz_reset_counter": 1,
+            "ax": -0.008843515999615192,
+            "ay": -0.0006683060782961547,
+            "az": -0.004187409766018391,
+            "heading": -0.8186836838722229,
+            "heading_var": 0.060389645397663116,
+            "unaided_heading": -0.03476133197546005,
+            "delta_heading": -0.797267735004425,
+            "heading_reset_counter": 3,
+            "heading_good_for_control": false,
+            "tilt_var": 2.098378899972886e-05,
+            "xy_global": false,
+            "z_global": false,
+            "ref_timestamp": 0,
+            "ref_lat": null,
+            "ref_lon": null,
+            "ref_alt": null,
+            "dist_bottom_valid": false,
+            "dist_bottom": 0.10000000149011612,
+            "dist_bottom_var": 0.010000000707805157,
+            "delta_dist_bottom": 0.0,
+            "dist_bottom_reset_counter": 1,
+            "dist_bottom_sensor_bitfield": 0,
+            "eph": 0.012105990201234818,
+            "epv": 0.28380849957466125,
+            "evh": 0.03777065873146057,
+            "evv": 0.05590737238526344,
+            "dead_reckoning": true,
+            "vxy_max": null,
+            "vz_max": null,
+            "hagl_min": null,
+            "hagl_max_z": null,
+            "hagl_max_xy": null
+          },
+          "fcu_odometry": {
+            "timestamp": 1792743014622053,
+            "timestamp_sample": 1792743014621437,
+            "pose_frame": 1,
+            "position": [
+              -0.19979529082775116,
+              1.8789910078048706,
+              -0.0686391144990921
+            ],
+            "q": [
+              0.9171833992004395,
+              0.018635546788573265,
+              -0.014025297947227955,
+              -0.39778223633766174
+            ],
+            "velocity_frame": 1,
+            "velocity": [
+              0.0004757897986564785,
+              0.001273073023185134,
+              0.003083695424720645
+            ],
+            "angular_velocity": [
+              0.0006855893298052251,
+              -8.147666812874377e-05,
+              -0.0005133612430654466
+            ],
+            "position_variance": [
+              7.015539449639618e-05,
+              7.015484879957512e-05,
+              0.08041629195213318
+            ],
+            "orientation_variance": [
+              1.7774353182176128e-05,
+              0.00013447566016111523,
+              0.060259684920310974
+            ],
+            "velocity_variance": [
+              0.0006950428942218423,
+              0.0006949824164621532,
+              0.0031128618866205215
+            ],
+            "reset_counter": 8,
+            "quality": 0
+          },
+          "land": {
+            "timestamp": 1792743013672077,
+            "freefall": false,
+            "ground_contact": true,
+            "maybe_landed": true,
+            "landed": true,
+            "in_ground_effect": false,
+            "in_descend": false,
+            "has_low_throttle": true,
+            "vertical_movement": false,
+            "horizontal_movement": false,
+            "rotational_movement": false,
+            "close_to_ground_or_skipped_check": true,
+            "at_rest": true
+          },
+          "status": {
+            "timestamp": 1792743014270395,
+            "armed_time": 0,
+            "takeoff_time": 0,
+            "arming_state": 1,
+            "latest_arming_reason": 0,
+            "latest_disarming_reason": 0,
+            "nav_state_timestamp": 1495283,
+            "nav_state_user_intention": 15,
+            "nav_state": 15,
+            "executor_in_charge": 0,
+            "valid_nav_states_mask": 2147411071,
+            "can_set_nav_states_mask": 8307839,
+            "failure_detector_status": 0,
+            "hil_state": 0,
+            "vehicle_type": 1,
+            "failsafe": false,
+            "failsafe_and_user_took_over": false,
+            "failsafe_defer_state": 0,
+            "gcs_connection_lost": false,
+            "gcs_connection_lost_counter": 0,
+            "high_latency_data_link_lost": false,
+            "is_vtol": false,
+            "is_vtol_tailsitter": false,
+            "in_transition_mode": false,
+            "in_transition_to_fw": false,
+            "system_type": 2,
+            "system_id": 1,
+            "component_id": 1,
+            "safety_button_available": true,
+            "safety_off": true,
+            "power_input_valid": false,
+            "usb_connected": false,
+            "open_drone_id_system_present": false,
+            "open_drone_id_system_healthy": false,
+            "parachute_system_present": false,
+            "parachute_system_healthy": false,
+            "rc_calibration_in_progress": false,
+            "calibration_enabled": false,
+            "pre_flight_checks_pass": true
+          },
+          "flags": {
+            "timestamp": 1792743014382062,
+            "timestamp_sample": 1792743014191429,
+            "control_status_changes": 12,
+            "cs_tilt_align": true,
+            "cs_yaw_align": true,
+            "cs_gnss_pos": false,
+            "cs_opt_flow": false,
+            "cs_mag_hdg": true,
+            "cs_mag_3d": false,
+            "cs_mag_dec": true,
+            "cs_in_air": false,
+            "cs_wind": false,
+            "cs_baro_hgt": true,
+            "cs_rng_hgt": false,
+            "cs_gps_hgt": false,
+            "cs_ev_pos": false,
+            "cs_ev_yaw": false,
+            "cs_ev_hgt": false,
+            "cs_fuse_beta": false,
+            "cs_mag_field_disturbed": false,
+            "cs_fixed_wing": false,
+            "cs_mag_fault": false,
+            "cs_fuse_aspd": false,
+            "cs_gnd_effect": false,
+            "cs_rng_stuck": false,
+            "cs_gnss_yaw": false,
+            "cs_mag_aligned_in_flight": false,
+            "cs_ev_vel": false,
+            "cs_synthetic_mag_z": false,
+            "cs_vehicle_at_rest": true,
+            "cs_gnss_yaw_fault": false,
+            "cs_rng_fault": false,
+            "cs_inertial_dead_reckoning": true,
+            "cs_wind_dead_reckoning": false,
+            "cs_rng_kin_consistent": false,
+            "cs_fake_pos": false,
+            "cs_fake_hgt": false,
+            "cs_gravity_vector": true,
+            "cs_mag": true,
+            "cs_ev_yaw_fault": false,
+            "cs_mag_heading_consistent": true,
+            "cs_aux_gpos": false,
+            "cs_rng_terrain": false,
+            "cs_opt_flow_terrain": false,
+            "cs_valid_fake_pos": true,
+            "cs_constant_pos": false,
+            "cs_baro_fault": false,
+            "cs_gnss_vel": false,
+            "fault_status_changes": 0,
+            "fs_bad_mag_x": false,
+            "fs_bad_mag_y": false,
+            "fs_bad_mag_z": false,
+            "fs_bad_hdg": false,
+            "fs_bad_mag_decl": false,
+            "fs_bad_airspeed": false,
+            "fs_bad_sideslip": false,
+            "fs_bad_optflow_x": false,
+            "fs_bad_optflow_y": false,
+            "fs_bad_acc_vertical": false,
+            "fs_bad_acc_clipping": false,
+            "innovation_fault_status_changes": 2,
+            "reject_hor_vel": false,
+            "reject_ver_vel": false,
+            "reject_hor_pos": false,
+            "reject_ver_pos": false,
+            "reject_yaw": false,
+            "reject_airspeed": false,
+            "reject_sideslip": false,
+            "reject_hagl": false,
+            "reject_optflow_x": false,
+            "reject_optflow_y": false
+          }
+        },
+        "error": "RuntimeError('bridge latched: source dropout; explicit restart required')",
+        "lease": {
+          "changed": false,
+          "restored": false,
+          "flight_commands": 0,
+          "uxrce_sync_changed": false,
+          "error": "RuntimeError('enable request not received within bounded window')"
+        },
+        "counts": {
+          "local": 1037,
+          "fcu_odometry": 1036,
+          "land": 11,
+          "status": 21,
+          "flags": 10,
+          "raw": 81,
+          "bridge": 2
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "unknown absolute north accuracy / indoor magnetic error",
+    "static single-pose test only",
+    "unknown marker-to-IMU offset",
+    "receive timestamp includes acquisition/processing/network delay",
+    "barometric height not validated for indoor takeoff",
+    "startup dropout occurred; warmup does not prove root cause or long-term stability"
+  ]
+}

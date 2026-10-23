@@ -1,0 +1,39 @@
+{
+  "passed": true,
+  "current": "/home/nvidia/payload_catch_deploy/releases/13c1e49da415339aa236e19547c63a809de15e55235584917a700e964dd1702a",
+  "verified_release": "13c1e49da415339aa236e19547c63a809de15e55235584917a700e964dd1702a",
+  "message_module": "/opt/payload_catch/managed_20261016/px4_msgs_ws/build/px4_msgs/rosidl_generator_py/px4_msgs/__init__.py",
+  "ros_module": "/opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/__init__.py",
+  "services": {
+    "payload-catch-agent.service": {
+      "MainPID": "1000",
+      "ActiveState": "active",
+      "FragmentPath": "/etc/systemd/system/payload-catch-agent.service",
+      "UnitFileState": "enabled"
+    },
+    "payload-catch-mav-relay.service": {
+      "MainPID": "1010",
+      "ActiveState": "active",
+      "FragmentPath": "/etc/systemd/system/payload-catch-mav-relay.service",
+      "UnitFileState": "enabled"
+    },
+    "microxrce-agent.service": {
+      "MainPID": "0",
+      "ActiveState": "inactive",
+      "FragmentPath": "/etc/systemd/system/microxrce-agent.service",
+      "UnitFileState": "masked"
+    },
+    "mav-relay.service": {
+      "MainPID": "0",
+      "ActiveState": "inactive",
+      "FragmentPath": "/etc/systemd/system/mav-relay.service",
+      "UnitFileState": "masked"
+    }
+  },
+  "old_project_processes": [],
+  "remaining_test_processes": [],
+  "timer": "LoadState=not-found\nActiveState=inactive",
+  "committed": true,
+  "old_shell_domain_disabled": true,
+  "task_autostart": false
+}

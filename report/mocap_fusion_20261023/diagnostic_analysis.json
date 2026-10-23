@@ -1,0 +1,224 @@
+[
+  {
+    "directory": "diagnostic_20261023T061826Z",
+    "raw_frames": 1919,
+    "largest_receive_gaps": [
+      {
+        "receive_gap_us": 277642,
+        "source_gap_us": 17012,
+        "after_source_us": 1792779537254449,
+        "after_receive_wall_us": 1792736333756940
+      },
+      {
+        "receive_gap_us": 81834,
+        "source_gap_us": 25006,
+        "after_source_us": 1792779534879227,
+        "after_receive_wall_us": 1792736331373693
+      },
+      {
+        "receive_gap_us": 50685,
+        "source_gap_us": 17027,
+        "after_source_us": 1792779529629409,
+        "after_receive_wall_us": 1792736326122437
+      },
+      {
+        "receive_gap_us": 38166,
+        "source_gap_us": 24942,
+        "after_source_us": 1792779530162697,
+        "after_receive_wall_us": 1792736326652284
+      },
+      {
+        "receive_gap_us": 36915,
+        "source_gap_us": 24078,
+        "after_source_us": 1792779534838147,
+        "after_receive_wall_us": 1792736331336709
+      },
+      {
+        "receive_gap_us": 36804,
+        "source_gap_us": 15532,
+        "after_source_us": 1792779536912899,
+        "after_receive_wall_us": 1792736333408400
+      },
+      {
+        "receive_gap_us": 35755,
+        "source_gap_us": 24544,
+        "after_source_us": 1792779539712949,
+        "after_receive_wall_us": 1792736336203608
+      },
+      {
+        "receive_gap_us": 35673,
+        "source_gap_us": 24575,
+        "after_source_us": 1792779534754545,
+        "after_receive_wall_us": 1792736331252965
+      }
+    ],
+    "receive_gaps_over_150ms": 1,
+    "median_receive_gap_us": 8691.0,
+    "source_nonincreasing": 0,
+    "native_summary": "{\"received\":2109,\"invalid\":0}\n",
+    "validation": {
+      "passed": false,
+      "sample_seconds": 18,
+      "counts": {
+        "raw": 1919,
+        "odometry": 333,
+        "status": 34
+      },
+      "matched_positions": 333,
+      "max_position_arithmetic_error_m": 5.91278075390278e-08,
+      "final_status": {
+        "scope": "ground_only",
+        "send_to_px4_requested": false,
+        "accepted": 935,
+        "rejected": 917,
+        "forwarded": 0,
+        "stale": true,
+        "latched_fault": "source dropout; explicit restart required",
+        "last_error": "source dropout; explicit restart required",
+        "ground_gate_issues": [
+          "A vehicle status missing/stale",
+          "landed confirmation missing/stale/false",
+          "DDS clock synchronization not verified/fresh"
+        ],
+        "configuration_issues": [
+          "mounting_confirmed not confirmed",
+          "lever_arm_measured not confirmed",
+          "server_timing_verified not confirmed",
+          "tracking_loss_verified not confirmed",
+          "enabled must explicitly be true",
+          "measured source time offset and uncertainty required"
+        ],
+        "sample_time_verified": false,
+        "flight_approval": false,
+        "velocity_supplied": false
+      },
+      "fmu_input_publishers": 0,
+      "forwarded_to_px4": false,
+      "server_timing_verified": false,
+      "flight_approval": false
+    },
+    "cleanup": [
+      {
+        "name": "source",
+        "pid": 9087,
+        "exit_code": 0
+      },
+      {
+        "name": "bridge",
+        "pid": 9086,
+        "exit_code": 0
+      }
+    ]
+  },
+  {
+    "directory": "diagnostic_20261023T070724Z",
+    "raw_frames": 2086,
+    "largest_receive_gaps": [
+      {
+        "receive_gap_us": 36438,
+        "source_gap_us": 25068,
+        "after_source_us": 1792782474028636,
+        "after_receive_wall_us": 1792739270517468
+      },
+      {
+        "receive_gap_us": 30118,
+        "source_gap_us": 17069,
+        "after_source_us": 1792782480036778,
+        "after_receive_wall_us": 1792739276526858
+      },
+      {
+        "receive_gap_us": 27481,
+        "source_gap_us": 25014,
+        "after_source_us": 1792782480111794,
+        "after_receive_wall_us": 1792739276600935
+      },
+      {
+        "receive_gap_us": 22754,
+        "source_gap_us": 9035,
+        "after_source_us": 1792782468244832,
+        "after_receive_wall_us": 1792739264733439
+      },
+      {
+        "receive_gap_us": 22033,
+        "source_gap_us": 25083,
+        "after_source_us": 1792782480819492,
+        "after_receive_wall_us": 1792739277316064
+      },
+      {
+        "receive_gap_us": 20619,
+        "source_gap_us": 15972,
+        "after_source_us": 1792782470879148,
+        "after_receive_wall_us": 1792739267369350
+      },
+      {
+        "receive_gap_us": 18562,
+        "source_gap_us": 16002,
+        "after_source_us": 1792782480511721,
+        "after_receive_wall_us": 1792739277001679
+      },
+      {
+        "receive_gap_us": 18495,
+        "source_gap_us": 15772,
+        "after_source_us": 1792782481528907,
+        "after_receive_wall_us": 1792739278023975
+      }
+    ],
+    "receive_gaps_over_150ms": 0,
+    "median_receive_gap_us": 8688,
+    "source_nonincreasing": 0,
+    "native_summary": "{\"received\":2113,\"invalid\":0}\n",
+    "validation": {
+      "passed": true,
+      "sample_seconds": 18,
+      "counts": {
+        "raw": 2086,
+        "odometry": 577,
+        "status": 29
+      },
+      "matched_positions": 577,
+      "max_position_arithmetic_error_m": 5.91278075390278e-08,
+      "final_status": {
+        "scope": "ground_only",
+        "send_to_px4_requested": false,
+        "accepted": 2015,
+        "rejected": 0,
+        "forwarded": 0,
+        "stale": false,
+        "latched_fault": "",
+        "last_error": "",
+        "ground_gate_issues": [
+          "A vehicle status missing/stale",
+          "landed confirmation missing/stale/false",
+          "DDS clock synchronization not verified/fresh"
+        ],
+        "configuration_issues": [
+          "mounting_confirmed not confirmed",
+          "lever_arm_measured not confirmed",
+          "server_timing_verified not confirmed",
+          "tracking_loss_verified not confirmed",
+          "enabled must explicitly be true",
+          "measured source time offset and uncertainty required"
+        ],
+        "sample_time_verified": false,
+        "flight_approval": false,
+        "velocity_supplied": false
+      },
+      "fmu_input_publishers": 0,
+      "forwarded_to_px4": false,
+      "server_timing_verified": false,
+      "flight_approval": false
+    },
+    "cleanup": [
+      {
+        "name": "source",
+        "pid": 5457,
+        "exit_code": 0
+      },
+      {
+        "name": "bridge",
+        "pid": 5456,
+        "exit_code": 0
+      }
+    ]
+  }
+]

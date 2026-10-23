@@ -1,0 +1,555 @@
+{
+  "motors": [
+    {
+      "test": "motor_function_1",
+      "requested_output": 0.08,
+      "timeout_s": 1.0,
+      "commands": [
+        {
+          "value": 0.08,
+          "timeout_s": 1.0,
+          "stamp": 1792130112503741
+        },
+        {
+          "value": 0.0,
+          "timeout_s": 0.0,
+          "stamp": 1792130113655842
+        }
+      ],
+      "acks": [
+        {
+          "mono": 1733.716119167,
+          "stamp": 1792130112510947,
+          "result": 0
+        },
+        {
+          "mono": 1734.871752657,
+          "stamp": 1792130113666037,
+          "result": 0
+        }
+      ],
+      "raw_output_samples": [
+        {
+          "capture_at": 1792130113.134797,
+          "port": 0,
+          "channels": [
+            1223,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130113.134797,
+          "port": 0,
+          "channels": [
+            1223,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130114.134477,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130114.134518,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130115.134874,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130115.134875,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130116.134627,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130116.134685,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130117.134468,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130117.134696,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        }
+      ],
+      "armed_after": false,
+      "arm_commands_sent": 0,
+      "flight_setpoints_sent": 0,
+      "physical_rotation": "requires operator observation",
+      "accepted": true,
+      "source": "PX4 ACTUATOR_TEST 310",
+      "operator_observation": "brief rotation, then stopped"
+    },
+    {
+      "test": "motor_function_2",
+      "requested_output": 0.08,
+      "timeout_s": 1.0,
+      "commands": [
+        {
+          "value": 0.08,
+          "timeout_s": 1.0,
+          "stamp": 1792130396301882
+        },
+        {
+          "value": 0.0,
+          "timeout_s": 0.0,
+          "stamp": 1792130397460468
+        }
+      ],
+      "acks": [
+        {
+          "mono": 2017.513596261,
+          "stamp": 1792130396308921,
+          "result": 0
+        },
+        {
+          "mono": 2018.680495969,
+          "stamp": 1792130397474931,
+          "result": 0
+        }
+      ],
+      "raw_output_samples": [
+        {
+          "capture_at": 1792130396.137364,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130396.137365,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130397.137419,
+          "port": 0,
+          "channels": [
+            1000,
+            1223,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130397.137421,
+          "port": 0,
+          "channels": [
+            1000,
+            1223,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130398.137157,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130398.137158,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130399.137311,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130399.137349,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130400.137233,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130400.137273,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        }
+      ],
+      "armed_after": false,
+      "arm_commands_sent": 0,
+      "flight_setpoints_sent": 0,
+      "physical_rotation": "requires operator observation",
+      "accepted": true,
+      "source": "PX4 ACTUATOR_TEST 310",
+      "operator_observation": "brief rotation, then stopped"
+    },
+    {
+      "test": "motor_function_3",
+      "requested_output": 0.08,
+      "timeout_s": 1.0,
+      "commands": [
+        {
+          "value": 0.08,
+          "timeout_s": 1.0,
+          "stamp": 1792130407170648
+        },
+        {
+          "value": 0.0,
+          "timeout_s": 0.0,
+          "stamp": 1792130408329152
+        }
+      ],
+      "acks": [
+        {
+          "mono": 2028.382153913,
+          "stamp": 1792130407177034,
+          "result": 0
+        },
+        {
+          "mono": 2029.536719267,
+          "stamp": 1792130408332046,
+          "result": 0
+        }
+      ],
+      "raw_output_samples": [
+        {
+          "capture_at": 1792130407.137353,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130407.137453,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130409.137172,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130409.137173,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130410.137016,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130410.137016,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130411.137383,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130411.137384,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        }
+      ],
+      "armed_after": false,
+      "arm_commands_sent": 0,
+      "flight_setpoints_sent": 0,
+      "physical_rotation": "requires operator observation",
+      "accepted": true,
+      "source": "PX4 ACTUATOR_TEST 310",
+      "operator_observation": "brief rotation, then stopped"
+    },
+    {
+      "test": "motor_function_4",
+      "requested_output": 0.08,
+      "timeout_s": 1.0,
+      "commands": [
+        {
+          "value": 0.08,
+          "timeout_s": 1.0,
+          "stamp": 1792130417540902
+        },
+        {
+          "value": 0.0,
+          "timeout_s": 0.0,
+          "stamp": 1792130418691805
+        }
+      ],
+      "acks": [
+        {
+          "mono": 2038.756345242,
+          "stamp": 1792130417550522,
+          "result": 0
+        },
+        {
+          "mono": 2039.912514132,
+          "stamp": 1792130418705147,
+          "result": 0
+        }
+      ],
+      "raw_output_samples": [
+        {
+          "capture_at": 1792130418.137091,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1223
+          ]
+        },
+        {
+          "capture_at": 1792130418.137092,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1223
+          ]
+        },
+        {
+          "capture_at": 1792130419.13722,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130419.13722,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130420.137325,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130420.137379,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130421.137409,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        {
+          "capture_at": 1792130421.13741,
+          "port": 0,
+          "channels": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        }
+      ],
+      "armed_after": false,
+      "arm_commands_sent": 0,
+      "flight_setpoints_sent": 0,
+      "physical_rotation": "requires operator observation",
+      "accepted": true,
+      "source": "PX4 ACTUATOR_TEST 310",
+      "operator_observation": "brief rotation, then stopped"
+    }
+  ],
+  "servo": {
+    "pin": 33,
+    "requested_pulse_us": 1700,
+    "frequency_hz": 50,
+    "requested_duration_s": 0.8,
+    "operator_observation": "rotated and stopped",
+    "output_stopped_verified": true,
+    "electrical_waveform_measured": false,
+    "independent_stop_timer_s": 2,
+    "cleanup_issue": "not-yet-started transient service missing after stopping timer; cleanup handling corrected; no repeat pulse"
+  },
+  "final_state": {
+    "boot_id": "64244966-0f68-4732-b814-1da1248c28e9",
+    "pin33_register": "0x405",
+    "pwm": {
+      "period": "20000000",
+      "duty_cycle": "0",
+      "enable": "0",
+      "polarity": "normal"
+    },
+    "boot_files_unchanged": true,
+    "temporary_units": {
+      "a-pin33-bounded-stop-9732.timer": "LoadState=not-found\nActiveState=inactive\n",
+      "a-pin33-bounded-stop-9732.service": "LoadState=not-found\nActiveState=inactive\n"
+    },
+    "remaining_test_processes": [],
+    "remaining_temporary_files": [],
+    "original_services": {
+      "mav-relay.service": "active",
+      "microxrce-agent.service": "active"
+    },
+    "watchdog_cleanup_fixed": true
+  },
+  "arm_commands_sent": 0,
+  "flight_setpoints_sent": 0,
+  "parameter_writes": 0,
+  "redeployed": false,
+  "qgc_used": false,
+  "flight_or_release_calibration_passed": false
+}

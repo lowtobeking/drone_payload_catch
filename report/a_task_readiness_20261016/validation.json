@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "scope": "机载真实节点地面启动检查",
+  "execution_host": "nvidia-desktop",
+  "architecture": "aarch64",
+  "release": "13c1e49da415339aa236e19547c63a809de15e55235584917a700e964dd1702a",
+  "pid": 6807,
+  "duration_s": 20.023637939000082,
+  "real_telemetry": true,
+  "flight_completed": false,
+  "flight_gate_allowed": false,
+  "physical_pwm_output": false,
+  "remaining_task_processes": [],
+  "blockers": [
+    "双机现场配置未填写，正式launch门禁不通过",
+    "B机未连接，无双机通信租约与任务就绪",
+    "A机水平位置/速度无效，dead_reckoning=true，无有效GPS/RTK",
+    "独立RC无数据",
+    "PX4自身pre_flight_checks_pass=false",
+    "真实锁扣反馈未接入，PWM disabled/uncalibrated，重启后33脚GPIO状态",
+    "完整双机参数验收与自检批准记录未生成"
+  ],
+  "other_findings": [
+    "电池报告remaining约91%，voltage约16.44V但cell_count=1，来源/芯数需核实",
+    "通用preflight_check要求models目录，fleet部署包未包含Gazebo模型，此为工具与部署范围差异，非真机传感器故障"
+  ],
+  "source_result": "ground_task.json",
+  "cleanup_result": "finished.json"
+}

@@ -21,10 +21,13 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from payload_catch.preflight_health import BATTERY_MIN
 
 # 运行时（live）探测需要的 PX4 话题（1.16 命名）
 LIVE_TOPICS = [
@@ -140,26 +143,35 @@ def live_checks(runner=_run) -> list:
     return R
 
 
-def probe_live(runner=_run, gps=False) -> list:
+def probe_live(runner=_run, gps=False, rc=False) -> list:
     """优先用 `tools/live_probe.py`（持续订阅，覆盖 EKF/failsafe/磁/IMU/GPS）；
-    不可用（无 rclpy / 未起 SITL）时返回 None，由调用方回退 `live_checks`。"""
+    不可用或结果不完整时明确失败，禁止回退快照放行。"""
     script = Path(__file__).resolve().parent / 'live_probe.py'
     cmd = [sys.executable, str(script), '--json', '--seconds', '3']
     if gps:
         cmd.append('--gps')
-    _, out = runner(cmd, timeout=25)
+    if rc:cmd.append('--rc')
+    rc, out = runner(cmd, timeout=25)
     try:
         raw = json.loads(out)
     except (ValueError, TypeError):
-        return None            # 含 rc=2（无 ROS）输出的非 JSON → 回退
+        return [Res('双机持续健康探测', 'fail', '探测失败；禁止回退快照放行')]
+    if not isinstance(raw, dict) or set(raw) != {'0', '1'}:
+        return [Res('双机持续健康探测', 'fail', '缺少 A/B 完整结果')]
     R = []
     for drone, items in raw.items():
+        if not isinstance(items, list) or not items or any(
+                not isinstance(it, dict) or it.get('status') not in ('ok', 'warn', 'fail')
+                or not isinstance(it.get('name'), str) for it in items):
+            return [Res('双机持续健康探测', 'fail', '健康结果格式无效')]
         for it in items:
             R.append(Res(f'd{drone}: {it["name"]}', it["status"], it.get('detail', '')))
+    if rc != 0 and not any(r.status == 'fail' for r in R):
+        R.append(Res('双机持续健康探测', 'fail', '探测进程异常退出'))
     return R
 
 
-def probe_params(runner=_run, param_file=None, mavlink=None, profile='sitl'):
+def probe_params(runner=_run, param_file=None, mavlink=None, profile='sitl', system_id=None):
     """调 tools/preflight_params.py 合并飞控参数检查结果；无来源时返回 None。"""
     if not param_file and not mavlink:
         return None
@@ -169,13 +181,26 @@ def probe_params(runner=_run, param_file=None, mavlink=None, profile='sitl'):
         cmd += ['--file', param_file]
     if mavlink:
         cmd += ['--mavlink', mavlink]
-    _, out = runner(cmd, timeout=90)
+    if system_id is not None:
+        cmd += ['--system-id', str(system_id)]
+    rc, out = runner(cmd, timeout=90)
     try:
         raw = json.loads(out)
     except (ValueError, TypeError):
         return None
-    return [Res(f'fcu: {it["name"]}', it['status'], it.get('detail', ''))
-            for it in raw['issues']]
+    if (not isinstance(raw, dict) or not isinstance(raw.get('issues'), list)
+            or not raw['issues'] or (system_id is not None and raw.get('system_id') != system_id)):
+        return None
+    try:
+        results = [Res(f'fcu: {it["name"]}', it['status'], it.get('detail', ''))
+                   for it in raw['issues']]
+    except (KeyError, TypeError):
+        return None
+    if any(r.status not in ('ok', 'warn', 'fail') for r in results):
+        return None
+    if rc != 0 and not any(r.status == 'fail' for r in results):
+        results.append(Res('fcu 参数读取', 'fail', '检查进程异常退出'))
+    return results
 
 
 def check_px4_logs(log_dir, drone_ids=(0, 1), isfile=os.path.isfile,
@@ -227,15 +252,24 @@ def main(argv=None) -> int:
     ap.add_argument('--sitl', action='store_true', help='SITL 严格模式（PX4/ROS 缺失即 fail）')
     ap.add_argument('--live', action='store_true', help='额外探测运行中的 PX4 话题')
     ap.add_argument('--gps', action='store_true', help='--live 时加 GPS 严格门（室外）')
+    ap.add_argument('--rc',action='store_true',help='require independent RC input before takeoff')
     ap.add_argument('--logs', nargs='?', const=os.path.expanduser('~/px4_logs'), default=None,
                     help='扫 PX4 日志门（默认 ~/px4_logs）：Ready 必须有、预检故障必须无')
     ap.add_argument('--params', action='store_true',
                     help='飞控参数检查（需 --param-file 或 --param-mavlink）')
     ap.add_argument('--param-file', help='参数 dump 文件')
     ap.add_argument('--param-mavlink', help='MAVLink 连接串，如 udpout:127.0.0.1:18570')
+    ap.add_argument('--param-mavlink-a', help='A 飞控连接（system ID 1）')
+    ap.add_argument('--param-mavlink-b', help='B 飞控连接（system ID 2）')
+    ap.add_argument('--write-approval', help='仅完整 live + 双机参数通过后写起飞授权记录')
     ap.add_argument('--param-profile', choices=['sitl', 'indoor', 'outdoor'], default=None)
     ap.add_argument('--json', action='store_true', help='输出 JSON')
     args = ap.parse_args(argv)
+    if args.write_approval and (not args.live or not args.param_mavlink_a
+                               or not args.param_mavlink_b):
+        ap.error('起飞授权必须包含 --live 和 --param-mavlink-a/--param-mavlink-b')
+    if args.write_approval:
+        Path(args.write_approval).unlink(missing_ok=True)
 
     mode = 'SITL' if args.sitl else '离线'
     extra = '+live' if args.live else ''
@@ -245,11 +279,7 @@ def main(argv=None) -> int:
         print(f'=== 起飞前自检（{mode}{extra}）===')
     results = check_environment(dict(os.environ), ROOT, strict_sitl=args.sitl)
     if args.live:
-        live = probe_live(gps=args.gps)
-        if live is None:
-            if not args.json:
-                print('  (live_probe 不可用，回退 ros2 CLI 快照探测)')
-            live = live_checks()
+        live = probe_live(gps=args.gps,rc=args.rc)
         results += live
     if args.logs is not None:
         results += check_px4_logs(args.logs)
@@ -258,13 +288,31 @@ def main(argv=None) -> int:
         pr = probe_params(param_file=args.param_file, mavlink=args.param_mavlink,
                           profile=prof)
         if pr is None:
-            results.append(Res('fcu 参数检查', 'warn',
-                               '未提供 --param-file/--param-mavlink，跳过'))
+            results.append(Res('fcu 参数检查', 'fail',
+                               '缺少参数来源或读取失败；禁止跳过'))
         else:
             results += pr
 
+    checked = []
+    for i, conn in enumerate((args.param_mavlink_a, args.param_mavlink_b)):
+        if conn:
+            pr = probe_params(mavlink=conn, profile=args.param_profile or 'outdoor', system_id=i + 1)
+            if pr is None:
+                results.append(Res(f'd{i} 飞控参数', 'fail', '参数读取失败／飞控身份错误'))
+            else:
+                results += [Res(f'd{i}: {r.name}', r.status, r.detail) for r in pr]
+                if not any(r.status == 'fail' for r in pr):
+                    checked.append(i)
+    if args.write_approval and not any(r.status == 'fail' for r in results):
+        report = dict(schema=1, passed=True, checked_at=time.time(), drone_ids=[0, 1],
+                      battery_min=BATTERY_MIN, gps=args.gps, rc=args.rc, params_checked=checked,
+                      profile=args.param_profile or 'outdoor')
+        target = Path(args.write_approval)
+        tmp = target.with_suffix(target.suffix + '.tmp')
+        tmp.write_text(json.dumps(report), encoding='utf-8')
+        tmp.replace(target)
+
     if args.json:
-        import json
         print(json.dumps([r.__dict__ for r in results], ensure_ascii=False, indent=2))
         return 1 if any(r.status == 'fail' for r in results) else 0
 

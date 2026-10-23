@@ -1,0 +1,29 @@
+{
+  "kind": "before_forward_translation",
+  "recorded_at_utc": "2026-10-21 08:08:25 UTC",
+  "coordinates": "raw mocap world; position meters; quaternion xyzw",
+  "statistic": "latest sample of ~10s probe; not mean",
+  "operator_instruction": "keep heading fixed, then translate ~0.30m along actual nose direction after baseline recorded",
+  "raw_probe": {
+    "tracker": "planeA",
+    "count": 1199,
+    "invalid": 0,
+    "nonincreasing_timestamps": 0,
+    "connected": true,
+    "rate_hz": 120.004676952893,
+    "age_s": 0.003189672,
+    "position": [
+      1.07463610839844,
+      -0.419085510253906,
+      0.290876190185547
+    ],
+    "quaternion_xyzw": [
+      0.00269809155724943,
+      0.00284183025360107,
+      0.999980092048645,
+      -0.00492824707180262
+    ],
+    "forwarded_to_px4": false
+  },
+  "forwarded_to_px4": false
+}

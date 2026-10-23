@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "host": "nvidia-desktop",
+  "architecture": "aarch64",
+  "release": "fa46032caae12d28676da9014545e6b888a944572744ad205e50fcb0812c026a",
+  "previous": "e27cb2caa69a0ff8fc9cf4d43adbcc3a40419dc07c803536187a1a3608a9d9cb",
+  "onboard_full_mission": true,
+  "onboard_duration_s": 27.888,
+  "native_servo_tests": 35,
+  "native_safety_tests": 24,
+  "native_takeoff_tests": 10,
+  "real_vehicle_armed": false,
+  "real_pwm_output": false,
+  "pwm_unchanged": true,
+  "inspected_boot_files_unchanged": true,
+  "original_services_unchanged": true,
+  "mission_started": false,
+  "remaining_test_processes": [],
+  "model": "separate actual mission node processes; kinematic fake FC and ideal 1.5s mock latch; synthetic B/GPS/RC"
+}

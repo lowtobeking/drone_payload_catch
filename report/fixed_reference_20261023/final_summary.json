@@ -1,0 +1,49 @@
+{
+  "passed": true,
+  "scope": "disarmed_static_ground_only",
+  "flight_approval": false,
+  "run": "fixed_reference_20261023T094649Z",
+  "post_audit": "after_20261023T095131Z",
+  "static_command_window_s": 25,
+  "ev_active_sample_span_s": 26.269996952999918,
+  "local_valid_samples": {
+    "xy_valid": 2627,
+    "v_xy_valid": 2627,
+    "heading_good_for_control": 2627,
+    "dead_reckoning": 0,
+    "total": 2627
+  },
+  "all_disarmed": true,
+  "all_landed": true,
+  "magnetic_heading_and_3d_fusion_active": false,
+  "software_source_loss": {
+    "no_input_after_400ms": true,
+    "bridge_latched": true,
+    "physical_tracking_loss_tested": false
+  },
+  "forwarded": 1035,
+  "restored_parameters": {
+    "EKF2_EV_CTRL": 0,
+    "EKF2_MAG_TYPE": 0,
+    "UXRCE_DDS_SYNCT": 1
+  },
+  "restore_restart_verified": true,
+  "jetson_boot_unchanged": true,
+  "remaining_task_processes": [],
+  "parameter_differences": {
+    "CAL_BARO0_OFF": {
+      "before": {
+        "value": -48.375,
+        "type": 9,
+        "index": 59
+      },
+      "after": {
+        "value": -38.1484375,
+        "type": 9,
+        "index": 59
+      }
+    }
+  },
+  "continuous_manual_motion_validated": false,
+  "permanent_flight_bridge": false
+}

@@ -1,0 +1,79 @@
+# Planning/status data; not a bridge config or executable parameter transaction.
+schema: 1
+kind: fixed_reference_ground_test_plan
+status: static_ground_passed_parameters_restored
+flight_approval: false
+vehicle:
+  jetson_serial: '1612425621719'
+  px4_version_observed: 1.16.0
+reference:
+  method: fixed_laboratory_navigation_frame
+  magnetic_snapshot_allowed: false
+  geographic_north_verified: false
+  world_to_laboratory_frd:
+  - - 0
+    - 1
+    - 0
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 0
+    - -1
+  body_to_marker:
+  - - 0
+    - -1
+    - 0
+  - - -1
+    - 0
+    - 0
+  - - 0
+    - 0
+    - -1
+  shared_origin_world_m:
+  - 0
+  - 0
+  - 0
+  navigation_message_convention_validated: true
+  px4_input_frame_decision: explicit_fixed_indoor_navigation_NED_encoding_ground_only
+proposed_parameter_changes:
+  EKF2_MAG_TYPE:
+    previous_observed: 0
+    proposed: 5
+    reboot_required_by_metadata: true
+  EKF2_EV_CTRL:
+    previous_observed: 0
+    proposed: 9
+    purpose: horizontal_position_and_external_yaw
+preserve:
+  UXRCE_DDS_SYNCT: 1
+  SYS_HAS_MAG: unchanged
+  EKF2_HGT_REF: unchanged
+  EKF2_EV_DELAY: unchanged_until_measured
+  flight_prechecks: unchanged
+  operator_takeover_and_emergency_stop: unchanged
+limitations:
+  sample_timestamp: receive_time_ground_only
+  marker_to_imu_offset_measured: false
+  absolute_north_required_for_this_indoor_test: false
+  continuous_motion_validated: false
+  height_fusion: not_enabled_in_initial_trial
+  old_magnetic_snapshot_is_not_a_calibration: true
+sequence:
+- validate_fixed_frame_encoding_and_MAG_NONE_initialization_locally
+- recheck_live_A_identity_disarmed_landed_and_full_parameter_backup
+- stage_and_check_fixed_frame_bridge_without_auto_start_or_current_switch
+- prepare_typed_parameter_restore_and_post_reboot_reconnect
+- perform_separately_coordinated_flight_controller_only_restart_if_authorized
+- start_bounded_ground_bridge_verify_external_yaw_without_magnetic_heading
+- capture_continuous_manual_translation_and_yaw_in_one_fixed_frame
+- verify_tracking_loss_and_flight_controller_rejection_of_stale_data
+- restore_written_parameters_and_restart_flight_controller_as_required
+- compare_full_parameters_and_audit_owned_processes
+rollback:
+  source: same_session_fresh_parameter_backup
+  parameter_readback_required: true
+  restoring_MAG_TYPE_may_require_another_fc_restart: true
+  no_claim_of_automatic_recovery_during_power_or_network_failure: true
+  jetson_reboot_or_network_changes_required: false
+validation_report: docs/A机固定动捕航向实机验证_20261023.md

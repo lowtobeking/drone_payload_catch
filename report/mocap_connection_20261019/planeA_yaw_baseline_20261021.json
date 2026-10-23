@@ -1,0 +1,30 @@
+{
+  "kind": "horizontal_aircraft_before_yaw",
+  "recorded_at_utc": "2026-10-21 08:21:52 UTC",
+  "operator_confirmation": "Aircraft restored level and placed steady; previous CCW-labelled motion was actually tilting wing upward, not yaw.",
+  "raw_probe": {
+    "tracker": "planeA",
+    "count": 1198,
+    "invalid": 0,
+    "nonincreasing_timestamps": 1,
+    "connected": true,
+    "rate_hz": 120.012963216765,
+    "age_s": 0.011817986,
+    "position": [
+      2.23557763671875,
+      0.22160905456543,
+      0.290974334716797
+    ],
+    "quaternion_xyzw": [
+      0.00397935602813959,
+      0.00692921876907349,
+      0.999914944171906,
+      0.0103143136948347
+    ],
+    "forwarded_to_px4": false
+  },
+  "quaternion_order": "xyzw",
+  "coordinates": "raw mocap world",
+  "statistic": "latest sample after ~10s probe; not mean",
+  "forwarded_to_px4": false
+}

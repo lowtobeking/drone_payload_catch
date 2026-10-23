@@ -1,0 +1,253 @@
+[
+  {
+    "case": "missing",
+    "mock_only": true,
+    "real_px4": false,
+    "b_present": false,
+    "commands": [],
+    "phases": [
+      "CHECK"
+    ],
+    "setpoints": 0,
+    "offboard_modes": 0,
+    "release_events": [],
+    "worker_pids": [
+      57,
+      58
+    ],
+    "passed": true,
+    "final_phase": "CHECK",
+    "landed": true,
+    "final_position": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "workers_stopped": true
+  },
+  {
+    "case": "low_battery",
+    "mock_only": true,
+    "real_px4": false,
+    "b_present": false,
+    "commands": [],
+    "phases": [
+      "CHECK"
+    ],
+    "setpoints": 0,
+    "offboard_modes": 0,
+    "release_events": [],
+    "worker_pids": [
+      97,
+      98
+    ],
+    "passed": true,
+    "final_phase": "CHECK",
+    "landed": true,
+    "final_position": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "workers_stopped": true
+  },
+  {
+    "case": "conflict",
+    "mock_only": true,
+    "real_px4": false,
+    "b_present": false,
+    "commands": [],
+    "phases": [
+      "CHECK"
+    ],
+    "setpoints": 0,
+    "offboard_modes": 0,
+    "release_events": [],
+    "worker_pids": [
+      143,
+      144
+    ],
+    "passed": true,
+    "final_phase": "CHECK",
+    "landed": true,
+    "final_position": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "workers_stopped": true
+  },
+  {
+    "case": "check_only",
+    "mock_only": true,
+    "real_px4": false,
+    "b_present": false,
+    "commands": [],
+    "phases": [
+      "CHECK",
+      "READY"
+    ],
+    "setpoints": 0,
+    "offboard_modes": 0,
+    "release_events": [],
+    "worker_pids": [
+      183,
+      184
+    ],
+    "passed": true,
+    "final_phase": "READY",
+    "landed": true,
+    "final_position": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "workers_stopped": true
+  },
+  {
+    "case": "normal",
+    "mock_only": true,
+    "real_px4": false,
+    "b_present": false,
+    "commands": [
+      176,
+      400,
+      21
+    ],
+    "phases": [
+      "CHECK",
+      "READY",
+      "PRESTREAM",
+      "MODE",
+      "ARM",
+      "FLY",
+      "LAND",
+      "DONE"
+    ],
+    "setpoints": 150,
+    "offboard_modes": 150,
+    "release_events": [],
+    "worker_pids": [
+      223,
+      224
+    ],
+    "passed": true,
+    "final_phase": "DONE",
+    "landed": true,
+    "final_position": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "workers_stopped": true
+  },
+  {
+    "case": "operator_stop",
+    "mock_only": true,
+    "real_px4": false,
+    "b_present": false,
+    "commands": [
+      176,
+      400,
+      21
+    ],
+    "phases": [
+      "CHECK",
+      "READY",
+      "PRESTREAM",
+      "MODE",
+      "ARM",
+      "FLY",
+      "LAND",
+      "DONE"
+    ],
+    "setpoints": 46,
+    "offboard_modes": 46,
+    "release_events": [],
+    "worker_pids": [
+      263,
+      264
+    ],
+    "passed": true,
+    "final_phase": "DONE",
+    "landed": true,
+    "final_position": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "workers_stopped": true
+  },
+  {
+    "case": "task_loss",
+    "mock_only": true,
+    "real_px4": false,
+    "b_present": false,
+    "commands": [
+      176,
+      400,
+      21
+    ],
+    "phases": [
+      "CHECK",
+      "READY",
+      "PRESTREAM",
+      "MODE",
+      "ARM",
+      "FLY",
+      "LAND",
+      "DONE"
+    ],
+    "setpoints": 45,
+    "offboard_modes": 45,
+    "release_events": [],
+    "worker_pids": [
+      303,
+      304
+    ],
+    "passed": true,
+    "final_phase": "DONE",
+    "landed": true,
+    "final_position": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "workers_stopped": true
+  },
+  {
+    "case": "manual",
+    "mock_only": true,
+    "real_px4": false,
+    "b_present": false,
+    "commands": [
+      176,
+      400
+    ],
+    "phases": [
+      "CHECK",
+      "READY",
+      "PRESTREAM",
+      "MODE",
+      "ARM",
+      "FLY",
+      "MANUAL"
+    ],
+    "setpoints": 44,
+    "offboard_modes": 44,
+    "release_events": [],
+    "worker_pids": [
+      343,
+      344
+    ],
+    "passed": true,
+    "final_phase": "MANUAL",
+    "landed": false,
+    "final_position": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "workers_stopped": true
+  }
+]

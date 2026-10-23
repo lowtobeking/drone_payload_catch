@@ -14,13 +14,24 @@
 用法（先 source 真机环境）：
   ros2 launch payload_catch catch_real_launch.py a_hover:="[0,0,-4.5]" b_standby:="[0,0,-3.5]" \
     b_offset:="[5.0,0,0]" source:=rtk a_rtk_topic:=/rtk/a b_rtk_topic:=/rtk/b \
-    a_lever:="[0,0,0.2]" b_lever:="[0,0,-0.21]"
+    a_lever:="[实测天线到机体原点]" b_lever:="[实测天线到机体原点]"
 """
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
+from ament_index_python.packages import get_package_share_directory
+from pathlib import Path
+import hashlib
+import json
+import os
+import re
+import socket
+import subprocess
+from payload_catch.fleet_runtime import load_fleet
+import yaml
+from payload_catch.payload_servo import ServoConfig, servo_signature
 
 
 def _f(a):
@@ -31,17 +42,24 @@ def _b(a):
     return ParameterValue(LaunchConfiguration(a), value_type=bool)
 
 
-def generate_launch_description():
+def generate_launch_description(default_role='both'):
     a_hover = LaunchConfiguration('a_hover')
     b_standby = LaunchConfiguration('b_standby')
     b_offset = LaunchConfiguration('b_offset')
 
     args = {
+        'deployment_role': default_role,
+        'fleet_config': '',
+        'release_id': '',
+        'servo_external': 'false',
+        'servo_config': str(Path(get_package_share_directory('payload_catch')) / 'config/payload_servo.yaml'),
+        'preflight_report': '',
+        'preflight_require_gps': 'true',
         'a_hover': '[0.0,0.0,-4.5]',
         'b_standby': '[0.0,0.0,-3.5]',
         'b_offset': '[0.0,0.0,0.0]',
         # 相对定位驱动
-        'source': 'rtk',               # rtk | px4 | sim
+        'source': 'rtk',               # rtk | px4（均要求真实观测和标定）
         'a_rtk_topic': '/rtk/a', 'b_rtk_topic': '/rtk/b',
         'rtk_type': 'navsatfix', 'use_geodetic': 'true',
         'origin_lat': '0.0', 'origin_lon': '0.0', 'origin_alt': '0.0',
@@ -71,6 +89,49 @@ def generate_launch_description():
     }
     decls = [DeclareLaunchArgument(k, default_value=v) for k, v in args.items()]
 
+    return LaunchDescription([*decls, OpaqueFunction(function=_nodes)])
+
+
+def _nodes(context):
+    a_hover=LaunchConfiguration('a_hover')
+    b_standby=LaunchConfiguration('b_standby')
+    b_offset=LaunchConfiguration('b_offset')
+    role=LaunchConfiguration('deployment_role').perform(context)
+    if role not in ('a','b','both'):raise ValueError('deployment_role must be a, b or both')
+    fingerprint=''
+    if role!='both':
+        fleet_path=LaunchConfiguration('fleet_config').perform(context)
+        fleet,servo_path,digest=load_fleet(fleet_path)
+        release_id=LaunchConfiguration('release_id').perform(context)
+        if not re.fullmatch(r'[0-9a-f]{64}',release_id):raise ValueError('verified release_id required')
+        if os.environ.get('ROS_DOMAIN_ID')!=str(fleet['domain_id']) or os.environ.get('ROS_LOCALHOST_ONLY')!='0':
+            raise ValueError('load generated fleet network.env first')
+        if os.environ.get('RMW_IMPLEMENTATION')!='rmw_fastrtps_cpp':raise ValueError('fleet requires Fast DDS')
+        if os.environ.get('FLEET_CONFIG_DIGEST')!=digest or os.environ.get('FLEET_ROLE')!=role:
+            raise ValueError('regenerate network.env for this configuration and role')
+        host=fleet['hosts'][role]
+        if socket.gethostname()!=host['hostname']:raise ValueError('wrong host for requested role')
+        addresses=json.loads(subprocess.check_output(['ip','-j','-4','address'],text=True))
+        if not any(a.get('local')==host['ip'] for link in addresses for a in link.get('addr_info',[])):
+            raise ValueError('configured flight network IP missing')
+        allowed=set(context.launch_configurations)-{'deployment_role','fleet_config','release_id','preflight_report','servo_config','servo_external'}
+        for key,value in fleet['launch'].items():
+            if key not in allowed:raise ValueError('unsupported fleet launch setting: '+key)
+            context.launch_configurations[key]=(json.dumps(value) if isinstance(value,list) else str(value).lower() if type(value) is bool else str(value))
+        context.launch_configurations['servo_config']=str(servo_path)
+        fingerprint=hashlib.sha256((release_id+digest).encode()).hexdigest()
+    config_path=LaunchConfiguration('servo_config').perform(context)
+    values=yaml.safe_load(Path(config_path).read_text())['payload_servo']['ros__parameters']
+    cfg=ServoConfig(**{k:v for k,v in values.items() if k in ServoConfig.__dataclass_fields__})
+    cfg.validate()
+    if values.get('backend','jetson')!='jetson':
+        raise ValueError('real launch requires jetson backend; mock uses isolated test topics')
+    if cfg.enabled and not cfg.calibrated:
+        raise ValueError('servo enabled without measured latch calibration')
+    if cfg.enabled and LaunchConfiguration('coord_mode').perform(context)!='handshake':
+        raise ValueError('PWM flight release requires the dual-aircraft handshake')
+    # Plans always describe actual detachment; readiness still blocks disabled hardware.
+    delay=cfg.release_delay_s
     relnav = Node(package='payload_catch', executable='relnav_node', name='relnav_node',
                   output='screen',
                   parameters=[{
@@ -87,10 +148,18 @@ def generate_launch_description():
                       'a_lpos_topic': LaunchConfiguration('a_lpos_topic'),
                       'b_lpos_topic': LaunchConfiguration('b_lpos_topic'),
                       'b_att_topic': LaunchConfiguration('b_att_topic'),
+                      'b_world_offset': b_offset,
                   }])
 
     a = Node(package='payload_catch', executable='a_node', name='a_node', output='screen',
-             parameters=[{'drone_id': 0, 'hover_world': a_hover,
+             parameters=[{'release_confirmation_mode':cfg.confirmation_mode,
+                           'expected_servo_signature':servo_signature(cfg),
+                           'expected_release_id':LaunchConfiguration('release_id'),
+                           'require_fleet_link':role!='both','drone_id': 0, 'hover_world': a_hover,
+                           'preflight_report': LaunchConfiguration('preflight_report'),
+                           'preflight_require_gps': _b('preflight_require_gps'),
+                           'preflight_require_rc': True,
+                          'release_lead': delay + .2,
                           'publish_state': False,     # 真机：A 不广播真值，改由 relnav
                           'gate_use_relative': _b('gate_use_relative'),
                           'coord_mode': LaunchConfiguration('coord_mode'),
@@ -102,7 +171,16 @@ def generate_launch_description():
 
     b = Node(package='payload_catch', executable='b_node', name='b_node', output='screen',
              parameters=[{
-                 'drone_id': 1, 'mode': 'stack',
+                  'release_confirmation_mode':cfg.confirmation_mode,
+                  'expected_servo_signature':servo_signature(cfg) if role!='both' else '',
+                  'expected_release_id':LaunchConfiguration('release_id') if role!='both' else '',
+                  'require_fleet_link':role!='both', 'drone_id': 1, 'mode': 'stack',
+                  'preflight_report': LaunchConfiguration('preflight_report'),
+                  'preflight_require_gps': _b('preflight_require_gps'),
+                  'preflight_require_rc': True,
+                  'peer_loss_hold_s': .5, 'peer_loss_land_s': 3.,
+                  'require_hardware_status': True, 'release_lead': delay + .2,
+                  'require_payload_before_release': True, 'require_physical_capture': True,
                  'standby_world': b_standby, 'world_offset': b_offset,
                  'a_state_topic': '/drone_a/state',
                  'rel_pos_sigma': 0.0, 'rel_latency': 0.0, 'rel_jitter': 0.0,
@@ -134,4 +212,15 @@ def generate_launch_description():
                  'auto_land': True, 'land_after_catch_s': _f('land_after_catch_s'),
              }])
 
-    return LaunchDescription([*decls, relnav, a, b])
+    safety=Node(package='payload_catch',executable='safety_supervisor',output='screen',
+                parameters=[{'require_rc':True}])
+    release=Node(package='payload_catch',executable='release_guard',output='screen',parameters=[{
+        'release_delay_s': delay,
+        'authority':ParameterValue(PythonExpression(["0 if '",LaunchConfiguration('coord_mode'),"' == 'handshake' else 1"]),value_type=int)}])
+    servo=Node(package='payload_catch',executable='payload_servo',name='payload_servo',
+        output='screen',parameters=[config_path,{'owner':0,'release_id':LaunchConfiguration('release_id')}])
+    if role=='both':return [safety, release, servo, relnav, a, b]
+    monitor=Node(package='payload_catch',executable='fleet_link',name='fleet_link_'+role,
+        output='screen',parameters=[{'role':role,'fingerprint':fingerprint}])
+    external=LaunchConfiguration('servo_external').perform(context)=='true'
+    return ([monitor,safety,release,a]+([] if external else [servo])) if role=='a' else [monitor,relnav,b]

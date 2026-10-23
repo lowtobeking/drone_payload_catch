@@ -1,0 +1,34 @@
+{
+  "kind": "manual_movement_recheck",
+  "recorded_at_utc": "2026-10-21 08:04:45 UTC",
+  "baseline_file": "planeA_axis_baseline_20261021T075808Z.json",
+  "raw_probe": {
+    "tracker": "planeA",
+    "count": 1199,
+    "invalid": 0,
+    "nonincreasing_timestamps": 1,
+    "connected": true,
+    "rate_hz": 119.972907942252,
+    "age_s": 0.002122669,
+    "position": [
+      0.96483984375,
+      -0.534212585449219,
+      1.15546887207031
+    ],
+    "quaternion_xyzw": [
+      -0.178223922848701,
+      -0.0435456335544586,
+      0.95701539516449,
+      0.224636390805244
+    ],
+    "forwarded_to_px4": false
+  },
+  "delta_position_m": [
+    -0.14771264648437998,
+    -0.151495056152344,
+    0.8647494506835909
+  ],
+  "movement_description": "User said movement completed; exact latest action not specified. Do not infer horizontal axes from this sample.",
+  "finding": "Still ~0.865m above original mocap Z. Prior upward movement primarily increased Z; scale and horizontal axis alignment not yet verified.",
+  "forwarded_to_px4": false
+}

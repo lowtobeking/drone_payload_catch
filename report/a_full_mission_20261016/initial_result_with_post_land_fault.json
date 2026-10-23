@@ -1,0 +1,736 @@
+{
+  "passed": true,
+  "simulation_only": true,
+  "network_isolated": true,
+  "physical_pwm_output": false,
+  "real_vehicle_commands": 0,
+  "model": "kinematic fake PX4, synthetic B/GPS/RC/feedback, actual mission nodes",
+  "events": [
+    {
+      "stage": "begin_mock_preflight",
+      "elapsed_s": 0.002
+    },
+    {
+      "stage": "mock_selfcheck_passed",
+      "elapsed_s": 4.607
+    },
+    {
+      "stage": "simulated_arm_accepted",
+      "elapsed_s": 7.777,
+      "drone": 0
+    },
+    {
+      "stage": "arrived_at_release_point",
+      "elapsed_s": 12.35,
+      "position": [
+        0.0,
+        0.0,
+        -2.380572330630559
+      ]
+    },
+    {
+      "stage": "mock_pwm_1700_applied",
+      "elapsed_s": 12.782,
+      "planned_detach_at": 1792131482.2142034
+    },
+    {
+      "stage": "mock_sensor_detachment",
+      "elapsed_s": 14.265,
+      "opening_delay_s": 1.4966177940368652
+    },
+    {
+      "stage": "cleared_release_area",
+      "elapsed_s": 17.016,
+      "position": [
+        1.8508659720692713,
+        0.0,
+        -2.498992848921238
+      ]
+    },
+    {
+      "stage": "mock_B_caught_report",
+      "elapsed_s": 17.016
+    },
+    {
+      "stage": "simulated_land_command_1",
+      "elapsed_s": 21.252
+    },
+    {
+      "stage": "simulated_touchdown_disarmed_1",
+      "elapsed_s": 23.75
+    },
+    {
+      "stage": "simulated_land_command_0",
+      "elapsed_s": 23.804
+    },
+    {
+      "stage": "simulated_touchdown_disarmed_0",
+      "elapsed_s": 27.973
+    }
+  ],
+  "negative_gate_samples": {
+    "missing_blocked": 79,
+    "low_battery_blocked": 80
+  },
+  "commands": [
+    {
+      "elapsed_s": 7.772613492,
+      "drone": 0,
+      "command": 176,
+      "param1": 1.0,
+      "param2": 6.0
+    },
+    {
+      "elapsed_s": 7.777296672,
+      "drone": 0,
+      "command": 400,
+      "param1": 1.0,
+      "param2": 0.0
+    },
+    {
+      "elapsed_s": 21.251826407000003,
+      "drone": 0,
+      "command": 176,
+      "param1": 1.0,
+      "param2": 4.0
+    },
+    {
+      "elapsed_s": 21.251886043000003,
+      "drone": 1,
+      "command": 21,
+      "param1": 0.0,
+      "param2": 0.0
+    },
+    {
+      "elapsed_s": 23.803557803,
+      "drone": 0,
+      "command": 21,
+      "param1": 0.0,
+      "param2": 0.0
+    }
+  ],
+  "health_checks": {
+    "0": [
+      {
+        "name": "vehicle_local_position",
+        "status": "ok",
+        "detail": "229 帧（至少两帧且源时间戳递增）"
+      },
+      {
+        "name": "vehicle_local_position 新鲜",
+        "status": "ok",
+        "detail": "age=0.00s"
+      },
+      {
+        "name": "vehicle_attitude",
+        "status": "ok",
+        "detail": "229 帧（至少两帧且源时间戳递增）"
+      },
+      {
+        "name": "vehicle_attitude 新鲜",
+        "status": "ok",
+        "detail": "age=0.00s"
+      },
+      {
+        "name": "vehicle_status",
+        "status": "ok",
+        "detail": "229 帧（至少两帧且源时间戳递增）"
+      },
+      {
+        "name": "vehicle_status 新鲜",
+        "status": "ok",
+        "detail": "age=0.00s"
+      },
+      {
+        "name": "failsafe_flags",
+        "status": "ok",
+        "detail": "229 帧（至少两帧且源时间戳递增）"
+      },
+      {
+        "name": "failsafe_flags 新鲜",
+        "status": "ok",
+        "detail": "age=0.00s"
+      },
+      {
+        "name": "estimator_status_flags",
+        "status": "ok",
+        "detail": "229 帧（至少两帧且源时间戳递增）"
+      },
+      {
+        "name": "estimator_status_flags 新鲜",
+        "status": "ok",
+        "detail": "age=0.00s"
+      },
+      {
+        "name": "battery_status",
+        "status": "ok",
+        "detail": "229 帧（至少两帧且源时间戳递增）"
+      },
+      {
+        "name": "battery_status 新鲜",
+        "status": "ok",
+        "detail": "age=0.00s"
+      },
+      {
+        "name": "vehicle_gps_position",
+        "status": "ok",
+        "detail": "229 帧（至少两帧且源时间戳递增）"
+      },
+      {
+        "name": "vehicle_gps_position 新鲜",
+        "status": "ok",
+        "detail": "age=0.00s"
+      },
+      {
+        "name": "manual_control_setpoint(RC)",
+        "status": "ok",
+        "detail": "229 帧（至少两帧且源时间戳递增）"
+      },
+      {
+        "name": "manual_control_setpoint(RC) 新鲜",
+        "status": "ok",
+        "detail": "age=0.00s"
+      },
+      {
+        "name": "关键数据有限且完整",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "PX4 pre_flight_checks_pass",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "姿态有效",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "xy_valid 持续",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "z_valid 持续",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "v_xy/z_valid 持续",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "非 dead_reckoning",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "heading_good_for_control",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "eph ≤ 0.5",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "epv ≤ 0.5",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "failsafe: 本地位置无效",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "failsafe: 本地速度无效",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "failsafe: 姿态无效",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "failsafe: 越界",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "failsafe: 临界故障",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "battery_unhealthy",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "failsafe: offboard 信号",
+        "status": "ok",
+        "detail": "起飞前未发送 Offboard 心跳时可为 true"
+      },
+      {
+        "name": "tilt/yaw 对齐",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "estimator: cs_mag_fault",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "estimator: cs_mag_field_disturbed",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "estimator: fs_bad_mag_x",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "estimator: fs_bad_mag_y",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "estimator: fs_bad_mag_z",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "estimator: fs_bad_hdg",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "estimator: fs_bad_acc_vertical",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "estimator: fs_bad_acc_clipping",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "GPS eph ≤ 1.5",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "GPS epv ≤ 2.5",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "GPS sats ≥ 20",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "电池已连接",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "电池 warning = 0",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "独立 RC 信号有效",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "电池 remaining ≥ 0.40",
+        "status": "ok",
+        "detail": "remaining=0.850"
+      }
+    ],
+    "1": [
+      {
+        "name": "vehicle_local_position",
+        "status": "ok",
+        "detail": "229 帧（至少两帧且源时间戳递增）"
+      },
+      {
+        "name": "vehicle_local_position 新鲜",
+        "status": "ok",
+        "detail": "age=0.00s"
+      },
+      {
+        "name": "vehicle_attitude",
+        "status": "ok",
+        "detail": "229 帧（至少两帧且源时间戳递增）"
+      },
+      {
+        "name": "vehicle_attitude 新鲜",
+        "status": "ok",
+        "detail": "age=0.00s"
+      },
+      {
+        "name": "vehicle_status",
+        "status": "ok",
+        "detail": "229 帧（至少两帧且源时间戳递增）"
+      },
+      {
+        "name": "vehicle_status 新鲜",
+        "status": "ok",
+        "detail": "age=0.00s"
+      },
+      {
+        "name": "failsafe_flags",
+        "status": "ok",
+        "detail": "229 帧（至少两帧且源时间戳递增）"
+      },
+      {
+        "name": "failsafe_flags 新鲜",
+        "status": "ok",
+        "detail": "age=0.00s"
+      },
+      {
+        "name": "estimator_status_flags",
+        "status": "ok",
+        "detail": "229 帧（至少两帧且源时间戳递增）"
+      },
+      {
+        "name": "estimator_status_flags 新鲜",
+        "status": "ok",
+        "detail": "age=0.00s"
+      },
+      {
+        "name": "battery_status",
+        "status": "ok",
+        "detail": "229 帧（至少两帧且源时间戳递增）"
+      },
+      {
+        "name": "battery_status 新鲜",
+        "status": "ok",
+        "detail": "age=0.00s"
+      },
+      {
+        "name": "vehicle_gps_position",
+        "status": "ok",
+        "detail": "229 帧（至少两帧且源时间戳递增）"
+      },
+      {
+        "name": "vehicle_gps_position 新鲜",
+        "status": "ok",
+        "detail": "age=0.00s"
+      },
+      {
+        "name": "manual_control_setpoint(RC)",
+        "status": "ok",
+        "detail": "229 帧（至少两帧且源时间戳递增）"
+      },
+      {
+        "name": "manual_control_setpoint(RC) 新鲜",
+        "status": "ok",
+        "detail": "age=0.00s"
+      },
+      {
+        "name": "关键数据有限且完整",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "PX4 pre_flight_checks_pass",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "姿态有效",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "xy_valid 持续",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "z_valid 持续",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "v_xy/z_valid 持续",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "非 dead_reckoning",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "heading_good_for_control",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "eph ≤ 0.5",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "epv ≤ 0.5",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "failsafe: 本地位置无效",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "failsafe: 本地速度无效",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "failsafe: 姿态无效",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "failsafe: 越界",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "failsafe: 临界故障",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "battery_unhealthy",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "failsafe: offboard 信号",
+        "status": "ok",
+        "detail": "起飞前未发送 Offboard 心跳时可为 true"
+      },
+      {
+        "name": "tilt/yaw 对齐",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "estimator: cs_mag_fault",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "estimator: cs_mag_field_disturbed",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "estimator: fs_bad_mag_x",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "estimator: fs_bad_mag_y",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "estimator: fs_bad_mag_z",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "estimator: fs_bad_hdg",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "estimator: fs_bad_acc_vertical",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "estimator: fs_bad_acc_clipping",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "GPS eph ≤ 1.5",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "GPS epv ≤ 2.5",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "GPS sats ≥ 20",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "电池已连接",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "电池 warning = 0",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "独立 RC 信号有效",
+        "status": "ok",
+        "detail": ""
+      },
+      {
+        "name": "电池 remaining ≥ 0.40",
+        "status": "ok",
+        "detail": "remaining=0.850"
+      }
+    ]
+  },
+  "parameter_checks": [
+    {
+      "name": "COM_OBL_RC_ACT = 4(Land)",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "NAV_RCL_ACT = 3(Land)",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "COM_LOW_BAT_ACT ∈ {2,3}",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "COM_OF_LOSS_T ≤ 0.5",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "COM_RC_LOSS_T ≤ 1.0",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "GF_ACTION = 4(Land)",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "独立 RC 输入启用",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "RC 切动力开关独立映射",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "RC 模式开关映射",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "RC 模式含人工接管",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "MPC_THR_MIN < MPC_THR_HOVER",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "COM_RCL_EXCEPT 不豁免 OFFBOARD",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "MPC_THR_MIN ≥ 0.05（防电机停转）",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "MPC_XY_VEL_MAX ≥ 2.0（≥ 指令上限）",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "RTL_RETURN_ALT ≤ GF_MAX_VER_DIST",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "电池阈值次序 EMERGEN ≤ CRIT ≤ LOW",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "围栏已启用 (GF_MAX_* > 0)",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "COM_OBL_RC_ACT = 4(Land)",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "NAV_RCL_ACT = 3(Land)",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "COM_LOW_BAT_ACT ∈ {2,3}",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "COM_OF_LOSS_T ≤ 0.5",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "EKF2 源=RTK(7/0/1/0)",
+      "level": "ok",
+      "detail": ""
+    },
+    {
+      "name": "SENS_BOARD_ROT 与实物一致（参考机=0）",
+      "level": "warn",
+      "detail": "=0——改错会起飞直接翻"
+    }
+  ],
+  "mock_pulses_us": [
+    1700
+  ],
+  "mock_opening_delay_s": 1.4966177940368652,
+  "final_position": [
+    -1.7619739042934148,
+    0.0,
+    0.0
+  ],
+  "final_armed": false,
+  "final_nav_state": 18
+}

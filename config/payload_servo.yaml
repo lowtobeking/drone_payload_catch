@@ -1,0 +1,18 @@
+payload_servo:
+  ros__parameters:
+    # Current 360-degree continuous servo, external 5V/shared ground, physical pin33.
+    # User remeasured DIRECT 1700us: Apply to detachment still approximately 1.5s.
+    # Operator direct observation; distribution/local write timestamps still need flight validation.
+    enabled: false
+    calibrated: false
+    confirmation_mode: timed  # No latch sensor; completion is an action, not measured detachment.
+    backend: jetson
+    neutral_us: 1500  # Approximate neutral, NOT a locked position; verify on actual hardware.
+    open_us: 1700
+    period_ns: 20000000  # 50Hz, same requested profile as bench GUI; waveform unmeasured.
+    release_delay_s: 1.5  # New user-confirmed DIRECT 1700us command-to-detachment observation.
+    delay_reference: operator_direct  # Confirmed approximate observation; not full flight calibration.
+    delay_tolerance_s: 0.02  # Write/scheduler bound; timed mode does not measure physical jitter.
+    feedback_timeout_s: 0.15  # Used by sensor mode only; timed mode has no feedback sensor.
+    max_output_s: 2.0  # Independent bound even with healthy parent heartbeats.
+    attempt_record: /var/lib/payload_catch/pwm33_attempt.json

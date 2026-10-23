@@ -1,0 +1,12 @@
+{
+  "server": "192.168.1.111",
+  "port": 3883,
+  "ros_domain": 97,
+  "topics": {},
+  "received_actual_samples": false,
+  "px4_data_forwarded": false,
+  "flight_started": false,
+  "probe_process_exited": true,
+  "probe_pid": 7531,
+  "log": "/home/nvidia/payload_catch_a_solo_20261019/mocap_check/vrpn_client.log"
+}

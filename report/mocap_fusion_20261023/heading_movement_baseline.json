@@ -1,0 +1,72 @@
+{
+  "frame": "px4_heading_aligned_ned",
+  "north_verified": false,
+  "reference": {
+    "method": "px4_magnetic_snapshot",
+    "north_verified": false,
+    "yaw_offset_rad": -0.7999645435070049,
+    "std_deg": 0.024869987748205237,
+    "span_deg": 0.23432814482677367,
+    "collected_wall_us": 1792743220487733,
+    "boot_id": "a006295d-9ab4-41c6-a277-f0a2455a86a8",
+    "base_world_to_local": [
+      [
+        0,
+        1,
+        0
+      ],
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        -1
+      ]
+    ],
+    "evidence_directory": "heading_probe_20261023T081303Z"
+  },
+  "transform_world_to_local": [
+    [
+      0.7173313876720516,
+      0.6967321438404351,
+      0.0
+    ],
+    [
+      0.6967321438404351,
+      -0.7173313876720516,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      -1.0
+    ]
+  ],
+  "raw_position_mean_m": [
+    1.8785945952677325,
+    -0.19990713526600076,
+    0.29168523785569467
+  ],
+  "raw_quaternion_mean_xyzw": [
+    0.005587237369031415,
+    0.007820667738077722,
+    0.9998924271285684,
+    -0.01107484294925789
+  ],
+  "ev_position_mean_m": [
+    1.2082929157075428,
+    1.452276811563879,
+    -0.2916850101828276
+  ],
+  "px4_position_mean_m": [
+    1.208061632514,
+    1.4526117761135102,
+    1.1031358631849288
+  ],
+  "px4_heading_mean_rad": -0.8219224593043327,
+  "height_source": "barometer, not external vision",
+  "movement_not_yet_tested": true
+}

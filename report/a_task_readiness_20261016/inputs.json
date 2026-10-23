@@ -1,0 +1,990 @@
+{
+  "read_only": true,
+  "flight_approval": false,
+  "task_nodes_started": false,
+  "boot_id": "95cbe7b2-836e-4add-9e46-9c2b5aa6ea7c",
+  "release": "13c1e49da415339aa236e19547c63a809de15e55235584917a700e964dd1702a",
+  "health": {
+    "0": {
+      "results": [
+        {
+          "name": "vehicle_local_position",
+          "status": "ok",
+          "detail": "300 帧（至少两帧且源时间戳递增）"
+        },
+        {
+          "name": "vehicle_local_position 新鲜",
+          "status": "ok",
+          "detail": "age=0.01s"
+        },
+        {
+          "name": "vehicle_attitude",
+          "status": "ok",
+          "detail": "300 帧（至少两帧且源时间戳递增）"
+        },
+        {
+          "name": "vehicle_attitude 新鲜",
+          "status": "ok",
+          "detail": "age=0.01s"
+        },
+        {
+          "name": "vehicle_status",
+          "status": "ok",
+          "detail": "6 帧（至少两帧且源时间戳递增）"
+        },
+        {
+          "name": "vehicle_status 新鲜",
+          "status": "ok",
+          "detail": "age=0.30s"
+        },
+        {
+          "name": "failsafe_flags",
+          "status": "ok",
+          "detail": "5 帧（至少两帧且源时间戳递增）"
+        },
+        {
+          "name": "failsafe_flags 新鲜",
+          "status": "ok",
+          "detail": "age=0.29s"
+        },
+        {
+          "name": "estimator_status_flags",
+          "status": "ok",
+          "detail": "3 帧（至少两帧且源时间戳递增）"
+        },
+        {
+          "name": "estimator_status_flags 新鲜",
+          "status": "ok",
+          "detail": "age=0.83s"
+        },
+        {
+          "name": "battery_status",
+          "status": "ok",
+          "detail": "30 帧（至少两帧且源时间戳递增）"
+        },
+        {
+          "name": "battery_status 新鲜",
+          "status": "ok",
+          "detail": "age=0.00s"
+        },
+        {
+          "name": "vehicle_gps_position",
+          "status": "ok",
+          "detail": "15 帧（至少两帧且源时间戳递增）"
+        },
+        {
+          "name": "vehicle_gps_position 新鲜",
+          "status": "ok",
+          "detail": "age=0.07s"
+        },
+        {
+          "name": "manual_control_setpoint(RC)",
+          "status": "fail",
+          "detail": "0 帧（至少两帧且源时间戳递增）"
+        },
+        {
+          "name": "manual_control_setpoint(RC) 新鲜",
+          "status": "fail",
+          "detail": "age=infs"
+        },
+        {
+          "name": "关键数据有限且完整",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "PX4 pre_flight_checks_pass",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "姿态有效",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "xy_valid 持续",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "z_valid 持续",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "v_xy/z_valid 持续",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "非 dead_reckoning",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "heading_good_for_control",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "eph ≤ 0.5",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "epv ≤ 0.5",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "failsafe: 本地位置无效",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "failsafe: 本地速度无效",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "failsafe: 姿态无效",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "failsafe: 越界",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "failsafe: 临界故障",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "battery_unhealthy",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "failsafe: offboard 信号",
+          "status": "warn",
+          "detail": "起飞前未发送 Offboard 心跳时可为 true"
+        },
+        {
+          "name": "tilt/yaw 对齐",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "estimator: cs_mag_fault",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "estimator: cs_mag_field_disturbed",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "estimator: fs_bad_mag_x",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "estimator: fs_bad_mag_y",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "estimator: fs_bad_mag_z",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "estimator: fs_bad_hdg",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "estimator: fs_bad_acc_vertical",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "estimator: fs_bad_acc_clipping",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "GPS eph ≤ 1.5",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "GPS epv ≤ 2.5",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "GPS sats ≥ 20",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "电池已连接",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "电池 warning = 0",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "独立 RC 信号有效",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "电池 remaining ≥ 0.40",
+          "status": "ok",
+          "detail": "remaining=0.910"
+        }
+      ],
+      "snapshot": {
+        "n_lpos": 300,
+        "xy_valid_frac": 0.0,
+        "z_valid_frac": 1.0,
+        "v_valid_frac": 0.0,
+        "dead_reckoning_frac": 1.0,
+        "heading_good_frac": 0.0,
+        "max_eph": 0.016792602837085724,
+        "max_epv": 0.285045862197876,
+        "n_failsafe": 5,
+        "failsafe": {
+          "local_position_invalid": true,
+          "local_velocity_invalid": true,
+          "attitude_invalid": false,
+          "geofence_breached": false,
+          "fd_critical_failure": false,
+          "battery_unhealthy": false,
+          "offboard_control_signal_lost": true
+        },
+        "n_est": 3,
+        "est": {
+          "cs_mag_fault": false,
+          "cs_mag_field_disturbed": false,
+          "fs_bad_mag_x": false,
+          "fs_bad_mag_y": false,
+          "fs_bad_mag_z": false,
+          "fs_bad_hdg": false,
+          "fs_bad_acc_vertical": false,
+          "fs_bad_acc_clipping": false,
+          "cs_tilt_align": true,
+          "cs_yaw_align": true
+        },
+        "n_gps": 15,
+        "gps_max_eph": 4294967.5,
+        "gps_max_epv": 3750136.25,
+        "gps_min_sats": 0,
+        "n_batt": 30,
+        "batt_connected": true,
+        "batt_warning_max": 0,
+        "batt_remaining_min": 0.9099999666213989,
+        "n_status": 6,
+        "checks_pass": false,
+        "n_att": 300,
+        "att_valid": true,
+        "ages": {
+          "lpos": 0.007344910000028904,
+          "att": 0.009082054000145945,
+          "status": 0.30433423400018,
+          "failsafe": 0.29374992300017766,
+          "est": 0.8345808990000023,
+          "batt": 0.00030743400020583067,
+          "gps": 0.07061659000009968,
+          "rc": null
+        },
+        "invalid_data": [],
+        "n_rc": 0,
+        "rc_valid": false
+      }
+    },
+    "1": {
+      "results": [
+        {
+          "name": "vehicle_local_position",
+          "status": "fail",
+          "detail": "0 帧（至少两帧且源时间戳递增）"
+        },
+        {
+          "name": "vehicle_local_position 新鲜",
+          "status": "fail",
+          "detail": "age=infs"
+        },
+        {
+          "name": "vehicle_attitude",
+          "status": "fail",
+          "detail": "0 帧（至少两帧且源时间戳递增）"
+        },
+        {
+          "name": "vehicle_attitude 新鲜",
+          "status": "fail",
+          "detail": "age=infs"
+        },
+        {
+          "name": "vehicle_status",
+          "status": "fail",
+          "detail": "0 帧（至少两帧且源时间戳递增）"
+        },
+        {
+          "name": "vehicle_status 新鲜",
+          "status": "fail",
+          "detail": "age=infs"
+        },
+        {
+          "name": "failsafe_flags",
+          "status": "fail",
+          "detail": "0 帧（至少两帧且源时间戳递增）"
+        },
+        {
+          "name": "failsafe_flags 新鲜",
+          "status": "fail",
+          "detail": "age=infs"
+        },
+        {
+          "name": "estimator_status_flags",
+          "status": "fail",
+          "detail": "0 帧（至少两帧且源时间戳递增）"
+        },
+        {
+          "name": "estimator_status_flags 新鲜",
+          "status": "fail",
+          "detail": "age=infs"
+        },
+        {
+          "name": "battery_status",
+          "status": "fail",
+          "detail": "0 帧（至少两帧且源时间戳递增）"
+        },
+        {
+          "name": "battery_status 新鲜",
+          "status": "fail",
+          "detail": "age=infs"
+        },
+        {
+          "name": "vehicle_gps_position",
+          "status": "fail",
+          "detail": "0 帧（至少两帧且源时间戳递增）"
+        },
+        {
+          "name": "vehicle_gps_position 新鲜",
+          "status": "fail",
+          "detail": "age=infs"
+        },
+        {
+          "name": "manual_control_setpoint(RC)",
+          "status": "fail",
+          "detail": "0 帧（至少两帧且源时间戳递增）"
+        },
+        {
+          "name": "manual_control_setpoint(RC) 新鲜",
+          "status": "fail",
+          "detail": "age=infs"
+        },
+        {
+          "name": "关键数据有限且完整",
+          "status": "fail",
+          "detail": "att.q,batt.connected,batt.remaining,batt.warning,est.cs_mag_fault,est.cs_mag_field_disturbed,est.cs_tilt_align,est.cs_yaw_align,est.fs_bad_acc_clipping,est.fs_bad_acc_vertical,est.fs_bad_hdg,est.fs_bad_mag_x,est.fs_bad_mag_y,est.fs_bad_mag_z,failsafe.attitude_invalid,failsafe.battery_unhealthy,failsafe.fd_critical_failure,failsafe.geofence_breached,failsafe.local_position_invalid,failsafe.local_velocity_invalid,failsafe.offboard_control_signal_lost,lpos.dead_reckoning,lpos.eph,lpos.epv,lpos.heading_good_for_control,lpos.v_xy_valid,lpos.vx,lpos.vy,lpos.vz,lpos.x,lpos.xy_valid,lpos.y,lpos.z,lpos.z_valid,status.pre_flight_checks_pass"
+        },
+        {
+          "name": "PX4 pre_flight_checks_pass",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "姿态有效",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "xy_valid 持续",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "z_valid 持续",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "v_xy/z_valid 持续",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "非 dead_reckoning",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "heading_good_for_control",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "eph ≤ 0.5",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "epv ≤ 0.5",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "failsafe: 本地位置无效",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "failsafe: 本地速度无效",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "failsafe: 姿态无效",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "failsafe: 越界",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "failsafe: 临界故障",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "battery_unhealthy",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "failsafe: offboard 信号",
+          "status": "ok",
+          "detail": "起飞前未发送 Offboard 心跳时可为 true"
+        },
+        {
+          "name": "tilt/yaw 对齐",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "estimator: cs_mag_fault",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "estimator: cs_mag_field_disturbed",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "estimator: fs_bad_mag_x",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "estimator: fs_bad_mag_y",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "estimator: fs_bad_mag_z",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "estimator: fs_bad_hdg",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "estimator: fs_bad_acc_vertical",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "estimator: fs_bad_acc_clipping",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "GPS eph ≤ 1.5",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "GPS epv ≤ 2.5",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "GPS sats ≥ 20",
+          "status": "ok",
+          "detail": ""
+        },
+        {
+          "name": "电池已连接",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "电池 warning = 0",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "独立 RC 信号有效",
+          "status": "fail",
+          "detail": ""
+        },
+        {
+          "name": "电池 remaining ≥ 0.40",
+          "status": "fail",
+          "detail": "remaining=nan"
+        }
+      ],
+      "snapshot": {
+        "n_lpos": 0,
+        "xy_valid_frac": 0.0,
+        "z_valid_frac": 0.0,
+        "v_valid_frac": 0.0,
+        "dead_reckoning_frac": 0.0,
+        "heading_good_frac": 0.0,
+        "max_eph": null,
+        "max_epv": null,
+        "n_failsafe": 0,
+        "failsafe": {
+          "local_position_invalid": false,
+          "local_velocity_invalid": false,
+          "attitude_invalid": false,
+          "geofence_breached": false,
+          "fd_critical_failure": false,
+          "battery_unhealthy": false,
+          "offboard_control_signal_lost": false
+        },
+        "n_est": 0,
+        "est": {
+          "cs_mag_fault": false,
+          "cs_mag_field_disturbed": false,
+          "fs_bad_mag_x": false,
+          "fs_bad_mag_y": false,
+          "fs_bad_mag_z": false,
+          "fs_bad_hdg": false,
+          "fs_bad_acc_vertical": false,
+          "fs_bad_acc_clipping": false,
+          "cs_tilt_align": false,
+          "cs_yaw_align": false
+        },
+        "n_gps": 0,
+        "gps_max_eph": 0.0,
+        "gps_max_epv": 0.0,
+        "gps_min_sats": 999,
+        "n_batt": 0,
+        "batt_connected": false,
+        "batt_warning_max": null,
+        "batt_remaining_min": null,
+        "n_status": 0,
+        "checks_pass": false,
+        "n_att": 0,
+        "att_valid": false,
+        "ages": {
+          "lpos": null,
+          "att": null,
+          "status": null,
+          "failsafe": null,
+          "est": null,
+          "batt": null,
+          "gps": null,
+          "rc": null
+        },
+        "invalid_data": [
+          "att.q",
+          "batt.connected",
+          "batt.remaining",
+          "batt.warning",
+          "est.cs_mag_fault",
+          "est.cs_mag_field_disturbed",
+          "est.cs_tilt_align",
+          "est.cs_yaw_align",
+          "est.fs_bad_acc_clipping",
+          "est.fs_bad_acc_vertical",
+          "est.fs_bad_hdg",
+          "est.fs_bad_mag_x",
+          "est.fs_bad_mag_y",
+          "est.fs_bad_mag_z",
+          "failsafe.attitude_invalid",
+          "failsafe.battery_unhealthy",
+          "failsafe.fd_critical_failure",
+          "failsafe.geofence_breached",
+          "failsafe.local_position_invalid",
+          "failsafe.local_velocity_invalid",
+          "failsafe.offboard_control_signal_lost",
+          "lpos.dead_reckoning",
+          "lpos.eph",
+          "lpos.epv",
+          "lpos.heading_good_for_control",
+          "lpos.v_xy_valid",
+          "lpos.vx",
+          "lpos.vy",
+          "lpos.vz",
+          "lpos.x",
+          "lpos.xy_valid",
+          "lpos.y",
+          "lpos.z",
+          "lpos.z_valid",
+          "status.pre_flight_checks_pass"
+        ],
+        "n_rc": 0,
+        "rc_valid": false
+      }
+    }
+  },
+  "raw": {
+    "0": {
+      "batt": {
+        "connected": true,
+        "remaining": 0.9099999666213989,
+        "warning": 0,
+        "cell_count": 1,
+        "voltage_v": 16.4375,
+        "current_a": 0.073486328125,
+        "id": 125,
+        "source": 0,
+        "temperature": 40.350006103515625
+      },
+      "lpos": {
+        "xy_valid": false,
+        "z_valid": true,
+        "v_xy_valid": false,
+        "v_z_valid": true,
+        "heading_good_for_control": false,
+        "dead_reckoning": true,
+        "eph": 0.010781973600387573,
+        "epv": 0.28316280245780945,
+        "x": -0.2111109346151352,
+        "y": -0.017351819202303886,
+        "z": 1.0674800872802734
+      },
+      "gps": {
+        "fix_type": 0,
+        "satellites_used": 0,
+        "eph": 4294967.5,
+        "epv": 3750136.25,
+        "hdop": 99.98999786376953,
+        "vdop": 99.98999786376953
+      },
+      "status": {
+        "system_id": 1,
+        "arming_state": 1,
+        "nav_state": 4,
+        "pre_flight_checks_pass": false,
+        "failsafe": false
+      },
+      "failsafe": {
+        "true_flags": [
+          "local_position_invalid",
+          "local_position_invalid_relaxed",
+          "local_velocity_invalid",
+          "global_position_invalid",
+          "auto_mission_missing",
+          "offboard_control_signal_lost",
+          "home_position_invalid",
+          "manual_control_signal_lost",
+          "gcs_connection_lost"
+        ]
+      },
+      "est": {
+        "true_flags": [
+          "cs_tilt_align",
+          "cs_yaw_align",
+          "cs_mag_hdg",
+          "cs_mag_dec",
+          "cs_baro_hgt",
+          "cs_vehicle_at_rest",
+          "cs_inertial_dead_reckoning",
+          "cs_gravity_vector",
+          "cs_mag",
+          "cs_mag_heading_consistent",
+          "cs_valid_fake_pos"
+        ]
+      }
+    },
+    "1": {}
+  },
+  "landed": true,
+  "land_samples": 5,
+  "observed_control_counts": {
+    "vehicle_command": 0,
+    "offboard_control_mode": 0,
+    "trajectory_setpoint": 0
+  },
+  "control_publishers": {
+    "vehicle_command": [],
+    "offboard_control_mode": [],
+    "trajectory_setpoint": []
+  },
+  "task_source_publishers": {
+    "/payload/latch_feedback": [],
+    "/payload/hardware_status": [],
+    "/payload/release_event": [],
+    "/safety/state": [],
+    "/fleet/hello_a": [],
+    "/fleet/hello_b": [],
+    "/fleet/link_a": [],
+    "/fleet/link_b": [],
+    "/drone_b/ready": [],
+    "/rtk/a": [],
+    "/rtk/b": []
+  },
+  "topics": {
+    "/fmu/in/actuator_motors": [
+      "px4_msgs/msg/ActuatorMotors"
+    ],
+    "/fmu/in/actuator_servos": [
+      "px4_msgs/msg/ActuatorServos"
+    ],
+    "/fmu/in/arming_check_reply": [
+      "px4_msgs/msg/ArmingCheckReply"
+    ],
+    "/fmu/in/aux_global_position": [
+      "px4_msgs/msg/VehicleGlobalPosition"
+    ],
+    "/fmu/in/config_control_setpoints": [
+      "px4_msgs/msg/VehicleControlMode"
+    ],
+    "/fmu/in/config_overrides_request": [
+      "px4_msgs/msg/ConfigOverrides"
+    ],
+    "/fmu/in/distance_sensor": [
+      "px4_msgs/msg/DistanceSensor"
+    ],
+    "/fmu/in/goto_setpoint": [
+      "px4_msgs/msg/GotoSetpoint"
+    ],
+    "/fmu/in/manual_control_input": [
+      "px4_msgs/msg/ManualControlSetpoint"
+    ],
+    "/fmu/in/message_format_request": [
+      "px4_msgs/msg/MessageFormatRequest"
+    ],
+    "/fmu/in/mode_completed": [
+      "px4_msgs/msg/ModeCompleted"
+    ],
+    "/fmu/in/obstacle_distance": [
+      "px4_msgs/msg/ObstacleDistance"
+    ],
+    "/fmu/in/offboard_control_mode": [
+      "px4_msgs/msg/OffboardControlMode"
+    ],
+    "/fmu/in/onboard_computer_status": [
+      "px4_msgs/msg/OnboardComputerStatus"
+    ],
+    "/fmu/in/register_ext_component_request": [
+      "px4_msgs/msg/RegisterExtComponentRequest"
+    ],
+    "/fmu/in/sensor_optical_flow": [
+      "px4_msgs/msg/SensorOpticalFlow"
+    ],
+    "/fmu/in/telemetry_status": [
+      "px4_msgs/msg/TelemetryStatus"
+    ],
+    "/fmu/in/trajectory_setpoint": [
+      "px4_msgs/msg/TrajectorySetpoint"
+    ],
+    "/fmu/in/unregister_ext_component": [
+      "px4_msgs/msg/UnregisterExtComponent"
+    ],
+    "/fmu/in/vehicle_attitude_setpoint": [
+      "px4_msgs/msg/VehicleAttitudeSetpoint"
+    ],
+    "/fmu/in/vehicle_command": [
+      "px4_msgs/msg/VehicleCommand"
+    ],
+    "/fmu/in/vehicle_command_mode_executor": [
+      "px4_msgs/msg/VehicleCommand"
+    ],
+    "/fmu/in/vehicle_mocap_odometry": [
+      "px4_msgs/msg/VehicleOdometry"
+    ],
+    "/fmu/in/vehicle_rates_setpoint": [
+      "px4_msgs/msg/VehicleRatesSetpoint"
+    ],
+    "/fmu/in/vehicle_thrust_setpoint": [
+      "px4_msgs/msg/VehicleThrustSetpoint"
+    ],
+    "/fmu/in/vehicle_torque_setpoint": [
+      "px4_msgs/msg/VehicleTorqueSetpoint"
+    ],
+    "/fmu/in/vehicle_visual_odometry": [
+      "px4_msgs/msg/VehicleOdometry"
+    ],
+    "/fmu/out/airspeed_validated": [
+      "px4_msgs/msg/AirspeedValidated"
+    ],
+    "/fmu/out/arming_check_request": [
+      "px4_msgs/msg/ArmingCheckRequest"
+    ],
+    "/fmu/out/battery_status": [
+      "px4_msgs/msg/BatteryStatus"
+    ],
+    "/fmu/out/collision_constraints": [
+      "px4_msgs/msg/CollisionConstraints"
+    ],
+    "/fmu/out/estimator_status_flags": [
+      "px4_msgs/msg/EstimatorStatusFlags"
+    ],
+    "/fmu/out/failsafe_flags": [
+      "px4_msgs/msg/FailsafeFlags"
+    ],
+    "/fmu/out/home_position": [
+      "px4_msgs/msg/HomePosition"
+    ],
+    "/fmu/out/manual_control_setpoint": [
+      "px4_msgs/msg/ManualControlSetpoint"
+    ],
+    "/fmu/out/message_format_response": [
+      "px4_msgs/msg/MessageFormatResponse"
+    ],
+    "/fmu/out/mode_completed": [
+      "px4_msgs/msg/ModeCompleted"
+    ],
+    "/fmu/out/position_setpoint_triplet": [
+      "px4_msgs/msg/PositionSetpointTriplet"
+    ],
+    "/fmu/out/register_ext_component_reply": [
+      "px4_msgs/msg/RegisterExtComponentReply"
+    ],
+    "/fmu/out/sensor_combined": [
+      "px4_msgs/msg/SensorCombined"
+    ],
+    "/fmu/out/timesync_status": [
+      "px4_msgs/msg/TimesyncStatus"
+    ],
+    "/fmu/out/vehicle_attitude": [
+      "px4_msgs/msg/VehicleAttitude"
+    ],
+    "/fmu/out/vehicle_command_ack": [
+      "px4_msgs/msg/VehicleCommandAck"
+    ],
+    "/fmu/out/vehicle_control_mode": [
+      "px4_msgs/msg/VehicleControlMode"
+    ],
+    "/fmu/out/vehicle_global_position": [
+      "px4_msgs/msg/VehicleGlobalPosition"
+    ],
+    "/fmu/out/vehicle_gps_position": [
+      "px4_msgs/msg/SensorGps"
+    ],
+    "/fmu/out/vehicle_land_detected": [
+      "px4_msgs/msg/VehicleLandDetected"
+    ],
+    "/fmu/out/vehicle_local_position": [
+      "px4_msgs/msg/VehicleLocalPosition"
+    ],
+    "/fmu/out/vehicle_odometry": [
+      "px4_msgs/msg/VehicleOdometry"
+    ],
+    "/fmu/out/vehicle_status_v1": [
+      "px4_msgs/msg/VehicleStatus"
+    ],
+    "/fmu/out/vtol_vehicle_status": [
+      "px4_msgs/msg/VtolVehicleStatus"
+    ],
+    "/parameter_events": [
+      "rcl_interfaces/msg/ParameterEvent"
+    ],
+    "/px4_1/fmu/out/battery_status": [
+      "px4_msgs/msg/BatteryStatus"
+    ],
+    "/px4_1/fmu/out/estimator_status_flags": [
+      "px4_msgs/msg/EstimatorStatusFlags"
+    ],
+    "/px4_1/fmu/out/failsafe_flags": [
+      "px4_msgs/msg/FailsafeFlags"
+    ],
+    "/px4_1/fmu/out/manual_control_setpoint": [
+      "px4_msgs/msg/ManualControlSetpoint"
+    ],
+    "/px4_1/fmu/out/vehicle_attitude": [
+      "px4_msgs/msg/VehicleAttitude"
+    ],
+    "/px4_1/fmu/out/vehicle_gps_position": [
+      "px4_msgs/msg/SensorGps"
+    ],
+    "/px4_1/fmu/out/vehicle_local_position": [
+      "px4_msgs/msg/VehicleLocalPosition"
+    ],
+    "/px4_1/fmu/out/vehicle_status_v1": [
+      "px4_msgs/msg/VehicleStatus"
+    ],
+    "/rosout": [
+      "rcl_interfaces/msg/Log"
+    ]
+  },
+  "nodes": [
+    [
+      "jetson_runtime_readonly",
+      "/"
+    ],
+    [
+      "live_probe",
+      "/"
+    ]
+  ],
+  "fleet_configs": [
+    {
+      "path": "/home/nvidia/payload_catch_deploy/config/fleet.yaml",
+      "exists": false
+    },
+    {
+      "path": "/home/nvidia/payload_catch_deploy/fleet.yaml",
+      "exists": false
+    },
+    {
+      "path": "/home/nvidia/payload_catch_deploy/fleet_config.yaml",
+      "exists": false
+    },
+    {
+      "path": "/home/nvidia/payload_catch_deploy/host/fleet.yaml",
+      "exists": false
+    },
+    {
+      "path": "/home/nvidia/payload_catch_deploy/releases/13c1e49da415339aa236e19547c63a809de15e55235584917a700e964dd1702a/src/config/fleet.example.yaml",
+      "exists": true,
+      "valid": false,
+      "error": "fill a unique mission_id and schema=1"
+    }
+  ],
+  "servo_config": {
+    "enabled": false,
+    "calibrated": false,
+    "backend": "jetson",
+    "neutral_us": 1500,
+    "open_us": 1700,
+    "period_ns": 20000000,
+    "release_delay_s": 1.5,
+    "delay_reference": "operator_direct",
+    "delay_tolerance_s": 0.02,
+    "feedback_timeout_s": 0.15,
+    "max_output_s": 2.0,
+    "attempt_record": "/var/lib/payload_catch/pwm33_attempt.json"
+  },
+  "pwm_hardware": "platform/39c0000.tachometer, 1 PWM device\n pwm-0   ((null)              ): period: 0 ns duty: 0 ns polarity: normal\n\nplatform/32e0000.pwm, 1 PWM device\n pwm-0   ((null)              ): period: 0 ns duty: 0 ns polarity: normal\n\nplatform/32c0000.pwm, 1 PWM device\n pwm-0   ((null)              ): period: 0 ns duty: 0 ns polarity: normal\n\nplatform/32a0000.pwm, 1 PWM device\n pwm-0   (pwm-fan             ): requested enabled period: 45334 ns duty: 14223 ns polarity: normal\n\nplatform/3280000.pwm, 1 PWM device\n pwm-0   ((null)              ): period: 0 ns duty: 0 ns polarity: normal\n"
+}

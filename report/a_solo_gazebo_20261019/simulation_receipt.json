@@ -1,0 +1,27 @@
+{
+  "schema": "a_solo_no_payload_v1",
+  "scope": "a_solo_no_payload_v1",
+  "passed": true,
+  "checked_at": 1792377692.752164,
+  "drone_ids": [
+    0
+  ],
+  "system_id": 1,
+  "battery_min": 0.4,
+  "rc": true,
+  "gps": false,
+  "release_allowed": false,
+  "config_digest": "904329ae2d75715324680025698e2cbe0093a47c889c3035e84d43eb519a7235",
+  "code_digest": "17c415d56737039a4dd690bd84cd30e76432444922d4bae144843c023d54c6f8",
+  "identity": {
+    "hostname": "GAZEBO_SITL_A",
+    "board_serial": "GAZEBO_ONLY_NO_BOARD",
+    "boot_id": "ISOLATED_GAZEBO_5c3af484-d78a-49f7-ae5c-eb7e766a4da9"
+  },
+  "params_checked": [
+    0
+  ],
+  "param_profile": "indoor",
+  "simulation_only": true,
+  "params_sha256": "d74ac12f88183b36ccc992ea9502d225693e8ebc1812a9b16667e97bc1fe6011"
+}

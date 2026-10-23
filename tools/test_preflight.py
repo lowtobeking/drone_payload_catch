@@ -169,7 +169,10 @@ r = probe_live(runner=lambda cmd, timeout=8: (1, payload))
 check('解析 JSON → 合并为 d0/d1', r is not None and len(r) == 2
       and r[0].name == 'd0: lpos 发布' and r[1].status == 'fail')
 r = probe_live(runner=lambda cmd, timeout=8: (2, '❌ live_probe 需要 ROS'))
-check('无 ROS（非 JSON）→ None 回退', r is None)
+check('无 ROS／非 JSON → fail，禁止回退', any(x.status == 'fail' for x in r))
+for text in ('{}', '{"0":[]}', '{"0":[],"1":[]}', '[]'):
+    r = probe_live(runner=lambda cmd, timeout=8: (0, text))
+    check('空／缺机结果拒绝：' + text, any(x.status == 'fail' for x in r))
 
 print('\n=== probe_params ===')
 check('无来源 → None', probe_params() is None)

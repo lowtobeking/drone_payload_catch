@@ -1,0 +1,9 @@
+{
+  "removed": [
+    "/home/caolihao/drone_payload_catch/report/a_solo_validation_20261019/write_implementation.py",
+    "/home/caolihao/drone_payload_catch/report/a_solo_validation_20261019/fix_packaging.py",
+    "/home/caolihao/drone_payload_catch/payload_catch/__pycache__/solo_validation.cpython-310.pyc",
+    "/home/caolihao/drone_payload_catch/tools/__pycache__/a_solo_preflight.cpython-310.pyc"
+  ],
+  "kept": "source, tests, reproducible checks, backup and verification logs"
+}

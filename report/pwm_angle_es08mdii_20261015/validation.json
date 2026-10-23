@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-15",
+  "servo": "EMAX ES08MD II",
+  "authorization": "desktop tool changes and offline tests; no SSH or real PWM this update",
+  "checks": {
+    "protocol_angle_period_migration": "21 tests passed",
+    "project_quick_checks": "PASS=33 FAIL=0",
+    "windows_gui_smoke": "passed asserted degrees/continuous hold/live update/50Hz/stop retaining mode; no SSH",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "provisional_mapping": {
+    "reference_us": 1500,
+    "relative_reference_deg": 0,
+    "us_per_degree": 10,
+    "calibrated": false
+  },
+  "bench_frequency": {
+    "hz": 50,
+    "manufacturer_rating_confirmed": false,
+    "hardware_tested_this_update": false
+  },
+  "backup": "/home/caolihao/pwm_angle_backup_20261015_143118",
+  "source_hashes": {
+    "tools/pwm_ssh_gui.py": "0474f5cd5bcffb673ddf54b298e6900235527105b2b5e11eb7e313f12972466b",
+    "tools/pwm_angle.py": "eae3731e40866ee0530200aeac2332bb9b964f67ddb23d770527c4ed65eda385",
+    "tools/pwm_remote_agent.py": "78a38cec40909984a2b3e1315dc039bd7876e414cd7d9922378f01253552f619",
+    "tools/test_pwm_gui.py": "740d8d8d25e02903ea90dff92b88e56bcf346c3304003fb9bc4a884150c47126"
+  }
+}

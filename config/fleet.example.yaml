@@ -1,0 +1,23 @@
+schema: 1
+mission_id: FILL_ME
+# Match BOTH real FCs and their Agents. Observed A currently uses 0.
+# Selecting 0 also requires domain_zero_confirmed=true after verifying both sides.
+domain_id: 42
+domain_zero_confirmed: false
+hosts:
+  a: {hostname: '', ip: '', system_id: 1}
+  b: {hostname: '', ip: '', system_id: 2}
+operator_ips: []
+servo_config: payload_servo.yaml
+geometry_confirmed: false
+launch:
+  coord_mode: handshake
+  preflight_require_gps: 'true'
+  a_hover: [0.0, 0.0, -4.5]
+  b_standby: [0.0, 0.0, -3.5]
+  a_lever: null
+  b_lever: null
+  b_offset: null
+  source: rtk
+  a_rtk_topic: /rtk/a
+  b_rtk_topic: /rtk/b

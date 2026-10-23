@@ -1,0 +1,38 @@
+{
+  "checks": {
+    "ros": {
+      "exit_code": 0,
+      "log": "ros.log"
+    },
+    "quick": {
+      "exit_code": 0,
+      "log": "quick.log"
+    },
+    "diff": {
+      "exit_code": 0,
+      "log": "diff.log"
+    }
+  },
+  "hardware_access": false,
+  "user_confirmed_direct_delay_s": 1.5,
+  "direct_delay_measured": true,
+  "reference": "operator_direct",
+  "target_us": 1700,
+  "actuation": "direct",
+  "flight_enabled": false,
+  "flight_calibrated": false,
+  "sha256": {
+    "payload_catch/payload_servo.py": "e777c3ff824c3957fe5a45a3cce234e9d876f47d4421e344f388e94eda5ee76c",
+    "payload_catch/servo_pwm.py": "10fb860ea4c4cc6020098af4aa2a798d345ec1fda958005c0069e997de4d88d4",
+    "payload_catch/release_guard.py": "57c4b8d0cd005d965e192420731e5f4899e7977712f69b09bd1a65408c393c68",
+    "payload_catch/payload_servo_node.py": "da620a20d2f3748a186637dca0d0f45aae248a126aae2990b2f36b4398e88453",
+    "payload_catch/b_node.py": "320d03bf18a0b03f698e9c13e354b1ff6e76456e9e35406f1d85dfb543830a42",
+    "launch/catch_real_launch.py": "b0732d542a48b20c97306577a841141d391e9fc8e2ddc29d217a6aa619ba2926",
+    "config/payload_servo.yaml": "aa3f7f5c50bbe2e5a07bbf976919a87387aed68b17e39e2f9007d4884f7619e4",
+    "tools/test_payload_servo.py": "4cd48408dafe64162ddd423ea72915a6b17cb9c9bd895b3493b864566df46f9f",
+    "tools/test_safety_runtime.py": "a93efa574274c109a6030eb29f775a4d8c084fd957bfc9131a7069a12a3cc204",
+    "tools/pwm_remote_agent.py": "dad5ee8a110633887cc0ae08a7e1fe79fd07899e962f0781a0ea1613bd9999a6",
+    "tools/pwm_ssh_gui.py": "02ad96b47f7eddf5bb1e53b29429540e557f404b84409c11e65f92e5d71c8eef",
+    "tools/test_pwm_gui.py": "ab5f03fa030673f024aed3354f848302f872a2315596d741ed9f14be00d7cb09"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "kind": "manual_forward_translation",
+  "recorded_at_utc": "2026-10-21 08:11:52 UTC",
+  "baseline_file": "planeA_forward_baseline_20261021.json",
+  "before": {
+    "tracker": "planeA",
+    "count": 1199,
+    "invalid": 0,
+    "nonincreasing_timestamps": 0,
+    "connected": true,
+    "rate_hz": 120.004676952893,
+    "age_s": 0.003189672,
+    "position": [
+      1.07463610839844,
+      -0.419085510253906,
+      0.290876190185547
+    ],
+    "quaternion_xyzw": [
+      0.00269809155724943,
+      0.00284183025360107,
+      0.999980092048645,
+      -0.00492824707180262
+    ],
+    "forwarded_to_px4": false
+  },
+  "after": {
+    "tracker": "planeA",
+    "count": 1198,
+    "invalid": 0,
+    "nonincreasing_timestamps": 0,
+    "connected": true,
+    "rate_hz": 120.011559308862,
+    "age_s": 0.006374768,
+    "position": [
+      1.02970300292969,
+      0.187830795288086,
+      0.291765747070312
+    ],
+    "quaternion_xyzw": [
+      -0.00107053015381098,
+      0.00059133768081665,
+      0.999922335147858,
+      0.0123985344544053
+    ],
+    "forwarded_to_px4": false
+  },
+  "delta_position_m": [
+    -0.044933105468749845,
+    0.6069163055419919,
+    0.0008895568847649971
+  ],
+  "horizontal_displacement_m": 0.6085773458647687,
+  "orientation_change_deg": 2.048262720962579,
+  "finding": "Operator reported forward translation at fixed nose heading; displacement predominantly +mocap Y, with smaller -X component. This applies to the tested heading, not a universal world-to-body mapping. Mocap units assumed meters; physical displacement not independently measured.",
+  "forwarded_to_px4": false
+}

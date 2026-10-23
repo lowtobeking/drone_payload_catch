@@ -1,0 +1,45 @@
+{
+  "software_reported_by_operator": "FZMotion",
+  "software_version_unknown": true,
+  "server_wire_matches_callback": true,
+  "wire_timestamp_source_minus_receive_us_range": [
+    43203404101,
+    43203513556
+  ],
+  "pong_and_pose_share_large_time_difference": true,
+  "roundtrip_samples": 20,
+  "rtt_us": {
+    "minimum": 12022,
+    "median": 19667.5,
+    "maximum": 39569
+  },
+  "CONDITIONAL_local_minus_server_offset_interval": {
+    "lower_us": -43203513008,
+    "upper_us": -43203501894,
+    "intersection_nonempty": true,
+    "midpoint_us": -43203507451.0,
+    "half_width_us": 5557.0
+  },
+  "interval_assumptions": [
+    "Pong timestamp generated during this request processing",
+    "Pong and pose timestamps use the same source clock",
+    "Negligible unbounded drift during measurement",
+    "No unrecognized unsolicited response or echo semantics"
+  ],
+  "server_timestamp_semantics_verified": false,
+  "sampling_exposure_delay_verified": false,
+  "mapping_written_to_bridge_config": false,
+  "physical_origin_offset_known": false,
+  "diagnostic_18s_passed": true,
+  "diagnostic_matched_positions": 577,
+  "diagnostic_max_receive_gap_us": 36438,
+  "forwarded_to_px4": false,
+  "flight_approval": false,
+  "remaining": [
+    "FZMotion version and time-output semantics",
+    "Rigid-body origin/installation offset",
+    "Tracking-loss and frozen-source checks",
+    "Longer bounded continuity validation",
+    "Actual PX4 input and EKF fusion acceptance"
+  ]
+}

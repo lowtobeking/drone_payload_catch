@@ -1,0 +1,100 @@
+{
+  "passed": true,
+  "profile": "/home/nvidia/payload_catch_deploy/host/runtime.yaml",
+  "profile_sha256": "24a42070264f64720e7419d6e335852d0b4b8366613a029bd4dc3853f8d8647c",
+  "reused_existing_services": true,
+  "flight_approval": false,
+  "actuator_commands_sent": 0,
+  "observations": {
+    "hostname": "nvidia-desktop",
+    "environment_domain": "0",
+    "environment_rmw": "rmw_fastrtps_cpp",
+    "ros_localhost_only": "0",
+    "overlay_exists": true,
+    "interfaces": {
+      "lo": [
+        "127.0.0.1"
+      ],
+      "wlP1p1s0": [
+        "192.168.155.186"
+      ],
+      "enx00e04c680065": [
+        "192.168.1.101"
+      ],
+      "eno1": [
+        "10.41.10.100"
+      ],
+      "docker0": [
+        "172.17.0.1"
+      ]
+    },
+    "px4_msgs_commit": "392e831c1f659429ca83902e66820d7094591410",
+    "px4_msgs_clean": true,
+    "agent": {
+      "pid": 1003,
+      "active": "active",
+      "enabled": "enabled",
+      "argv": [
+        "/usr/local/bin/MicroXRCEAgent",
+        "udp4",
+        "-p",
+        "8888"
+      ],
+      "environment": {
+        "ROS_DOMAIN_ID": "0",
+        "RMW_IMPLEMENTATION": "rmw_fastrtps_cpp"
+      }
+    },
+    "relay": {
+      "pid": 1002,
+      "active": "active",
+      "enabled": "enabled",
+      "argv": [
+        "/usr/bin/python3",
+        "/home/nvidia/Multi-UAV-simulation/tools/mav_relay.py",
+        "192.168.1.123"
+      ],
+      "environment": {
+        "MAV_RELAY_FC": "10.41.10.2"
+      },
+      "script_sha256": "0909eeedc4c8863a1a9d46211a3135bbf0eb2bd5950569859f34d0bfcea5c247"
+    },
+    "agent_pids": [
+      1003
+    ],
+    "udp_owners": {
+      "8888": [
+        1003
+      ],
+      "14550": [
+        1002
+      ]
+    }
+  },
+  "ros": {
+    "status": {
+      "samples": 8,
+      "latest_age_s": 0.11360999200041988,
+      "source_time_increases": true
+    },
+    "position": {
+      "samples": 401,
+      "latest_age_s": 8.704300034878543e-05,
+      "source_time_increases": true
+    },
+    "attitude": {
+      "samples": 400,
+      "latest_age_s": 0.006583123999917007,
+      "source_time_increases": true
+    },
+    "battery": {
+      "samples": 40,
+      "latest_age_s": 0.04344651800056454,
+      "source_time_increases": true
+    },
+    "fcu_system_id": 1,
+    "fcu_disarmed": true,
+    "control_publishers": {}
+  },
+  "failures": []
+}

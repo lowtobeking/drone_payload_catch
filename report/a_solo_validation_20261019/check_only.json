@@ -1,0 +1,27 @@
+{
+  "case": "check_only",
+  "mock_only": true,
+  "real_px4": false,
+  "b_present": false,
+  "commands": [],
+  "phases": [
+    "CHECK",
+    "READY"
+  ],
+  "setpoints": 0,
+  "offboard_modes": 0,
+  "release_events": [],
+  "worker_pids": [
+    183,
+    184
+  ],
+  "passed": true,
+  "final_phase": "READY",
+  "landed": true,
+  "final_position": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "workers_stopped": true
+}

@@ -1,0 +1,12 @@
+{
+  "result": "PASS",
+  "ssh_gui_handshake": "real device, status/ping/close only",
+  "mode": "PWM held",
+  "period_ns": 20000000,
+  "pulse_us": 0,
+  "enabled": false,
+  "boot_id": "841a584a-abd2-43d8-b005-b208a8a9c764",
+  "archive": "/home/nvidia/pwm_pin33_safety/boot_recheck_841a584a-abd2-43d8-b005-b208a8a9c764_20261015T154611",
+  "rollback": "sudo -n python3 /home/nvidia/pwm_pin33_safety/pin33_pwm_safe.py restore",
+  "servo_continuous_rotation_root_cause": "unresolved; no actuation this operation"
+}

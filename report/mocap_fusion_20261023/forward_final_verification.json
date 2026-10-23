@@ -1,0 +1,25 @@
+{
+  "parameter_count": 1127,
+  "parameter_differences": {},
+  "EKF2_EV_CTRL": 0,
+  "UXRCE_DDS_SYNCT": 1,
+  "task_processes_remaining": 0,
+  "core_bridge_modified_this_turn": false,
+  "flight_or_actuator_commands": 0,
+  "fusion_test_not_restarted": true,
+  "heading_reference_change_deg": -40.93752885200199,
+  "heading_guard_observed_refusal_before_ssh": true,
+  "syntax_checked": [
+    "compare_forward_597705.py",
+    "run_heading_candidate_on_a.py",
+    "verify_forward_after.py"
+  ],
+  "audit": {
+    "read_only": true,
+    "serial": "1612425621719",
+    "boot": "a006295d-9ab4-41c6-a277-f0a2455a86a8",
+    "current": "/home/nvidia/payload_catch_deploy/releases/b4453dd12c8482d808613769fb6c781bd7debff566633bf0fc4827a6d2654d37",
+    "remaining_task_processes": [],
+    "services": "MainPID=1011\nId=payload-catch-agent.service\nActiveState=active\n\nMainPID=1013\nId=payload-catch-mav-relay.service\nActiveState=active\n"
+  }
+}

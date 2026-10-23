@@ -1,0 +1,10 @@
+{
+  "files_compared": 230,
+  "migration_changed_files": [
+    "env.sh",
+    "package.xml",
+    "README.md",
+    "MEMORY.md"
+  ],
+  "safety_and_algorithm_source_preserved": true
+}

@@ -1,0 +1,10 @@
+{
+  "boot_id": "841a584a-abd2-43d8-b005-b208a8a9c764",
+  "old_baseline_boot_id": "588d2395-ab3e-4ec5-9eeb-497bf00967d4",
+  "ssh_ip": "192.168.155.186",
+  "pin33_register": "0x54",
+  "pwm_channel_exported": false,
+  "boot_hashes_unchanged": true,
+  "remote_changes": "none; read-only",
+  "warning": "Saved baseline and hold-state record are stale from previous boot; no automatic overwrite or output."
+}

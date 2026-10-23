@@ -43,31 +43,16 @@ for k in $(seq 1 40); do
 done
 echo "  就绪后再等 8s 让 EKF 稳定"; sleep 8
 
-# 起飞前 live 自检（可选，PREFLIGHT=1）：只读探测运行中的 PX4 就绪（话题/EKF 有效）
-if [ "${PREFLIGHT:-0}" = "1" ]; then
-  echo "### 起飞前 live 自检（PREFLIGHT=1）"
-  PF_EXTRA=""; [ "${PREFLIGHT_GPS:-0}" = "1" ] && PF_EXTRA="--gps"
-  if ! python3 "$HOME/drone_payload_catch/tools/preflight_check.py" --live --logs $PF_EXTRA; then
-    echo "❌ 起飞前 live 自检未通过 → 放弃本次起飞"
-    for p in 'px4 -d -i' 'gz sim' MicroXRCEAgent; do pkill -9 -f "$p" 2>/dev/null; done
-    exit 1
-  fi
-  if [ "${PREFLIGHT_PARAMS:-0}" = "1" ]; then
-    for inst in 0 1; do
-      port=$((18570 + inst))
-      echo "### 飞控参数检查 drone$inst (udpout:127.0.0.1:$port)"
-      if ! python3 "$HOME/drone_payload_catch/tools/preflight_params.py" \
-             --mavlink "udpout:127.0.0.1:$port" --profile sitl; then
-        echo "❌ 飞控参数检查未通过 → 放弃本次起飞"
-        for p in 'px4 -d -i' 'gz sim' MicroXRCEAgent; do pkill -9 -f "$p" 2>/dev/null; done
-        exit 1
-      fi
-    done
-  fi
+# 强制双机健康 + 完整参数检查；旧 PREFLIGHT 开关不能跳过。
+PF_REPORT="$D/preflight.json"
+if ! python3 "$HOME/drone_payload_catch/tools/preflight_check.py" --live --logs \
+    --param-profile sitl --param-mavlink-a udpout:127.0.0.1:18570 \
+    --param-mavlink-b udpout:127.0.0.1:18571 --write-approval "$PF_REPORT"; then
+  echo "自检未通过，拒绝起飞"; exit 1
 fi
 
 echo "### launch payload_catch (A/B/payload)"
-timeout $((RUN_S + 40)) ros2 launch payload_catch catch_launch.py controller:="${CTRL:-pd}" a_hover:="[$A_HOVER]" b_standby:="[$B_STANDBY]" b_offset:="[$B_OFFSET]" > "$D/launch.log" 2>&1 &
+timeout $((RUN_S + 40)) ros2 launch payload_catch catch_launch.py preflight_report:="$PF_REPORT" controller:="${CTRL:-pd}" a_hover:="[$A_HOVER]" b_standby:="[$B_STANDBY]" b_offset:="[$B_OFFSET]" > "$D/launch.log" 2>&1 &
 sleep "$RUN_S"
 
 echo "### 结果"

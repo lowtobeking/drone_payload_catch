@@ -1,0 +1,28 @@
+{
+  "host": "nvidia-desktop",
+  "architecture": "aarch64",
+  "boot_id": "95cbe7b2-836e-4add-9e46-9c2b5aa6ea7c",
+  "current": "/home/nvidia/payload_catch_deploy/releases/13c1e49da415339aa236e19547c63a809de15e55235584917a700e964dd1702a",
+  "role": "a",
+  "pwm": {},
+  "mission_processes": [],
+  "vehicle_status": {
+    "arming_state": 1,
+    "nav_state": 4,
+    "system_id": 1,
+    "timestamp": 1792139576669414
+  },
+  "status_samples": 8,
+  "services": {
+    "mav-relay.service": "inactive",
+    "microxrce-agent.service": "inactive"
+  },
+  "boot_hashes": {
+    "/boot/extlinux/extlinux.conf": "6d55aea184afb2f389d624e6a9c83fb280837164eda406c3e81035d84f19bc32"
+  },
+  "pad33": "0x54",
+  "hardware_pwm": "platform/39c0000.tachometer, 1 PWM device\n pwm-0   ((null)              ): period: 0 ns duty: 0 ns polarity: normal\n\nplatform/32e0000.pwm, 1 PWM device\n pwm-0   ((null)              ): period: 0 ns duty: 0 ns polarity: normal\n\nplatform/32c0000.pwm, 1 PWM device\n pwm-0   ((null)              ): period: 0 ns duty: 0 ns polarity: normal\n\nplatform/32a0000.pwm, 1 PWM device\n pwm-0   (pwm-fan             ): requested enabled period: 45334 ns duty: 14045 ns polarity: normal\n\nplatform/3280000.pwm, 1 PWM device\n pwm-0   ((null)              ): period: 0 ns duty: 0 ns polarity: normal\n",
+  "passed": true,
+  "pwm_idle": true,
+  "pwm_mode_after_reboot": "original_gpio_unexported"
+}
