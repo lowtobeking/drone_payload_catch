@@ -12,17 +12,22 @@ class FlightBridgeTests(unittest.TestCase):
     def setUp(self):
         self.cfg, self.transform = load_config(ROOT / "config/mocap_a.solo_flight.yaml")
 
-    def test_disabled_until_confirmations(self):
+    def test_explicit_receive_time_flight_policy(self):
         self.assertEqual(self.cfg["scope"], "a_solo_flight")
         self.assertEqual(self.cfg["transform"]["body_origin_in_marker_m"], [0.0, 0.0, -0.16])
-        self.assertIn("enabled must explicitly be true", live_issues(self.cfg, flight_receive_time=True))
-        self.cfg["enabled"] = True
-        self.assertIn("lever_arm_measured not confirmed", live_issues(self.cfg, flight_receive_time=True))
-        self.cfg["mounting_confirmed"] = True
-        self.cfg["lever_arm_measured"] = True
-        self.cfg["tracking_loss_verified"] = True
+        self.assertFalse(self.cfg["mounting_confirmed"])
+        self.assertFalse(self.cfg["lever_arm_measured"])
+        self.assertFalse(self.cfg["server_timing_verified"])
+        self.assertFalse(self.cfg["tracking_loss_verified"])
         self.assertEqual(live_issues(self.cfg, flight_receive_time=True), [])
         self.assertTrue(live_issues(self.cfg))
+        self.assertTrue(live_issues(self.cfg, ground_receive_time=True))
+        self.cfg["enabled"] = False
+        self.assertIn("enabled must explicitly be true", live_issues(self.cfg, flight_receive_time=True))
+
+    def test_receive_time_flight_acknowledgement_required(self):
+        self.cfg["flight_receive_time_acknowledged"] = False
+        self.assertTrue(live_issues(self.cfg, flight_receive_time=True))
 
     def test_arm_transition_preserves_fresh_bridge(self):
         gate = GroundGate(self.cfg)
