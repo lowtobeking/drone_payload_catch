@@ -1,0 +1,81 @@
+[
+  {
+    "test": "test_mocap_transform.py",
+    "exit": 0,
+    "result_lines": [
+      "..........",
+      "----------------------------------------------------------------------",
+      "Ran 10 tests in 0.022s",
+      "",
+      "OK"
+    ]
+  },
+  {
+    "test": "test_mocap_odometry.py",
+    "exit": 0,
+    "result_lines": [
+      ".......................",
+      "----------------------------------------------------------------------",
+      "Ran 23 tests in 0.105s",
+      "",
+      "OK"
+    ]
+  },
+  {
+    "test": "test_mocap_receive_ground.py",
+    "exit": 0,
+    "result_lines": [
+      ".........",
+      "----------------------------------------------------------------------",
+      "Ran 9 tests in 0.036s",
+      "",
+      "OK"
+    ]
+  },
+  {
+    "test": "test_mocap_fixed_reference.py",
+    "exit": 0,
+    "result_lines": [
+      ".....",
+      "----------------------------------------------------------------------",
+      "Ran 5 tests in 0.034s",
+      "",
+      "OK"
+    ]
+  },
+  {
+    "test": "test_mocap_height.py",
+    "exit": 0,
+    "result_lines": [
+      ".....",
+      "----------------------------------------------------------------------",
+      "Ran 5 tests in 0.042s",
+      "",
+      "OK"
+    ]
+  },
+  {
+    "test": "test_mocap_flight_bridge.py",
+    "exit": 1,
+    "result_lines": [
+      "    self.assertIn(\"enabled must explicitly be true\", live_issues(self.cfg, flight_receive_time=True))",
+      "AssertionError: 'enabled must explicitly be true' not found in []",
+      "",
+      "----------------------------------------------------------------------",
+      "Ran 4 tests in 0.014s",
+      "",
+      "FAILED (failures=1)"
+    ]
+  },
+  {
+    "test": "test_a_solo.py",
+    "exit": 0,
+    "result_lines": [
+      "..........................",
+      "----------------------------------------------------------------------",
+      "Ran 26 tests in 0.037s",
+      "",
+      "OK"
+    ]
+  }
+]

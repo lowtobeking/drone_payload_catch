@@ -1,0 +1,511 @@
+{
+  "updated": "2026-10-26T14:49:08.851108+08:00",
+  "run": "lift_reference_20261026T064203Z",
+  "ground_test_passed": true,
+  "flight_approval": false,
+  "validation": {
+    "passed": true,
+    "flight_approval": false,
+    "fixed_frame": "aerolab_world_Y_X_minusZ_v1",
+    "phases": {
+      "baseline": {
+        "label": "baseline",
+        "monotonic": 3793.904048612,
+        "input_xyz": [
+          -0.04785673464648425,
+          1.0380609072744846,
+          -0.2913497591391206
+        ],
+        "px4_xyz": [
+          -0.047486111549660565,
+          1.037707751095295,
+          -0.2914349016547203
+        ],
+        "px4_z_span_m": 0.0014635324478149414,
+        "input_z_span_m": 0.0001252591609954834,
+        "input_yaw_deg": -115.05721296850128,
+        "px4_yaw_deg": -115.06020473795134,
+        "local_samples": 400,
+        "input_samples": 160,
+        "flags_samples": 4
+      },
+      "right_move": {
+        "label": "right_move",
+        "monotonic": 3865.674777222,
+        "input_xyz": [
+          0.7884451158344745,
+          0.6805732812732458,
+          -0.292256729491055
+        ],
+        "px4_xyz": [
+          0.7890433836401555,
+          0.682085404868114,
+          -0.29178265424300553
+        ],
+        "px4_z_span_m": 0.0011185109615325928,
+        "input_z_span_m": 0.00019726157188415527,
+        "input_yaw_deg": -107.2347020049103,
+        "px4_yaw_deg": -107.45340133400242,
+        "local_samples": 399,
+        "input_samples": 160,
+        "flags_samples": 4
+      }
+    },
+    "translation": {
+      "input_displacement_m": [
+        0.8363018504809587,
+        -0.35748762600123885,
+        -0.000906970351934433
+      ],
+      "px4_displacement_m": [
+        0.836529495189816,
+        -0.35562234622718103,
+        -0.0003477525882852328
+      ],
+      "input_right_m": 0.9089978252414965,
+      "px4_right_m": 0.9084140562664893,
+      "input_cross_m": -0.03035031413523226,
+      "horizontal_displacement_difference_m": 0.001879119673937743,
+      "horizontal_endpoint_difference_m": 0.0016261740784649684,
+      "yaw_difference_deg": 0.21869932909211798,
+      "ground_functional_tolerance_m": 0.05,
+      "settling_time_after_stable_detection_s": 8.030705227999988,
+      "independent_physical_distance_not_measured": true
+    },
+    "lease": {
+      "changed": true,
+      "restored": true,
+      "restore_restart_verified": true,
+      "flight_approval": false,
+      "flight_commands": 0,
+      "fc_only_reboots": 2,
+      "lease_ended": true
+    },
+    "counts": {
+      "flags": 97,
+      "land": 99,
+      "status": 190,
+      "local": 9516,
+      "raw": 10172,
+      "bridge": 163,
+      "input": 3192
+    }
+  },
+  "audit": {
+    "test": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_right_translation_20261026\\lift_reference_20261026T064203Z",
+    "post": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_right_translation_20261026\\after_20261026T064755Z",
+    "parameter_differences": {
+      "CAL_BARO0_OFF": {
+        "before": {
+          "value": -50.65625,
+          "type": 9,
+          "index": 59
+        },
+        "after": {
+          "value": -54.9296875,
+          "type": 9,
+          "index": 59
+        }
+      }
+    },
+    "parameter_count": 1127,
+    "complete": true,
+    "jetson_boot": "dc981513-5789-4a7c-ba91-57367486bfa9",
+    "remaining_task_processes": [],
+    "services": "MainPID=1019\nId=payload-catch-agent.service\nActiveState=active\n\nMainPID=1024\nId=payload-catch-mav-relay.service\nActiveState=active\n\nMainPID=2770\nId=payload-catch-wifi-peer.service\nActiveState=active\n",
+    "current": "/home/nvidia/payload_catch_deploy/releases/b4453dd12c8482d808613769fb6c781bd7debff566633bf0fc4827a6d2654d37",
+    "exact_parameter_match": false,
+    "test_parameters_restored": true,
+    "jetson_boot_unchanged": true,
+    "autonomous_calibration_candidates": {
+      "CAL_BARO0_OFF": {
+        "before": {
+          "value": -50.65625,
+          "type": 9,
+          "index": 59
+        },
+        "after": {
+          "value": -54.9296875,
+          "type": 9,
+          "index": 59
+        }
+      }
+    },
+    "unexpected_parameter_changes": {},
+    "services_unchanged": true,
+    "current_unchanged": true,
+    "passed": true
+  },
+  "fusion_flags_samples": 72,
+  "all_observed_flags_ev_xyz_yaw_no_mag": true,
+  "latched_bridge_faults": [],
+  "retry_correction": {
+    "first_run": "lift_reference_20261026T062808Z",
+    "first_validation": {
+      "passed": false,
+      "flight_approval": false,
+      "fixed_frame": "aerolab_world_Y_X_minusZ_v1",
+      "error": "RuntimeError('no guarded EV stream')",
+      "lease": {
+        "changed": true,
+        "restored": true,
+        "restore_restart_verified": true,
+        "flight_approval": false,
+        "flight_commands": 0,
+        "fc_only_reboots": 2,
+        "lease_ended": true
+      },
+      "counts": {
+        "flags": 25,
+        "status": 46,
+        "land": 24,
+        "local": 2291,
+        "raw": 1610,
+        "bridge": 18,
+        "input": 283
+      }
+    },
+    "post_audit_passed": true,
+    "cause": "experiment preparation renamed forwarded counter to righted; no baseline/motion prompt issued",
+    "correction": "restore forwarded schema key; five heading/right-projection checks passed",
+    "production_bridge_or_guards_changed": false,
+    "failed_remote_stage_preserved": true
+  },
+  "attempt_history": [
+    {
+      "run": "lift_reference_20261026T062808Z",
+      "validation": {
+        "passed": false,
+        "flight_approval": false,
+        "fixed_frame": "aerolab_world_Y_X_minusZ_v1",
+        "error": "RuntimeError('no guarded EV stream')",
+        "lease": {
+          "changed": true,
+          "restored": true,
+          "restore_restart_verified": true,
+          "flight_approval": false,
+          "flight_commands": 0,
+          "fc_only_reboots": 2,
+          "lease_ended": true
+        },
+        "counts": {
+          "flags": 25,
+          "status": 46,
+          "land": 24,
+          "local": 2291,
+          "raw": 1610,
+          "bridge": 18,
+          "input": 283
+        }
+      },
+      "audits": [
+        {
+          "test": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_right_translation_20261026\\lift_reference_20261026T062808Z",
+          "post": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_right_translation_20261026\\after_20261026T063228Z",
+          "parameter_differences": {
+            "CAL_BARO0_OFF": {
+              "before": {
+                "value": -47.9140625,
+                "type": 9,
+                "index": 59
+              },
+              "after": {
+                "value": -47.7578125,
+                "type": 9,
+                "index": 59
+              }
+            }
+          },
+          "parameter_count": 1127,
+          "complete": true,
+          "jetson_boot": "dc981513-5789-4a7c-ba91-57367486bfa9",
+          "remaining_task_processes": [],
+          "services": "MainPID=1019\nId=payload-catch-agent.service\nActiveState=active\n\nMainPID=1024\nId=payload-catch-mav-relay.service\nActiveState=active\n\nMainPID=2770\nId=payload-catch-wifi-peer.service\nActiveState=active\n",
+          "current": "/home/nvidia/payload_catch_deploy/releases/b4453dd12c8482d808613769fb6c781bd7debff566633bf0fc4827a6d2654d37",
+          "exact_parameter_match": false,
+          "test_parameters_restored": true,
+          "jetson_boot_unchanged": true,
+          "autonomous_calibration_candidates": {
+            "CAL_BARO0_OFF": {
+              "before": {
+                "value": -47.9140625,
+                "type": 9,
+                "index": 59
+              },
+              "after": {
+                "value": -47.7578125,
+                "type": 9,
+                "index": 59
+              }
+            }
+          },
+          "unexpected_parameter_changes": {},
+          "services_unchanged": true,
+          "current_unchanged": true,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "run": "lift_reference_20261026T063332Z",
+      "validation": {
+        "passed": false,
+        "flight_approval": false,
+        "fixed_frame": "aerolab_world_Y_X_minusZ_v1",
+        "phases": {
+          "baseline": {
+            "label": "baseline",
+            "monotonic": 3281.846650807,
+            "input_xyz": [
+              -0.8895027913153172,
+              1.5420555181801319,
+              -0.29256469309329985
+            ],
+            "px4_xyz": [
+              -0.8889076423645019,
+              1.5415077197551728,
+              -0.29275413177907467
+            ],
+            "px4_z_span_m": 0.0017717182636260986,
+            "input_z_span_m": 0.0003451108932495117,
+            "input_yaw_deg": -123.45782080677252,
+            "px4_yaw_deg": -123.45427944108823,
+            "local_samples": 400,
+            "input_samples": 160,
+            "flags_samples": 4
+          }
+        },
+        "error": "RuntimeError('bridge fault')",
+        "lease": {
+          "changed": true,
+          "restored": true,
+          "restore_restart_verified": true,
+          "flight_approval": false,
+          "flight_commands": 0,
+          "fc_only_reboots": 2,
+          "lease_ended": true
+        },
+        "counts": {
+          "land": 73,
+          "flags": 75,
+          "status": 147,
+          "local": 7322,
+          "raw": 7384,
+          "bridge": 120,
+          "input": 2258
+        }
+      },
+      "audits": [
+        {
+          "test": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_right_translation_20261026\\lift_reference_20261026T063332Z",
+          "post": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_right_translation_20261026\\after_20261026T063849Z",
+          "parameter_differences": {
+            "CAL_BARO0_OFF": {
+              "before": {
+                "value": -47.7578125,
+                "type": 9,
+                "index": 59
+              },
+              "after": {
+                "value": -50.65625,
+                "type": 9,
+                "index": 59
+              }
+            }
+          },
+          "parameter_count": 1127,
+          "complete": true,
+          "jetson_boot": "dc981513-5789-4a7c-ba91-57367486bfa9",
+          "remaining_task_processes": [],
+          "services": "MainPID=1019\nId=payload-catch-agent.service\nActiveState=active\n\nMainPID=1024\nId=payload-catch-mav-relay.service\nActiveState=active\n\nMainPID=2770\nId=payload-catch-wifi-peer.service\nActiveState=active\n",
+          "current": "/home/nvidia/payload_catch_deploy/releases/b4453dd12c8482d808613769fb6c781bd7debff566633bf0fc4827a6d2654d37",
+          "exact_parameter_match": false,
+          "test_parameters_restored": true,
+          "jetson_boot_unchanged": true,
+          "autonomous_calibration_candidates": {
+            "CAL_BARO0_OFF": {
+              "before": {
+                "value": -47.7578125,
+                "type": 9,
+                "index": 59
+              },
+              "after": {
+                "value": -50.65625,
+                "type": 9,
+                "index": 59
+              }
+            }
+          },
+          "unexpected_parameter_changes": {},
+          "services_unchanged": true,
+          "current_unchanged": true,
+          "passed": true
+        }
+      ]
+    },
+    {
+      "run": "lift_reference_20261026T064203Z",
+      "validation": {
+        "passed": true,
+        "flight_approval": false,
+        "fixed_frame": "aerolab_world_Y_X_minusZ_v1",
+        "phases": {
+          "baseline": {
+            "label": "baseline",
+            "monotonic": 3793.904048612,
+            "input_xyz": [
+              -0.04785673464648425,
+              1.0380609072744846,
+              -0.2913497591391206
+            ],
+            "px4_xyz": [
+              -0.047486111549660565,
+              1.037707751095295,
+              -0.2914349016547203
+            ],
+            "px4_z_span_m": 0.0014635324478149414,
+            "input_z_span_m": 0.0001252591609954834,
+            "input_yaw_deg": -115.05721296850128,
+            "px4_yaw_deg": -115.06020473795134,
+            "local_samples": 400,
+            "input_samples": 160,
+            "flags_samples": 4
+          },
+          "right_move": {
+            "label": "right_move",
+            "monotonic": 3865.674777222,
+            "input_xyz": [
+              0.7884451158344745,
+              0.6805732812732458,
+              -0.292256729491055
+            ],
+            "px4_xyz": [
+              0.7890433836401555,
+              0.682085404868114,
+              -0.29178265424300553
+            ],
+            "px4_z_span_m": 0.0011185109615325928,
+            "input_z_span_m": 0.00019726157188415527,
+            "input_yaw_deg": -107.2347020049103,
+            "px4_yaw_deg": -107.45340133400242,
+            "local_samples": 399,
+            "input_samples": 160,
+            "flags_samples": 4
+          }
+        },
+        "translation": {
+          "input_displacement_m": [
+            0.8363018504809587,
+            -0.35748762600123885,
+            -0.000906970351934433
+          ],
+          "px4_displacement_m": [
+            0.836529495189816,
+            -0.35562234622718103,
+            -0.0003477525882852328
+          ],
+          "input_right_m": 0.9089978252414965,
+          "px4_right_m": 0.9084140562664893,
+          "input_cross_m": -0.03035031413523226,
+          "horizontal_displacement_difference_m": 0.001879119673937743,
+          "horizontal_endpoint_difference_m": 0.0016261740784649684,
+          "yaw_difference_deg": 0.21869932909211798,
+          "ground_functional_tolerance_m": 0.05,
+          "settling_time_after_stable_detection_s": 8.030705227999988,
+          "independent_physical_distance_not_measured": true
+        },
+        "lease": {
+          "changed": true,
+          "restored": true,
+          "restore_restart_verified": true,
+          "flight_approval": false,
+          "flight_commands": 0,
+          "fc_only_reboots": 2,
+          "lease_ended": true
+        },
+        "counts": {
+          "flags": 97,
+          "land": 99,
+          "status": 190,
+          "local": 9516,
+          "raw": 10172,
+          "bridge": 163,
+          "input": 3192
+        }
+      },
+      "audits": [
+        {
+          "test": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_right_translation_20261026\\lift_reference_20261026T064203Z",
+          "post": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_right_translation_20261026\\after_20261026T064755Z",
+          "parameter_differences": {
+            "CAL_BARO0_OFF": {
+              "before": {
+                "value": -50.65625,
+                "type": 9,
+                "index": 59
+              },
+              "after": {
+                "value": -54.9296875,
+                "type": 9,
+                "index": 59
+              }
+            }
+          },
+          "parameter_count": 1127,
+          "complete": true,
+          "jetson_boot": "dc981513-5789-4a7c-ba91-57367486bfa9",
+          "remaining_task_processes": [],
+          "services": "MainPID=1019\nId=payload-catch-agent.service\nActiveState=active\n\nMainPID=1024\nId=payload-catch-mav-relay.service\nActiveState=active\n\nMainPID=2770\nId=payload-catch-wifi-peer.service\nActiveState=active\n",
+          "current": "/home/nvidia/payload_catch_deploy/releases/b4453dd12c8482d808613769fb6c781bd7debff566633bf0fc4827a6d2654d37",
+          "exact_parameter_match": false,
+          "test_parameters_restored": true,
+          "jetson_boot_unchanged": true,
+          "autonomous_calibration_candidates": {
+            "CAL_BARO0_OFF": {
+              "before": {
+                "value": -50.65625,
+                "type": 9,
+                "index": 59
+              },
+              "after": {
+                "value": -54.9296875,
+                "type": 9,
+                "index": 59
+              }
+            }
+          },
+          "unexpected_parameter_changes": {},
+          "services_unchanged": true,
+          "current_unchanged": true,
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "proof_clock_fix": {
+    "file": "payload_catch/mocap_odometry_node.py",
+    "before_sha256": "72f7560ac068e451dae00a81cc7331c44004305862250c4e91763489c0f3e973",
+    "after_sha256": "fd32b7921103208899613ef63496ce2465b6a935a7aa1ba4a4e3fa4b6d27364c",
+    "change": "read proof before taking proof-validation monotonic time",
+    "max_age_us": 2000000,
+    "future_timestamp_rejection_preserved": true,
+    "field_failure_reason": "stale/future; exact cause not observable in prior logs"
+  },
+  "exact_raw_pose_repeats_ge_100ms": [],
+  "receipt_time_pair_diagnostic": {
+    "method": "nearest ROS receipt within 30ms; not calibrated acquisition-time or latency comparison",
+    "pairs": 2873,
+    "mean_m": 0.004493165494994798,
+    "p95_m": 0.02381501363887919,
+    "max_m": 0.11267912228467977
+  },
+  "persistent_fusion_running": false,
+  "next_pending": [
+    "return-after-lift settled segment; lift itself already verified",
+    "mounting/lever arm and landing plane measurement",
+    "source acquisition time and flight delay calibration",
+    "previous repeated pose root cause",
+    "physical tracking-loss and recovery",
+    "flight bridge, operator takeover and complete preflight"
+  ]
+}

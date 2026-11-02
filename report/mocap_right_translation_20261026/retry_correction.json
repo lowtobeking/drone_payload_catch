@@ -1,0 +1,32 @@
+{
+  "first_run": "lift_reference_20261026T062808Z",
+  "first_validation": {
+    "passed": false,
+    "flight_approval": false,
+    "fixed_frame": "aerolab_world_Y_X_minusZ_v1",
+    "error": "RuntimeError('no guarded EV stream')",
+    "lease": {
+      "changed": true,
+      "restored": true,
+      "restore_restart_verified": true,
+      "flight_approval": false,
+      "flight_commands": 0,
+      "fc_only_reboots": 2,
+      "lease_ended": true
+    },
+    "counts": {
+      "flags": 25,
+      "status": 46,
+      "land": 24,
+      "local": 2291,
+      "raw": 1610,
+      "bridge": 18,
+      "input": 283
+    }
+  },
+  "post_audit_passed": true,
+  "cause": "experiment preparation renamed forwarded counter to righted; no baseline/motion prompt issued",
+  "correction": "restore forwarded schema key; five heading/right-projection checks passed",
+  "production_bridge_or_guards_changed": false,
+  "failed_remote_stage_preserved": true
+}

@@ -29,18 +29,26 @@ def integer(value, name, lo, hi):
     return value
 
 
-def live_issues(cfg, *, ground_receive_time=False):
-    if cfg.get("timestamp_mode", "verified_source") == "receive_time_ground":
+def live_issues(cfg, *, ground_receive_time=False, flight_receive_time=False):
+    mode = cfg.get("timestamp_mode", "verified_source")
+    if mode == "receive_time_ground":
         issues = []
         if cfg["enabled"] is not True:
             issues.append("enabled must explicitly be true")
         if not ground_receive_time:
             issues.append("explicit --ground-receive-time acknowledgement required")
         if cfg.get("ground_receive_time_acknowledged") is not True:
-            issues.append("receive-time / unmeasured geometry ground-test limitations not acknowledged")
+            issues.append("receive-time ground-test limitations not acknowledged")
         return issues
-    if ground_receive_time:
-        return ["--ground-receive-time requires receive_time_ground configuration"]
+    if mode == "receive_time_flight":
+        issues = []
+        if cfg["enabled"] is not True:
+            issues.append("enabled must explicitly be true")
+        if not flight_receive_time or cfg.get("flight_receive_time_acknowledged") is not True:
+            issues.append("explicit receive-time flight acknowledgement required")
+        return issues
+    if ground_receive_time or flight_receive_time:
+        return ["receive-time flag requires matching configuration"]
     issues = [name + " not confirmed" for name in CONFIRMATIONS if cfg[name] is not True]
     if cfg["enabled"] is not True:
         issues.append("enabled must explicitly be true")
@@ -53,8 +61,8 @@ def load_config(path):
     cfg = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     if not isinstance(cfg, dict) or type(cfg.get("schema")) is not int or cfg["schema"] != 1:
         raise ValueError("unsupported bridge schema")
-    if cfg.get("scope") != "ground_only":
-        raise ValueError("this bridge currently supports ground commissioning only")
+    if cfg.get("scope") not in ("ground_only", "a_solo_flight"):
+        raise ValueError("unsupported A bridge scope")
     if cfg.get("input_topic") != "/payload/mocap/a/raw_sample":
         raise ValueError("raw source envelope is required, not preview PoseStamped")
     if cfg.get("output_topic") != "/fmu/in/vehicle_visual_odometry":
@@ -81,12 +89,14 @@ def load_config(path):
     if uncertainty is not None:
         integer(uncertainty, "source_offset_uncertainty_us", 0, 10000)
     mode = cfg.get("timestamp_mode", "verified_source")
-    if mode not in ("verified_source", "receive_time_ground"):
+    if mode not in ("verified_source", "receive_time_ground", "receive_time_flight"):
         raise ValueError("unknown timestamp_mode")
-    if mode == "receive_time_ground":
-        if type(cfg.get("ground_receive_time_acknowledged")) is not bool:
-            raise ValueError("ground receive acknowledgement must be boolean")
-        number(cfg.get("max_relative_time_drift_s"), "max_relative_time_drift_s", .02, .1)
+    if (cfg["scope"] == "a_solo_flight") != (mode == "receive_time_flight"):
+        raise ValueError("flight scope requires explicit receive-time flight mode")
+    if mode in ("receive_time_ground", "receive_time_flight"):
+        key = "flight_receive_time_acknowledged" if mode == "receive_time_flight" else "ground_receive_time_acknowledged"
+        if type(cfg.get(key)) is not bool:
+            raise ValueError("receive-time acknowledgement must be boolean")
         number(cfg.get("max_identical_pose_s"), "max_identical_pose_s", .2, 1.)
     frame = cfg.get("output_pose_frame", "local_frd")
     if frame not in ("local_frd", "px4_heading_aligned_ned", "fixed_lab_navigation"):
@@ -112,8 +122,8 @@ def load_config(path):
             raise ValueError("position and attitude must use the same measured heading rotation")
     if frame == "fixed_lab_navigation":
         ref = cfg.get("fixed_reference")
-        if mode != "receive_time_ground" or not isinstance(ref, dict):
-            raise ValueError("fixed laboratory reference requires explicit receive-time ground mode")
+        if mode not in ("receive_time_ground", "receive_time_flight") or not isinstance(ref, dict):
+            raise ValueError("fixed laboratory reference requires explicit receive-time mode")
         if (ref.get("id") != "aerolab_world_Y_X_minusZ_v1"
                 or ref.get("convention") != "indoor_navigation_x_reference_y_right_z_down"
                 or ref.get("geographic_north_verified") is not False
@@ -128,8 +138,8 @@ def load_config(path):
     if height_mode not in ("not_requested","external_vision_reference"):
         raise ValueError("unknown height fusion contract")
     if height_mode=="external_vision_reference":
-        if frame!="fixed_lab_navigation" or mode!="receive_time_ground":
-            raise ValueError("external height reference requires fixed disarmed ground mode")
+        if frame!="fixed_lab_navigation" or mode not in ("receive_time_ground", "receive_time_flight"):
+            raise ValueError("external height reference requires fixed receive-time mode")
         if cfg.get("height_origin")!="fixed_laboratory_marker_origin_not_agl":
             raise ValueError("explicit marker/world height origin required")
     return cfg, Transform(**cfg["transform"])
@@ -144,8 +154,7 @@ class OdometryBuilder:
         self.previous_clock_pair = None
         self.last_publish_mono = None
         self.accepted = self.rejected = 0
-        self.receive_time_ground = cfg.get("timestamp_mode") == "receive_time_ground"
-        self.relative_pair = None
+        self.receive_time_ground = cfg.get("timestamp_mode") in ("receive_time_ground", "receive_time_flight")
         self.last_pose = self.pose_changed_mono = None
         self.sample_time_verified = (not self.receive_time_ground
                                      and cfg["server_timing_verified"] is True
@@ -182,7 +191,7 @@ class OdometryBuilder:
         source = integer(data.get("server_stamp_us"), "source stamp", 1, 2**63 - 1)
         recv_wall = integer(data.get("receive_wall_us"), "receive wall time", 1, 2**63 - 1)
         recv_mono = integer(data.get("receive_monotonic_us"), "receive monotonic time", 1, 2**63 - 1)
-        if self.last_source is not None:
+        if not self.receive_time_ground and self.last_source is not None:
             if source < self.last_source:
                 self.fail("source clock regressed; explicit restart required")
             if source == self.last_source:
@@ -196,13 +205,6 @@ class OdometryBuilder:
             raise ValueError("queued/stale or future native receive time")
         if abs((now_wall_us - recv_wall) - receive_age) > self.cfg["max_clock_step_s"] * 1e6:
             self.fail("native and ROS local clocks disagree")
-        if self.receive_time_ground:
-            if self.relative_pair is None:
-                self.relative_pair = source, recv_mono
-            else:
-                base_source, base_receive = self.relative_pair
-                if abs((source - base_source) - (recv_mono - base_receive)) > self.cfg["max_relative_time_drift_s"] * 1e6:
-                    self.fail("source/receive relative clock drift or network backlog; restart required")
         sample = (source + self.cfg["source_to_local_offset_us"]
                   if self.sample_time_verified else recv_wall)
         # Receive time is a bounded ground-test approximation, never verified exposure time.
@@ -243,6 +245,8 @@ class GroundGate:
     """For commissioning only: disarmed+landed+fresh DDS time synchronization."""
     def __init__(self, cfg):
         self.cfg = cfg
+        self.flight_mode = cfg.get("scope") == "a_solo_flight"
+        self.initial_ground_seen = False
         self.status = self.land = self.sync = None
         self.sync_count = 0
         self.sync_offset = None
@@ -280,10 +284,15 @@ class GroundGate:
             s = self.status[0]
             if (s.system_id, s.component_id) != (1, 1):
                 reasons.append("wrong FC identity")
-            if s.arming_state != 1:
+            if not self.flight_mode and s.arming_state != 1:
                 reasons.append("ground commissioning requires disarmed")
-        if self.land is None or now_mono_us - self.land[1] > 1_500_000 or not self.land[0].landed:
-            reasons.append("landed confirmation missing/stale/false")
+            if self.flight_mode and s.arming_state not in (1, 2):
+                reasons.append("A arming state invalid")
+        if not self.flight_mode or not self.initial_ground_seen:
+            if self.land is None or now_mono_us - self.land[1] > 1_500_000 or not self.land[0].landed:
+                reasons.append("landed confirmation missing/stale/false")
+            if self.flight_mode and self.status is not None and self.status[0].arming_state != 1:
+                reasons.append("flight bridge must start disarmed")
         if (self.sync is None or not self.sync[0] or self.sync_count < 3
                 or now_mono_us - self.sync[1] > self.cfg["max_time_sync_age_s"] * 1e6):
             reasons.append("DDS clock synchronization not verified/fresh")
@@ -291,6 +300,8 @@ class GroundGate:
             self.fault = "; ".join(reasons) + "; restart required"
         if not reasons:
             self.was_ready = True
+            if self.flight_mode:
+                self.initial_ground_seen = True
         return reasons
 
 

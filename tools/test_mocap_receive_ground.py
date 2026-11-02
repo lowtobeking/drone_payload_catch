@@ -39,19 +39,16 @@ class ReceiveGroundTests(unittest.TestCase):
     def test_stale_native_queue_refused(self):
         with self.assertRaisesRegex(ValueError,"queued"):
             self.accept(receive_wall_us=self.wall-60000, receive_monotonic_us=self.mono-60000)
-    def test_duplicate_cannot_keep_stream_alive(self):
+    def test_receive_gap_latches_even_with_repeated_source_stamp(self):
         self.accept()
-        with self.assertRaisesRegex(ValueError,"duplicate"):
-            self.accept(100000, server_stamp_us=self.sample()["server_stamp_us"])
+        self.accept(100000, server_stamp_us=self.sample()["server_stamp_us"])
         with self.assertRaisesRegex(ValueError,"dropout"):
-            self.b.tick(self.wall+151000,self.mono+151000)
-    def test_backlog_or_relative_drift_latches(self):
+            self.b.tick(self.wall+251000,self.mono+251000)
+    def test_source_time_jump_is_ignored_in_receive_mode(self):
         self.accept()
-        # Absolute server time is deliberately ignored; its progression is still checked.
-        with self.assertRaisesRegex(ValueError,"relative"):
-            self.accept(10000,server_stamp_us=self.sample()["server_stamp_us"]+100000)
-        with self.assertRaisesRegex(ValueError,"restart"):
-            self.accept(20000)
+        self.accept(10000,server_stamp_us=self.sample()["server_stamp_us"]+1000000)
+        self.accept(20000,server_stamp_us=self.sample()["server_stamp_us"]-1000000)
+        self.assertFalse(self.b.fault)
     def test_exact_pose_freeze_with_advancing_stamps_latches(self):
         for dt in range(0,500001,50000):
             self.accept(dt,position=[1.,2.,3.])
@@ -61,10 +58,10 @@ class ReceiveGroundTests(unittest.TestCase):
         for dt in range(0,1000000,10000):
             self.accept(dt)
         self.assertFalse(self.b.fault)
-    def test_source_clock_regression_latches(self):
+    def test_source_clock_regression_is_ignored_in_receive_mode(self):
         self.accept()
-        with self.assertRaisesRegex(ValueError,"regressed"):
-            self.accept(10000, server_stamp_us=self.sample()["server_stamp_us"]-1)
+        self.accept(10000, server_stamp_us=self.sample()["server_stamp_us"]-1)
+        self.assertFalse(self.b.fault)
 
 if __name__=="__main__":
     unittest.main()

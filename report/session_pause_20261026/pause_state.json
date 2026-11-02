@@ -1,0 +1,10 @@
+{
+  "paused_by_user": true,
+  "progress_document": "docs/A机动捕PX4验收进度与继续入口_20261026.md",
+  "no_automatic_continuation": true,
+  "last_independent_audit": "report/mocap_yaw_20261026/after_20261026T033215Z/comparison.json",
+  "current_fusion_running": false,
+  "remaining_task_processes": [],
+  "network_helper_retained": true,
+  "snapshot_verified": true
+}

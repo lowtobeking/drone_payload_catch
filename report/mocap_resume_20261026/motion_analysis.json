@@ -1,0 +1,288 @@
+{
+  "raw_turn_20261026T054438Z": {
+    "frames": 14399,
+    "first_yaw_deg": -95.36035083588067,
+    "last_yaw_deg": -95.362019841032,
+    "relative_yaw_range_deg": [
+      -0.05096888282866985,
+      0.015339688669030238
+    ],
+    "position_ranges_m": [
+      0.0004414062499997762,
+      0.0002806091308593661,
+      0.001179229736328169
+    ]
+  },
+  "raw_turn_20261026T054825Z": {
+    "frames": 14399,
+    "first_yaw_deg": -95.36370712318968,
+    "last_yaw_deg": -6.359700294177055,
+    "relative_yaw_range_deg": [
+      -2.8199974780393973,
+      94.20405892605163
+    ],
+    "position_ranges_m": [
+      0.06971826171874973,
+      0.022245056152343734,
+      0.03305557250976565
+    ]
+  },
+  "raw_turn_20261026T055732Z": {
+    "frames": 14400,
+    "first_yaw_deg": -6.431312220678675,
+    "last_yaw_deg": -61.522596643902205,
+    "relative_yaw_range_deg": [
+      -55.56766239913175,
+      1.1840090879094305
+    ],
+    "position_ranges_m": [
+      0.07328515625000032,
+      0.0446917419433594,
+      0.02821481323242192
+    ]
+  },
+  "lift_reference_20261026T055101Z": {
+    "raw_full": {
+      "frames": 13083,
+      "first_yaw_deg": -6.430367333739205,
+      "last_yaw_deg": -6.415943370468383,
+      "relative_yaw_range_deg": [
+        -0.027824820507447612,
+        0.0799568864281639
+      ],
+      "position_ranges_m": [
+        0.0007087402343746163,
+        0.00041647338867184525,
+        0.0007441406250000004
+      ]
+    },
+    "raw_after_baseline": {
+      "frames": 11220,
+      "first_yaw_deg": -6.430573955282556,
+      "last_yaw_deg": -6.415943370468383,
+      "relative_yaw_range_deg": [
+        -0.02724898647730356,
+        0.08016350797151972
+      ],
+      "position_ranges_m": [
+        0.0007087402343746163,
+        0.00041647338867184525,
+        0.0007441406250000004
+      ]
+    },
+    "input_full": {
+      "frames": 4076,
+      "first_yaw_deg": -173.58516189369556,
+      "last_yaw_deg": -173.58626247142837,
+      "relative_yaw_range_deg": [
+        -0.0641546187858637,
+        0.0365081345884164
+      ],
+      "position_ranges_m": [
+        0.0004082620143890381,
+        0.0006909370422363281,
+        0.0006963908672332764
+      ]
+    },
+    "input_after_baseline": {
+      "frames": 3751,
+      "first_yaw_deg": -173.57925309565383,
+      "last_yaw_deg": -173.58626247142837,
+      "relative_yaw_range_deg": [
+        -0.07006341682759398,
+        0.030599336546686118
+      ],
+      "position_ranges_m": [
+        0.0003968477249145508,
+        0.0006909370422363281,
+        0.0006963908672332764
+      ]
+    },
+    "fusion_flags_after_baseline": {
+      "samples": 94,
+      "all_ev_xyz_yaw_no_mag": true
+    },
+    "validation": {
+      "passed": false,
+      "flight_approval": false,
+      "fixed_frame": "aerolab_world_Y_X_minusZ_v1",
+      "phases": {
+        "baseline": {
+          "label": "baseline",
+          "monotonic": 732.419250118,
+          "input_xyz": [
+            -0.29886197559535504,
+            2.154628503322601,
+            -0.2916005812585354
+          ],
+          "px4_xyz": [
+            -0.2979468034389905,
+            2.154973939172645,
+            -0.2914963285078729
+          ],
+          "px4_z_span_m": 0.0008516907691955566,
+          "input_z_span_m": 0.00024688243865966797,
+          "input_yaw_deg": -173.58483395556294,
+          "px4_yaw_deg": -173.57969392401006,
+          "local_samples": 401,
+          "input_samples": 160,
+          "flags_samples": 4
+        }
+      },
+      "error": "RuntimeError('manual left-turn window expired')",
+      "lease": {
+        "changed": true,
+        "restored": true,
+        "restore_restart_verified": true,
+        "flight_approval": false,
+        "flight_commands": 0,
+        "fc_only_reboots": 2,
+        "lease_ended": true
+      },
+      "counts": {
+        "land": 121,
+        "flags": 121,
+        "status": 239,
+        "local": 12004,
+        "raw": 13083,
+        "bridge": 212,
+        "input": 4076
+      }
+    }
+  },
+  "lift_reference_20261026T055930Z": {
+    "raw_full": {
+      "frames": 9184,
+      "first_yaw_deg": -61.527004862995945,
+      "last_yaw_deg": 0.3784433498944489,
+      "relative_yaw_range_deg": [
+        -0.6322407263143646,
+        63.255629155497076
+      ],
+      "position_ranges_m": [
+        0.10867895507812486,
+        0.0953874816894531,
+        0.036908782958984365
+      ]
+    },
+    "raw_after_baseline": {
+      "frames": 7101,
+      "first_yaw_deg": -61.53154703794315,
+      "last_yaw_deg": 0.3784433498944489,
+      "relative_yaw_range_deg": [
+        -0.6276985513671605,
+        63.26017133044428
+      ],
+      "position_ranges_m": [
+        0.10867895507812486,
+        0.0953874816894531,
+        0.036908782958984365
+      ]
+    },
+    "input_full": {
+      "frames": 2683,
+      "first_yaw_deg": -118.37710902959229,
+      "last_yaw_deg": 179.61767629581368,
+      "relative_yaw_range_deg": [
+        -63.10052685791965,
+        0.5226686010273625
+      ],
+      "position_ranges_m": [
+        0.09538748860359192,
+        0.10848236083984375,
+        0.03638315200805664
+      ]
+    },
+    "input_after_baseline": {
+      "frames": 2368,
+      "first_yaw_deg": -118.47200539578083,
+      "last_yaw_deg": 179.61767629581368,
+      "relative_yaw_range_deg": [
+        -63.005630491731154,
+        0.6175649672159125
+      ],
+      "position_ranges_m": [
+        0.09538748860359192,
+        0.10848236083984375,
+        0.03638315200805664
+      ]
+    },
+    "fusion_flags_after_baseline": {
+      "samples": 61,
+      "all_ev_xyz_yaw_no_mag": true
+    },
+    "validation": {
+      "passed": true,
+      "flight_approval": false,
+      "fixed_frame": "aerolab_world_Y_X_minusZ_v1",
+      "phases": {
+        "baseline": {
+          "label": "baseline",
+          "monotonic": 1243.221335271,
+          "input_xyz": [
+            -0.31729925740510223,
+            2.0846398919820786,
+            -0.29194292686879636
+          ],
+          "px4_xyz": [
+            -0.3175579769909382,
+            2.084733038544655,
+            -0.29213483929634093
+          ],
+          "px4_z_span_m": 0.0013640224933624268,
+          "input_z_span_m": 0.000819772481918335,
+          "input_yaw_deg": -118.4435901103174,
+          "px4_yaw_deg": -118.43816973160973,
+          "local_samples": 400,
+          "input_samples": 160,
+          "flags_samples": 4
+        },
+        "left_turn": {
+          "label": "left_turn",
+          "monotonic": 1302.450681141,
+          "input_xyz": [
+            -0.4036702346876732,
+            2.1889480734771154,
+            -0.29292944242369456
+          ],
+          "px4_xyz": [
+            -0.3657461192673609,
+            2.1906765965292028,
+            -0.29395997240429833
+          ],
+          "px4_z_span_m": 0.006749987602233887,
+          "input_z_span_m": 0.008442908525466919,
+          "input_yaw_deg": 179.6260029405665,
+          "px4_yaw_deg": 179.84115241254784,
+          "local_samples": 399,
+          "input_samples": 159,
+          "flags_samples": 4
+        }
+      },
+      "yaw": {
+        "input_change_deg": -61.9304069491161,
+        "px4_change_deg": -61.720677855842425,
+        "displacement_difference_deg": 0.20972909327367265,
+        "operator_physical_angle_not_measured": true
+      },
+      "lease": {
+        "changed": true,
+        "restored": true,
+        "restore_restart_verified": true,
+        "flight_approval": false,
+        "flight_commands": 0,
+        "fc_only_reboots": 2,
+        "lease_ended": true
+      },
+      "counts": {
+        "flags": 90,
+        "status": 170,
+        "land": 89,
+        "local": 8558,
+        "raw": 9184,
+        "bridge": 144,
+        "input": 2683
+      }
+    }
+  }
+}

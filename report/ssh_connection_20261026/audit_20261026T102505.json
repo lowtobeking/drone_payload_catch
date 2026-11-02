@@ -1,0 +1,87 @@
+{
+  "serial": "1612425621719",
+  "hostname": "nvidia-desktop",
+  "boot_id": "3f7e18cb-1731-4f9e-a663-4872fd42c4c9",
+  "checks": {
+    "addresses": {
+      "exit": 0,
+      "stdout": "[{\"ifindex\":1,\"ifname\":\"lo\",\"flags\":[\"LOOPBACK\",\"UP\",\"LOWER_UP\"],\"mtu\":65536,\"qdisc\":\"noqueue\",\"operstate\":\"UNKNOWN\",\"group\":\"default\",\"txqlen\":1000,\"link_type\":\"loopback\",\"address\":\"00:00:00:00:00:00\",\"broadcast\":\"00:00:00:00:00:00\",\"addr_info\":[{\"family\":\"inet\",\"local\":\"127.0.0.1\",\"prefixlen\":8,\"scope\":\"host\",\"label\":\"lo\",\"valid_life_time\":4294967295,\"preferred_life_time\":4294967295},{\"family\":\"inet6\",\"local\":\"::1\",\"prefixlen\":128,\"scope\":\"host\",\"valid_life_time\":4294967295,\"preferred_life_time\":4294967295}]},{\"ifindex\":2,\"ifname\":\"wlP1p1s0\",\"flags\":[\"BROADCAST\",\"MULTICAST\",\"UP\",\"LOWER_UP\"],\"mtu\":1500,\"qdisc\":\"mq\",\"operstate\":\"UP\",\"group\":\"default\",\"txqlen\":1000,\"link_type\":\"ether\",\"address\":\"dc:4a:9e:38:20:7f\",\"broadcast\":\"ff:ff:ff:ff:ff:ff\",\"addr_info\":[{\"family\":\"inet\",\"local\":\"192.168.1.5\",\"prefixlen\":22,\"broadcast\":\"192.168.3.255\",\"scope\":\"global\",\"dynamic\":true,\"noprefixroute\":true,\"label\":\"wlP1p1s0\",\"valid_life_time\":7152,\"preferred_life_time\":7152},{\"family\":\"inet6\",\"local\":\"fe80::de4a:9eff:fe38:207f\",\"prefixlen\":64,\"scope\":\"link\",\"noprefixroute\":true,\"valid_life_time\":4294967295,\"preferred_life_time\":4294967295}]},{\"ifindex\":3,\"ifname\":\"can0\",\"flags\":[\"NOARP\",\"ECHO\"],\"mtu\":16,\"qdisc\":\"noop\",\"operstate\":\"DOWN\",\"group\":\"default\",\"txqlen\":10,\"link_type\":\"can\",\"addr_info\":[]},{\"ifindex\":4,\"ifname\":\"eno1\",\"flags\":[\"BROADCAST\",\"MULTICAST\",\"UP\",\"LOWER_UP\"],\"mtu\":1500,\"qdisc\":\"mq\",\"operstate\":\"UP\",\"group\":\"default\",\"txqlen\":1000,\"link_type\":\"ether\",\"address\":\"3c:6d:66:d9:3a:59\",\"broadcast\":\"ff:ff:ff:ff:ff:ff\",\"addr_info\":[{\"family\":\"inet\",\"local\":\"10.41.10.100\",\"prefixlen\":24,\"broadcast\":\"10.41.10.255\",\"scope\":\"global\",\"noprefixroute\":true,\"label\":\"eno1\",\"valid_life_time\":4294967295,\"preferred_life_time\":4294967295},{\"family\":\"inet6\",\"local\":\"fe80::3e6d:66ff:fed9:3a59\",\"prefixlen\":64,\"scope\":\"link\",\"valid_life_time\":4294967295,\"preferred_life_time\":4294967295}]},{\"ifindex\":5,\"ifname\":\"enx00e04c680065\",\"flags\":[\"BROADCAST\",\"MULTICAST\",\"UP\",\"LOWER_UP\"],\"mtu\":1500,\"qdisc\":\"pfifo_fast\",\"operstate\":\"UP\",\"group\":\"default\",\"txqlen\":1000,\"link_type\":\"ether\",\"address\":\"00:e0:4c:68:00:65\",\"broadcast\":\"ff:ff:ff:ff:ff:ff\",\"addr_info\":[{\"family\":\"inet\",\"local\":\"192.168.1.101\",\"prefixlen\":24,\"broadcast\":\"192.168.1.255\",\"scope\":\"global\",\"noprefixroute\":true,\"label\":\"enx00e04c680065\",\"valid_life_time\":4294967295,\"preferred_life_time\":4294967295},{\"family\":\"inet6\",\"local\":\"fe80::2e0:4cff:fe68:65\",\"prefixlen\":64,\"scope\":\"link\",\"valid_life_time\":4294967295,\"preferred_life_time\":4294967295}]},{\"ifindex\":6,\"ifname\":\"l4tbr0\",\"flags\":[\"BROADCAST\",\"MULTICAST\"],\"mtu\":1500,\"qdisc\":\"noop\",\"operstate\":\"DOWN\",\"group\":\"default\",\"txqlen\":1000,\"link_type\":\"ether\",\"address\":\"3e:c7:e7:79:f3:87\",\"broadcast\":\"ff:ff:ff:ff:ff:ff\",\"addr_info\":[]},{\"ifindex\":7,\"ifname\":\"usb0\",\"flags\":[\"NO-CARRIER\",\"BROADCAST\",\"MULTICAST\",\"UP\"],\"mtu\":1500,\"qdisc\":\"pfifo_fast\",\"master\":\"l4tbr0\",\"operstate\":\"DOWN\",\"group\":\"default\",\"txqlen\":1000,\"link_type\":\"ether\",\"address\":\"f2:3e:d0:e1:ab:79\",\"broadcast\":\"ff:ff:ff:ff:ff:ff\",\"addr_info\":[]},{\"ifindex\":8,\"ifname\":\"usb1\",\"flags\":[\"NO-CARRIER\",\"BROADCAST\",\"MULTICAST\",\"UP\"],\"mtu\":1500,\"qdisc\":\"pfifo_fast\",\"master\":\"l4tbr0\",\"operstate\":\"DOWN\",\"group\":\"default\",\"txqlen\":1000,\"link_type\":\"ether\",\"address\":\"f2:3e:d0:e1:ab:7b\",\"broadcast\":\"ff:ff:ff:ff:ff:ff\",\"addr_info\":[]},{\"ifindex\":9,\"ifname\":\"docker0\",\"flags\":[\"NO-CARRIER\",\"BROADCAST\",\"MULTICAST\",\"UP\"],\"mtu\":1500,\"qdisc\":\"noqueue\",\"operstate\":\"DOWN\",\"group\":\"default\",\"link_type\":\"ether\",\"address\":\"ee:23:a7:75:94:af\",\"broadcast\":\"ff:ff:ff:ff:ff:ff\",\"addr_info\":[{\"family\":\"inet\",\"local\":\"172.17.0.1\",\"prefixlen\":16,\"broadcast\":\"172.17.255.255\",\"scope\":\"global\",\"label\":\"docker0\",\"valid_life_time\":4294967295,\"preferred_life_time\":4294967295}]}]\n",
+      "stderr": ""
+    },
+    "routes": {
+      "exit": 0,
+      "stdout": "[{\"dst\":\"default\",\"gateway\":\"192.168.1.1\",\"dev\":\"wlP1p1s0\",\"protocol\":\"dhcp\",\"metric\":50,\"flags\":[]},{\"dst\":\"10.41.10.0/24\",\"dev\":\"eno1\",\"protocol\":\"kernel\",\"scope\":\"link\",\"prefsrc\":\"10.41.10.100\",\"metric\":101,\"flags\":[]},{\"dst\":\"169.254.0.0/16\",\"dev\":\"enx00e04c680065\",\"scope\":\"link\",\"metric\":1000,\"flags\":[]},{\"dst\":\"172.17.0.0/16\",\"dev\":\"docker0\",\"protocol\":\"kernel\",\"scope\":\"link\",\"prefsrc\":\"172.17.0.1\",\"flags\":[\"linkdown\"]},{\"dst\":\"192.168.0.0/22\",\"dev\":\"wlP1p1s0\",\"protocol\":\"kernel\",\"scope\":\"link\",\"prefsrc\":\"192.168.1.5\",\"metric\":50,\"flags\":[]},{\"dst\":\"192.168.1.0/24\",\"dev\":\"enx00e04c680065\",\"protocol\":\"kernel\",\"scope\":\"link\",\"prefsrc\":\"192.168.1.101\",\"metric\":100,\"flags\":[]},{\"dst\":\"192.168.1.2\",\"dev\":\"wlP1p1s0\",\"protocol\":\"static\",\"scope\":\"link\",\"metric\":10,\"flags\":[]},{\"dst\":\"192.168.1.3\",\"dev\":\"wlP1p1s0\",\"protocol\":\"static\",\"scope\":\"link\",\"metric\":10,\"flags\":[]},{\"dst\":\"192.168.1.111\",\"dev\":\"wlP1p1s0\",\"protocol\":\"static\",\"scope\":\"link\",\"metric\":10,\"flags\":[]},{\"dst\":\"192.168.1.124\",\"dev\":\"wlP1p1s0\",\"protocol\":\"static\",\"scope\":\"link\",\"metric\":10,\"flags\":[]},{\"type\":\"local\",\"dst\":\"10.41.10.100\",\"dev\":\"eno1\",\"table\":\"local\",\"protocol\":\"kernel\",\"scope\":\"host\",\"prefsrc\":\"10.41.10.100\",\"flags\":[]},{\"type\":\"broadcast\",\"dst\":\"10.41.10.255\",\"dev\":\"eno1\",\"table\":\"local\",\"protocol\":\"kernel\",\"scope\":\"link\",\"prefsrc\":\"10.41.10.100\",\"flags\":[]},{\"type\":\"local\",\"dst\":\"127.0.0.0/8\",\"dev\":\"lo\",\"table\":\"local\",\"protocol\":\"kernel\",\"scope\":\"host\",\"prefsrc\":\"127.0.0.1\",\"flags\":[]},{\"type\":\"local\",\"dst\":\"127.0.0.1\",\"dev\":\"lo\",\"table\":\"local\",\"protocol\":\"kernel\",\"scope\":\"host\",\"prefsrc\":\"127.0.0.1\",\"flags\":[]},{\"type\":\"broadcast\",\"dst\":\"127.255.255.255\",\"dev\":\"lo\",\"table\":\"local\",\"protocol\":\"kernel\",\"scope\":\"link\",\"prefsrc\":\"127.0.0.1\",\"flags\":[]},{\"type\":\"local\",\"dst\":\"172.17.0.1\",\"dev\":\"docker0\",\"table\":\"local\",\"protocol\":\"kernel\",\"scope\":\"host\",\"prefsrc\":\"172.17.0.1\",\"flags\":[]},{\"type\":\"broadcast\",\"dst\":\"172.17.255.255\",\"dev\":\"docker0\",\"table\":\"local\",\"protocol\":\"kernel\",\"scope\":\"link\",\"prefsrc\":\"172.17.0.1\",\"flags\":[\"linkdown\"]},{\"type\":\"local\",\"dst\":\"192.168.1.5\",\"dev\":\"wlP1p1s0\",\"table\":\"local\",\"protocol\":\"kernel\",\"scope\":\"host\",\"prefsrc\":\"192.168.1.5\",\"flags\":[]},{\"type\":\"local\",\"dst\":\"192.168.1.101\",\"dev\":\"enx00e04c680065\",\"table\":\"local\",\"protocol\":\"kernel\",\"scope\":\"host\",\"prefsrc\":\"192.168.1.101\",\"flags\":[]},{\"type\":\"broadcast\",\"dst\":\"192.168.1.255\",\"dev\":\"enx00e04c680065\",\"table\":\"local\",\"protocol\":\"kernel\",\"scope\":\"link\",\"prefsrc\":\"192.168.1.101\",\"flags\":[]},{\"type\":\"broadcast\",\"dst\":\"192.168.3.255\",\"dev\":\"wlP1p1s0\",\"table\":\"local\",\"protocol\":\"kernel\",\"scope\":\"link\",\"prefsrc\":\"192.168.1.5\",\"flags\":[]},{\"type\":\"local\",\"dst\":\"::1\",\"dev\":\"lo\",\"protocol\":\"kernel\",\"metric\":0,\"flags\":[],\"pref\":\"medium\"},{\"dst\":\"::1\",\"dev\":\"lo\",\"protocol\":\"kernel\",\"metric\":256,\"flags\":[],\"pref\":\"medium\"},{\"type\":\"local\",\"dst\":\"fe80::2e0:4cff:fe68:65\",\"dev\":\"enx00e04c680065\",\"protocol\":\"kernel\",\"metric\":0,\"flags\":[],\"pref\":\"medium\"},{\"type\":\"local\",\"dst\":\"fe80::3e6d:66ff:fed9:3a59\",\"dev\":\"eno1\",\"protocol\":\"kernel\",\"metric\":0,\"flags\":[],\"pref\":\"medium\"},{\"type\":\"local\",\"dst\":\"fe80::de4a:9eff:fe38:207f\",\"dev\":\"wlP1p1s0\",\"protocol\":\"kernel\",\"metric\":0,\"flags\":[],\"pref\":\"medium\"},{\"dst\":\"fe80::/64\",\"dev\":\"enx00e04c680065\",\"protocol\":\"kernel\",\"metric\":256,\"flags\":[],\"pref\":\"medium\"},{\"dst\":\"fe80::/64\",\"dev\":\"eno1\",\"protocol\":\"kernel\",\"metric\":256,\"flags\":[],\"pref\":\"medium\"},{\"dst\":\"fe80::/64\",\"dev\":\"wlP1p1s0\",\"protocol\":\"kernel\",\"metric\":1024,\"flags\":[],\"pref\":\"medium\"},{\"type\":\"multicast\",\"dst\":\"ff00::/8\",\"dev\":\"enx00e04c680065\",\"protocol\":\"kernel\",\"metric\":256,\"flags\":[],\"pref\":\"medium\"},{\"type\":\"multicast\",\"dst\":\"ff00::/8\",\"dev\":\"eno1\",\"protocol\":\"kernel\",\"metric\":256,\"flags\":[],\"pref\":\"medium\"},{\"type\":\"multicast\",\"dst\":\"ff00::/8\",\"dev\":\"wlP1p1s0\",\"protocol\":\"kernel\",\"metric\":256,\"flags\":[],\"pref\":\"medium\"}]\n",
+      "stderr": ""
+    },
+    "rules": {
+      "exit": 255,
+      "stdout": "[",
+      "stderr": "RTNETLINK answers: Operation not supported\nDump terminated\n"
+    },
+    "nm_version": {
+      "exit": 0,
+      "stdout": "nmcli tool, version 1.36.6\n",
+      "stderr": ""
+    },
+    "ip_version": {
+      "exit": 0,
+      "stdout": "ip utility, iproute2-5.15.0, libbpf 0.5.0\n",
+      "stderr": ""
+    },
+    "profiles": {
+      "exit": 0,
+      "stdout": "payload-catch-Aero-LAB_5G:5bf25dec-358c-4a85-9eed-ee5b19a254ca:802-11-wireless:wlP1p1s0\nfc-link:e41c1567-d230-474d-80ff-f68a99c3ef3b:802-3-ethernet:eno1\nlq-mesh:e6f1cf16-8895-4642-9070-e9a97e33c97d:802-3-ethernet:enx00e04c680065\ndocker0:fd70ed85-8577-4ca4-9be4-aa76ba2dcd7e:bridge:docker0\n",
+      "stderr": ""
+    },
+    "wifi_ipv4": {
+      "exit": 0,
+      "stdout": "GENERAL.CONNECTION:                     payload-catch-Aero-LAB_5G\nGENERAL.CON-UUID:                       5bf25dec-358c-4a85-9eed-ee5b19a254ca\nIP4.ADDRESS[1]:                         192.168.1.5/22\nIP4.GATEWAY:                            192.168.1.1\nIP4.ROUTE[1]:                           dst = 192.168.1.111/32, nh = 0.0.0.0, mt = 10\nIP4.ROUTE[2]:                           dst = 192.168.1.3/32, nh = 0.0.0.0, mt = 10\nIP4.ROUTE[3]:                           dst = 192.168.1.2/32, nh = 0.0.0.0, mt = 10\nIP4.ROUTE[4]:                           dst = 192.168.1.124/32, nh = 0.0.0.0, mt = 10\nIP4.ROUTE[5]:                           dst = 192.168.0.0/22, nh = 0.0.0.0, mt = 50\nIP4.ROUTE[6]:                           dst = 0.0.0.0/0, nh = 192.168.1.1, mt = 50\n",
+      "stderr": ""
+    },
+    "route_wifi_client": {
+      "exit": 0,
+      "stdout": "192.168.1.4 from 192.168.1.5 dev enx00e04c680065 uid 1000 \n    cache \n",
+      "stderr": ""
+    },
+    "rp_filter": {
+      "exit": 0,
+      "stdout": "net.ipv4.conf.all.rp_filter = 2\nnet.ipv4.conf.wlP1p1s0.rp_filter = 2\n",
+      "stderr": ""
+    },
+    "services": {
+      "exit": 0,
+      "stdout": "MainPID=1277\nExecMainStartTimestamp=Thu 1970-01-01 08:04:49 CST\nId=ssh.service\nActiveState=active\n\nMainPID=0\nExecMainStartTimestamp=n/a\nId=microxrce-agent.service\nActiveState=inactive\n\nMainPID=0\nExecMainStartTimestamp=n/a\nId=mav-relay.service\nActiveState=inactive\n",
+      "stderr": ""
+    },
+    "sudo": {
+      "exit": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "listeners": {
+      "exit": 0,
+      "stdout": "Netid State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                                  \nudp   UNCONN 0      0            0.0.0.0:5353       0.0.0.0:*                                            \nudp   UNCONN 0      0            0.0.0.0:14550      0.0.0.0:*    users:((\"python3\",pid=1156,fd=3))       \nudp   UNCONN 0      0         127.0.0.53:53         0.0.0.0:*                                            \nudp   UNCONN 0      0            0.0.0.0:111        0.0.0.0:*                                            \nudp   UNCONN 0      0            0.0.0.0:41087      0.0.0.0:*                                            \nudp   UNCONN 0      0          127.0.0.1:323        0.0.0.0:*                                            \nudp   UNCONN 0      0            0.0.0.0:8888       0.0.0.0:*    users:((\"MicroXRCEAgent\",pid=1155,fd=3))\nudp   UNCONN 0      0                  *:5353             *:*                                            \nudp   UNCONN 0      0                  *:111              *:*                                            \nudp   UNCONN 0      0                  *:45319            *:*                                            \nudp   UNCONN 0      0              [::1]:323              *:*                                            \ntcp   LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*                                            \ntcp   LISTEN 0      4096       127.0.0.1:42775      0.0.0.0:*                                            \ntcp   LISTEN 0      4096         0.0.0.0:111        0.0.0.0:*                                            \ntcp   LISTEN 0      128          0.0.0.0:22         0.0.0.0:*                                            \ntcp   LISTEN 0      4096         0.0.0.0:631        0.0.0.0:*                                            \ntcp   LISTEN 0      4096            [::]:111           [::]:*                                            \ntcp   LISTEN 0      128             [::]:22            [::]:*                                            \ntcp   LISTEN 0      4096            [::]:631           [::]:*                                            \n",
+      "stderr": ""
+    },
+    "fc_neighbor": {
+      "exit": 0,
+      "stdout": "[{\"dst\":\"10.41.10.50\",\"lladdr\":\"24:6a:0e:5a:57:f4\",\"state\":[\"DELAY\"]},{\"dst\":\"192.168.1.123\",\"lladdr\":\"24:6a:0e:5a:57:f4\",\"state\":[\"STALE\"]}]\n",
+      "stderr": ""
+    },
+    "current_release": {
+      "exit": 0,
+      "stdout": "/home/nvidia/payload_catch_deploy/releases/b4453dd12c8482d808613769fb6c781bd7debff566633bf0fc4827a6d2654d37\n",
+      "stderr": ""
+    },
+    "dispatcher": {
+      "exit": 0,
+      "stdout": "total 16\n-rwxr-xr-x 1 root root 2293  6月  9  2022 01-ifupdown\ndrwxr-xr-x 2 root root 4096  6月  9  2022 no-wait.d\ndrwxr-xr-x 2 root root 4096  6月  9  2022 pre-down.d\ndrwxr-xr-x 2 root root 4096  6月  9  2022 pre-up.d\n",
+      "stderr": ""
+    }
+  },
+  "config_hashes": {
+    "/etc/ssh/sshd_config": "e8efe17e55e5cae9bb4c06fe66dedeeeaf7c4052b3da4447be23f7a587b781bb",
+    "/etc/NetworkManager/NetworkManager.conf": "18fbd379676db36079e581b1be4dfb368eb87e8d4e8b6c3ab73466aa8f8fc462",
+    "/boot/extlinux/extlinux.conf": "6d55aea184afb2f389d624e6a9c83fb280837164eda406c3e81035d84f19bc32"
+  }
+}

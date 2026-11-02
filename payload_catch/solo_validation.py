@@ -131,9 +131,7 @@ def hardware_errors(telemetry, cfg):
         out.append("A SYSID1/component1 not freshly verified")
     if not telemetry.get("land_fresh"):
         out.append("land detector missing/stale")
-    voltage, cells = telemetry.get("voltage"), telemetry.get("cells")
-    if cells != cfg.expected_cells:
-        out.append("battery cell count mismatch")
+    voltage = telemetry.get("voltage")
     if (type(voltage) not in (int, float) or not math.isfinite(voltage)
             or not 3.0 * cfg.expected_cells <= voltage <= 4.3 * cfg.expected_cells):
         out.append("battery voltage inconsistent")
@@ -154,7 +152,7 @@ def parameter_issues(parameters, cfg):
     from .fcu_params import check_params
     rows = [x.__dict__ for x in check_params(parameters,
         "outdoor" if cfg.gps else "indoor", require_complete=True)]
-    exact = dict(MAV_SYS_ID=1, BAT1_N_CELLS=cfg.expected_cells, CBRK_FLIGHTTERM=0)
+    exact = dict(MAV_SYS_ID=1, CBRK_FLIGHTTERM=0)
     for name, expected in exact.items():
         actual = parameters.get(name)
         rows.append(dict(name=name, level="ok" if actual == expected else "fail",

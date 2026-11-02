@@ -131,8 +131,9 @@ class SoloTests(unittest.TestCase):
         self.assertTrue(preflight_errors(snapshot(gps={"satellites_used":0}), telemetry(), cfg))
         self.assertFalse(preflight_errors(snapshot(gps={"satellites_used":0}), telemetry(), config()))
 
-    def test_cells_voltage_and_fc_identity_not_guessed(self):
-        for change in (dict(cells=1), dict(voltage=4.), dict(voltage=math.nan),
+    def test_voltage_and_fc_identity_not_guessed(self):
+        self.assertFalse(hardware_errors(telemetry(cells=1), config()))
+        for change in (dict(voltage=4.), dict(voltage=math.nan),
                        dict(identity_ok=False), dict(source_ok=False), dict(land_fresh=False)):
             self.assertTrue(hardware_errors(telemetry(**change), config()))
 
@@ -309,7 +310,7 @@ class SoloTests(unittest.TestCase):
         self.assertFalse([r for r in parameter_issues(parameters,config()) if r["level"]=="fail"])
         for changes in (dict(MPC_LAND_SPEED=3.),dict(MPC_TKO_SPEED=2.),
                         dict(COM_DISARM_LAND=0),dict(CBRK_FLIGHTTERM=121212),
-                        dict(BAT1_N_CELLS=1)):
+                        dict(MAV_SYS_ID=2)):
             self.assertTrue([r for r in parameter_issues({**parameters,**changes},config())
                              if r["level"]=="fail"])
 

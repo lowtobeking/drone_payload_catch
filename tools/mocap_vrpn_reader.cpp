@@ -38,14 +38,15 @@ void VRPN_CALLBACK pose_cb(void *opaque, const vrpn_TRACKERCB pose) {
 }
 
 int main(int argc, char **argv) {
-    if (argc != 5 || std::string(argv[2]) != "planeA") {
+    const bool continuous_ground = argc == 6 && std::string(argv[5]) == "--continuous-ground";
+    if ((argc != 5 && !continuous_ground) || std::string(argv[2]) != "planeA") {
         std::cerr << "usage: mocap_vrpn_reader SERVER:PORT planeA LOCAL_IP SECONDS\n";
         return 2;
     }
     double seconds;
     try { seconds = std::stod(argv[4]); }
     catch (...) { return 2; }
-    if (!std::isfinite(seconds) || seconds < 1 || seconds > 120) return 2;
+    if (!std::isfinite(seconds) || (continuous_ground ? seconds != 0 : (seconds < 1 || seconds > 120))) return 2;
     std::signal(SIGINT, stop);
     std::signal(SIGTERM, stop);
     auto *conn = vrpn_get_connection_by_name(argv[1], nullptr, nullptr, nullptr, nullptr, argv[3], true);
@@ -56,7 +57,7 @@ int main(int argc, char **argv) {
         vrpn_Tracker_Remote tracker(name.c_str(), conn);
         tracker.register_change_handler(&samples, pose_cb);
         const auto start = std::chrono::steady_clock::now();
-        while (running && std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count() < seconds) {
+        while (running && (continuous_ground || std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count() < seconds)) {
             tracker.mainloop();
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }

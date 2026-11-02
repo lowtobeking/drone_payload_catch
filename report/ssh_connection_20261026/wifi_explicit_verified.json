@@ -1,0 +1,25 @@
+{
+  "serial": "1612425621719",
+  "boot_id": "dc981513-5789-4a7c-ba91-57367486bfa9",
+  "peer": "{\"peer\": \"192.168.1.4\", \"mac\": \"98:5f:41:64:80:ed\", \"interface\": \"wlP1p1s0\", \"last_seen_monotonic\": 26.100499985}\n",
+  "wifi_route": {
+    "exit": 0,
+    "stdout": "192.168.1.4 dev wlP1p1s0 src 192.168.1.5 uid 1000 \n    cache \n",
+    "stderr": ""
+  },
+  "fc_route": {
+    "exit": 0,
+    "stdout": "10.41.10.2 dev eno1 src 10.41.10.100 uid 1000 \n    cache \n",
+    "stderr": ""
+  },
+  "mesh_route": {
+    "exit": 0,
+    "stdout": "192.168.1.203 dev enx00e04c680065 src 192.168.1.101 uid 1000 \n    cache \n",
+    "stderr": ""
+  },
+  "agent": {
+    "exit": 1,
+    "stdout": "    PID    PPID                  STARTED COMMAND\n",
+    "stderr": ""
+  }
+}

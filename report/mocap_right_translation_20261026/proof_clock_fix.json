@@ -1,0 +1,9 @@
+{
+  "file": "payload_catch/mocap_odometry_node.py",
+  "before_sha256": "72f7560ac068e451dae00a81cc7331c44004305862250c4e91763489c0f3e973",
+  "after_sha256": "fd32b7921103208899613ef63496ce2465b6a935a7aa1ba4a4e3fa4b6d27364c",
+  "change": "read proof before taking proof-validation monotonic time",
+  "max_age_us": 2000000,
+  "future_timestamp_rejection_preserved": true,
+  "field_failure_reason": "stale/future; exact cause not observable in prior logs"
+}

@@ -1,0 +1,43 @@
+{
+  "routes": [
+    {
+      "DestinationPrefix": "255.255.255.255/32",
+      "NextHop": "0.0.0.0",
+      "RouteMetric": 256
+    },
+    {
+      "DestinationPrefix": "224.0.0.0/4",
+      "NextHop": "0.0.0.0",
+      "RouteMetric": 256
+    },
+    {
+      "DestinationPrefix": "192.168.1.255/32",
+      "NextHop": "0.0.0.0",
+      "RouteMetric": 256
+    },
+    {
+      "DestinationPrefix": "192.168.1.123/32",
+      "NextHop": "0.0.0.0",
+      "RouteMetric": 256
+    },
+    {
+      "DestinationPrefix": "192.168.1.0/24",
+      "NextHop": "0.0.0.0",
+      "RouteMetric": 256
+    }
+  ],
+  "dns": [],
+  "addresses": [
+    {
+      "IPAddress": "192.168.1.123",
+      "PrefixLength": 24,
+      "PrefixOrigin": 1,
+      "SkipAsSource": false
+    }
+  ],
+  "adapter": {
+    "Name": "以太网",
+    "InterfaceGuid": "{22CC4FBF-64DC-4B66-832A-785A53946664}",
+    "MacAddress": "24-6A-0E-5A-57-F4"
+  }
+}

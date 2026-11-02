@@ -26,14 +26,14 @@ def clock_pair(node):
 
 
 class MocapOdometry(Node):
-    def __init__(self, config, *, send_to_px4=False, isolated_test=False, ground_receive_time=False, fixed_parameter_proof=None):
+    def __init__(self, config, *, send_to_px4=False, isolated_test=False, ground_receive_time=False, flight_receive_time=False, fixed_parameter_proof=None):
         cfg, transform = load_config(config)
         if isolated_test and (os.environ.get("ROS_DOMAIN_ID") != "192"
                               or os.environ.get("ROS_LOCALHOST_ONLY") != "1"
                               or Path("/proc/device-tree/serial-number").exists()):
             raise ValueError("synthetic forwarding tests require non-Jetson localhost domain 192")
         if send_to_px4:
-            issues = live_issues(cfg, ground_receive_time=ground_receive_time)
+            issues = live_issues(cfg, ground_receive_time=ground_receive_time, flight_receive_time=flight_receive_time)
             if issues:
                 raise ValueError("PX4 output refused: " + "; ".join(issues))
             if not isolated_test:
@@ -47,6 +47,9 @@ class MocapOdometry(Node):
             if not isolated_test and Path("/proc/sys/kernel/random/boot_id").read_text().strip() != ref["boot_id"]:
                 raise ValueError("heading snapshot belongs to another Jetson boot")
         super().__init__("a_mocap_odometry", start_parameter_services=False)
+        self.flight_mode = cfg["scope"] == "a_solo_flight"
+        self.flight_started_mono = time.monotonic_ns() // 1000
+        self.ev_seen = False
         self.fixed_mode = cfg.get("output_pose_frame") == "fixed_lab_navigation"
         self.fixed_proof_path = Path(fixed_parameter_proof) if fixed_parameter_proof else None
         self.fixed_boot = (Path("/proc/sys/kernel/random/boot_id").read_text().strip()
@@ -57,6 +60,7 @@ class MocapOdometry(Node):
         self.cfg = cfg
         self.send_to_px4 = send_to_px4
         self.ground_receive_time = ground_receive_time
+        self.flight_receive_time = flight_receive_time
         self.builder = OdometryBuilder(cfg, transform)
         self.ground = GroundGate(cfg)
         self.published = self.rejected = 0
@@ -88,26 +92,36 @@ class MocapOdometry(Node):
                 lambda msg: setattr(self, "fixed_status", (msg, time.monotonic_ns()//1000)), qos)
         self.create_timer(.02, self.watch)
         self.create_timer(.5, self.report)
-        self.get_logger().warn("GROUND ONLY: " + ("explicit PX4 output enabled" if send_to_px4
-                                                 else "diagnostic; no PX4 publisher"))
+        self.get_logger().warn(("A-ONLY FLIGHT BRIDGE" if self.flight_mode else "GROUND ONLY")
+            + ": " + ("explicit PX4 output enabled" if send_to_px4 else "diagnostic; no PX4 publisher"))
 
     def fixed_issues(self, mono):
         if not self.fixed_mode:
             return []
         if self.fixed_fault:
             return [self.fixed_fault]
-        try:
-            policy = json.loads(self.fixed_proof_path.read_text(encoding="utf-8")) if self.fixed_proof_path else None
-        except (OSError, ValueError):
-            policy = None
-        issues = fixed_parameter_issues(policy, mono, self.fixed_boot,
-            height_fusion=self.cfg.get("height_fusion")=="external_vision_reference")
+        issues = []
+        if not self.flight_mode:
+            try:
+                policy = json.loads(self.fixed_proof_path.read_text(encoding="utf-8")) if self.fixed_proof_path else None
+            except (OSError, ValueError):
+                policy = None
+            # The ground guardian renews this proof while PX4 parameters are leased.
+            proof_mono = time.monotonic_ns() // 1000
+            issues = fixed_parameter_issues(policy, proof_mono, self.fixed_boot,
+                height_fusion=self.cfg.get("height_fusion")=="external_vision_reference")
         if self.fixed_status is None or mono-self.fixed_status[1]>1_500_000:
             issues.append("fixed reference estimator flags missing/stale")
         else:
             flags = self.fixed_status[0]
             if flags.cs_mag_hdg or flags.cs_mag_3d or flags.cs_gnss_pos or flags.cs_gnss_vel or flags.cs_gnss_yaw:
                 issues.append("fixed indoor reference conflicts with magnetic/geographic aiding")
+            if self.flight_mode:
+                ev_ready = flags.cs_ev_pos and flags.cs_ev_yaw and flags.cs_ev_hgt
+                if ev_ready:
+                    self.ev_seen = True
+                elif self.ev_seen or mono - self.flight_started_mono > 10_000_000:
+                    issues.append("external vision XYZ/yaw fusion missing")
         if self.fixed_ready and issues:
             self.fixed_fault = "; ".join(issues)+"; restart required"
         if not issues:
@@ -166,14 +180,15 @@ class MocapOdometry(Node):
     def report(self):
         _, mono = clock_pair(self)
         reasons = self.ground.check(mono) + self.fixed_issues(mono)
-        result = dict(scope="ground_only", send_to_px4_requested=self.send_to_px4,
+        result = dict(scope=self.cfg["scope"], send_to_px4_requested=self.send_to_px4,
                       accepted=self.builder.accepted, rejected=self.rejected,
                       forwarded=self.published,
                       stale=self.builder.last_good_mono is None or
                       mono - self.builder.last_good_mono > self.cfg["max_source_gap_s"] * 1e6,
                       latched_fault=self.builder.fault or self.ground.fault or self.external_fault or self.fixed_fault,
                       last_error=self.reason, ground_gate_issues=reasons,
-                      configuration_issues=live_issues(self.cfg, ground_receive_time=self.ground_receive_time),
+                      configuration_issues=live_issues(self.cfg, ground_receive_time=self.ground_receive_time,
+                                                        flight_receive_time=self.flight_receive_time),
                       timestamp_mode=self.cfg.get("timestamp_mode", "verified_source"),
                       output_pose_frame=self.cfg.get("output_pose_frame", "local_frd"),
                       heading_reference=self.cfg.get("heading_reference"),
@@ -181,7 +196,7 @@ class MocapOdometry(Node):
                       height_fusion=self.cfg.get("height_fusion","not_requested"),
                       height_origin=self.cfg.get("height_origin"),
                       lever_arm_measured=self.cfg["lever_arm_measured"],
-                      limitations=("receive time includes unknown acquisition/network delay; marker origin used; no flight approval"
+                      limitations=("receive time includes unknown acquisition/network delay; bridge itself gives no flight approval"
                                    if self.builder.receive_time_ground else ""),
                       sample_time_verified=self.builder.sample_time_verified,
                       flight_approval=False, velocity_supplied=False)
@@ -197,12 +212,21 @@ def main():
     ap.add_argument("--send-to-px4", action="store_true")
     ap.add_argument("--ground-receive-time", action="store_true",
                     help="explicit acknowledgement: unverified sample time/geometry; disarmed ground test only")
+    ap.add_argument("--flight-receive-time", action="store_true",
+                    help="explicit A-only flight bridge receive-time acknowledgement")
     ap.add_argument("--fixed-parameter-proof", help="fresh same-boot guardian parameter readback file")
     ap.add_argument("--isolated-test", action="store_true")
     ap.add_argument("--seconds", type=float, default=30.)
+    ap.add_argument("--continuous-ground", action="store_true", help="continue until stopped, retaining disarmed ground gates; requires --seconds 0")
+    ap.add_argument("--continuous-flight", action="store_true", help="A-only flight bridge; requires --seconds 0 and explicit config")
     args = ap.parse_args()
-    if not 1 <= args.seconds <= 120:
-        ap.error("--seconds must be within 1..120; permanent flight service is not provided")
+    if args.continuous_ground and (args.seconds != 0 or not args.send_to_px4 or not args.ground_receive_time or args.isolated_test):
+        ap.error("continuous ground session requires --seconds 0, --send-to-px4, --ground-receive-time; no isolated test")
+    if args.continuous_flight and (args.continuous_ground or args.seconds != 0 or not args.send_to_px4
+                                   or not args.flight_receive_time or args.isolated_test):
+        ap.error("continuous flight requires --seconds 0, --send-to-px4, --flight-receive-time")
+    if not (args.continuous_ground or args.continuous_flight) and not 1 <= args.seconds <= 120:
+        ap.error("--seconds must be within 1..120 unless a continuous mode is selected")
     rclpy.init(args=[])
     node = None
     stopping = False
@@ -214,9 +238,9 @@ def main():
     try:
         node = MocapOdometry(args.config, send_to_px4=args.send_to_px4,
                              isolated_test=args.isolated_test, ground_receive_time=args.ground_receive_time,
-                             fixed_parameter_proof=args.fixed_parameter_proof)
+                             flight_receive_time=args.flight_receive_time, fixed_parameter_proof=args.fixed_parameter_proof)
         end = time.monotonic() + args.seconds
-        while not stopping and rclpy.ok() and time.monotonic() < end:
+        while not stopping and rclpy.ok() and (args.continuous_ground or args.continuous_flight or time.monotonic() < end):
             rclpy.spin_once(node, timeout_sec=.02)
     finally:
         if node is not None:

@@ -1,0 +1,53 @@
+{
+  "offline_only": true,
+  "raw_frames": 7383,
+  "repeats_over_100ms": [
+    {
+      "frames": 83,
+      "span_s": 0.677645,
+      "start_monotonic": 3859.933263318,
+      "end_monotonic": 3860.610928919,
+      "source_span_s": 0.683967,
+      "position": [
+        2.08716845703125,
+        -0.2960882568359375,
+        0.2953956298828125
+      ],
+      "quaternion_xyzw": [
+        -0.020870864391326904,
+        0.04167410731315613,
+        -0.7640047073364258,
+        0.6435253024101257
+      ]
+    }
+  ],
+  "first_bridge_fault_monotonic": 3860.56634185,
+  "last_forwarded_attitude": {
+    "roll_deg": -1.2511803803715602,
+    "pitch_deg": 5.1946883673871875,
+    "yaw_deg": -80.2719912357307,
+    "tilt_deg": 5.342840804303266
+  },
+  "last_forwarded_monotonic": 3860.4134968,
+  "longest_repeat": {
+    "frames": 83,
+    "span_s": 0.677645,
+    "start_monotonic": 3859.933263318,
+    "end_monotonic": 3860.610928919,
+    "source_span_s": 0.683967,
+    "position": [
+      2.08716845703125,
+      -0.2960882568359375,
+      0.2953956298828125
+    ],
+    "quaternion_xyzw": [
+      -0.020870864391326904,
+      0.04167410731315613,
+      -0.7640047073364258,
+      0.6435253024101257
+    ]
+  },
+  "source_receive_gap_ms_max": 60.288,
+  "conclusion": "Exact repetition occurs in raw VRPN samples with advancing timestamps; root cause unproven. No thresholds changed.",
+  "operator_observation": "Markers visible, no observed tracking loss."
+}

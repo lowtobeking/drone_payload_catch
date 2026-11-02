@@ -1,0 +1,8 @@
+{
+  "read_only": true,
+  "serial": "1612425621719",
+  "boot": "dc981513-5789-4a7c-ba91-57367486bfa9",
+  "current": "/home/nvidia/payload_catch_deploy/releases/b4453dd12c8482d808613769fb6c781bd7debff566633bf0fc4827a6d2654d37",
+  "remaining_task_processes": [],
+  "services": "MainPID=1019\nId=payload-catch-agent.service\nActiveState=active\n\nMainPID=1024\nId=payload-catch-mav-relay.service\nActiveState=active\n\nMainPID=2770\nId=payload-catch-wifi-peer.service\nActiveState=active\n"
+}

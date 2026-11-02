@@ -1,0 +1,19 @@
+{
+  "saved_at": "2026-10-26T15:14:52.438956+08:00",
+  "run": "lift_reference_20261026T070536Z",
+  "remote": "/home/nvidia/payload_catch_mocap_fusion_20261026/continuous_ground_de7d9c91c69d703b",
+  "remote_logs": "/home/nvidia/payload_catch_mocap_fusion_20261026/continuous_ground_de7d9c91c69d703b/logs/20261026T070536Z",
+  "unit": "payload-catch-mocap-ground-20261026t070536z",
+  "current_switched": false,
+  "autostart": false,
+  "scope": "manual continuous disarmed ground fusion",
+  "flight_approval": false,
+  "temporary_parameters": {
+    "EKF2_EV_CTRL": 11,
+    "EKF2_HGT_REF": 3,
+    "EKF2_MAG_TYPE": 5,
+    "UXRCE_DDS_SYNCT": 1
+  },
+  "stop_contract": "touch remote_logs/stop.request; session stops source/bridge then guard restores EV0/HGT1/MAG0 and reboots FC to verify",
+  "device_serial": "1612425621719"
+}

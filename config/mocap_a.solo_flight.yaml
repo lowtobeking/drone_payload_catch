@@ -1,0 +1,72 @@
+# A-only external-vision bridge; lever arm is the operator's approximate measurement.
+schema: 1
+scope: a_solo_flight
+enabled: true
+timestamp_mode: receive_time_flight
+max_identical_pose_s: 0.5
+input_topic: /payload/mocap/a/raw_sample
+output_topic: /fmu/in/vehicle_visual_odometry
+input_frame: world
+tracker: planeA
+sensor: 0
+expected_system_id: 1
+expected_component_id: 1
+mounting_confirmed: false
+lever_arm_measured: false
+server_timing_verified: false
+tracking_loss_verified: false
+source_to_local_offset_us: null
+source_offset_uncertainty_us: null
+max_sample_age_s: 0.15
+max_receive_age_s: 0.05
+max_source_gap_s: 0.15
+max_clock_step_s: 0.02
+max_time_sync_age_s: 2.0
+max_time_sync_rtt_us: 10000
+max_output_hz: 50.0
+position_variance_m2: 0.01
+orientation_variance_rad2: 0.01
+reset_counter: 0
+transform:
+  world_to_local:
+  - - 0
+    - 1
+    - 0
+  - - 1
+    - 0
+    - 0
+  - - 0
+    - 0
+    - -1
+  body_to_marker:
+  - - 0
+    - -1
+    - 0
+  - - -1
+    - 0
+    - 0
+  - - 0
+    - 0
+    - -1
+  shared_origin_world_m:
+  - 0
+  - 0
+  - 0
+  body_origin_in_marker_m:
+  - 0.0
+  - 0.0
+  - -0.16
+output_pose_frame: fixed_lab_navigation
+fixed_reference:
+  id: aerolab_world_Y_X_minusZ_v1
+  convention: indoor_navigation_x_reference_y_right_z_down
+  geographic_north_verified: false
+  magnetic_alignment: disabled
+  direction_verified_by: operator movement checks 2026-10-21 and 2026-10-23
+  px4_pose_encoding: POSE_FRAME_NED interpreted as fixed indoor navigation, no geographic
+    aiding
+height_fusion: external_vision_reference
+height_origin: fixed_laboratory_marker_origin_not_agl
+flight_receive_time_acknowledged: true
+lever_arm_note: 'Operator estimate on 2026-10-28: FC is about 0.16 m below marker
+  origin; horizontal offset negligible. Confirm before flight.'

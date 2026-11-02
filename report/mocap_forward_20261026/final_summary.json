@@ -1,0 +1,153 @@
+{
+  "updated": "2026-10-26T14:25:06.863897+08:00",
+  "run": "lift_reference_20261026T061834Z",
+  "phase": "forward_move",
+  "ground_test_passed": true,
+  "flight_approval": false,
+  "validation": {
+    "passed": true,
+    "flight_approval": false,
+    "fixed_frame": "aerolab_world_Y_X_minusZ_v1",
+    "phases": {
+      "baseline": {
+        "label": "baseline",
+        "monotonic": 2386.192798397,
+        "input_xyz": [
+          -0.3806313335895538,
+          2.1249052837491034,
+          -0.2921377209946513
+        ],
+        "px4_xyz": [
+          -0.380291840583086,
+          2.1252971190214156,
+          -0.29197757706046107
+        ],
+        "px4_z_span_m": 0.0005553364753723145,
+        "input_z_span_m": 0.00029671192169189453,
+        "input_yaw_deg": -122.08323265563155,
+        "px4_yaw_deg": -122.07680117683033,
+        "local_samples": 400,
+        "input_samples": 160,
+        "flags_samples": 4
+      },
+      "forward_move": {
+        "label": "forward_move",
+        "monotonic": 2452.025922843,
+        "input_xyz": [
+          -0.8897921316325664,
+          1.5418353840708732,
+          -0.2924642372876406
+        ],
+        "px4_xyz": [
+          -0.8901040732261524,
+          1.5417145730263024,
+          -0.2924457281528406
+        ],
+        "px4_z_span_m": 0.0020110011100769043,
+        "input_z_span_m": 0.00038430094718933105,
+        "input_yaw_deg": -123.48399590188038,
+        "px4_yaw_deg": -123.63571392689245,
+        "local_samples": 398,
+        "input_samples": 160,
+        "flags_samples": 4
+      }
+    },
+    "translation": {
+      "input_displacement_m": [
+        -0.5091607980430126,
+        -0.5830698996782302,
+        -0.0003265162929892984
+      ],
+      "px4_displacement_m": [
+        -0.5098122326430663,
+        -0.5835825459951132,
+        -0.0004681510923795207
+      ],
+      "input_forward_m": 0.7644630356107056,
+      "px4_forward_m": 0.7652433991589195,
+      "input_cross_m": -0.12170247885496754,
+      "horizontal_displacement_difference_m": 0.0008289591572331968,
+      "horizontal_endpoint_difference_m": 0.0003345188579126863,
+      "yaw_difference_deg": 0.1517180250120731,
+      "ground_functional_tolerance_m": 0.05,
+      "settling_time_after_stable_detection_s": 8.093524591000005,
+      "independent_physical_distance_not_measured": true
+    },
+    "lease": {
+      "changed": true,
+      "restored": true,
+      "restore_restart_verified": true,
+      "flight_approval": false,
+      "flight_commands": 0,
+      "fc_only_reboots": 2,
+      "lease_ended": true
+    },
+    "counts": {
+      "flags": 92,
+      "status": 180,
+      "land": 91,
+      "local": 8971,
+      "raw": 9623,
+      "bridge": 151,
+      "input": 2951
+    }
+  },
+  "audit": {
+    "test": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_forward_20261026\\lift_reference_20261026T061834Z",
+    "post": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_forward_20261026\\after_20261026T062423Z",
+    "parameter_differences": {
+      "CAL_BARO0_OFF": {
+        "before": {
+          "value": -48.3671875,
+          "type": 9,
+          "index": 59
+        },
+        "after": {
+          "value": -47.9140625,
+          "type": 9,
+          "index": 59
+        }
+      }
+    },
+    "parameter_count": 1127,
+    "complete": true,
+    "jetson_boot": "dc981513-5789-4a7c-ba91-57367486bfa9",
+    "remaining_task_processes": [],
+    "services": "MainPID=1019\nId=payload-catch-agent.service\nActiveState=active\n\nMainPID=1024\nId=payload-catch-mav-relay.service\nActiveState=active\n\nMainPID=2770\nId=payload-catch-wifi-peer.service\nActiveState=active\n",
+    "current": "/home/nvidia/payload_catch_deploy/releases/b4453dd12c8482d808613769fb6c781bd7debff566633bf0fc4827a6d2654d37",
+    "exact_parameter_match": false,
+    "test_parameters_restored": true,
+    "jetson_boot_unchanged": true,
+    "autonomous_calibration_candidates": {
+      "CAL_BARO0_OFF": {
+        "before": {
+          "value": -48.3671875,
+          "type": 9,
+          "index": 59
+        },
+        "after": {
+          "value": -47.9140625,
+          "type": 9,
+          "index": 59
+        }
+      }
+    },
+    "unexpected_parameter_changes": {},
+    "services_unchanged": true,
+    "current_unchanged": true,
+    "passed": true
+  },
+  "fusion_flags_after_baseline": 66,
+  "all_observed_flags_ev_xyz_yaw_no_mag": true,
+  "latched_bridge_fault": false,
+  "exact_raw_pose_repeats_over_100ms": [],
+  "endpoint_horizontal_mean_disagreement_m": 0.0003345188579126863,
+  "receipt_time_pair_diagnostic": {
+    "method": "nearest local ROS receipt time within 30ms; diagnostic only, not capture time/latency calibrated",
+    "pairs": 2634,
+    "mean_horizontal_disagreement_m": 0.0026552781142457024,
+    "p95_horizontal_disagreement_m": 0.016711500076378075,
+    "max_horizontal_disagreement_m": 0.07066916021426549
+  },
+  "persistent_fusion_running": false
+}

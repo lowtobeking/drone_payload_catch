@@ -1,0 +1,32 @@
+{
+  "fixed_runtime_a.py": {
+    "source": "report\\mocap_lift_20261023\\fixed_runtime_a.py",
+    "original_sha256": "39abfdea79bf10c5a790759da60426ea972a7eb3a1eb6f07d0deecf83b838041",
+    "sha256": "6387e5575732e8ae7ada2fc9ced5b82393eb3181be564f26f6e6e8aa8a6f4114",
+    "changed": true
+  },
+  "fixed_guard_a.py": {
+    "source": "report\\mocap_lift_20261023\\fixed_guard_a.py",
+    "original_sha256": "aa8ea4ff877212be2414bbea71f2751186556ee13501f318bf589c53b6fe5c38",
+    "sha256": "aa8ea4ff877212be2414bbea71f2751186556ee13501f318bf589c53b6fe5c38",
+    "changed": false
+  },
+  "run_fixed_a.sh": {
+    "source": "report\\mocap_lift_20261023\\run_fixed_a.sh",
+    "original_sha256": "8133d488572cabc2c7b2f32e9d0179e04590f6e4a5e1c78a04c1f257830750ad",
+    "sha256": "8133d488572cabc2c7b2f32e9d0179e04590f6e4a5e1c78a04c1f257830750ad",
+    "changed": false
+  },
+  "run_fixed_on_a.py": {
+    "source": "report\\mocap_lift_20261023\\run_fixed_on_a.py",
+    "original_sha256": "fa7ad96ec5aaaeea3d0987514909677af52121ecaf020776147ea396e7f8b0f5",
+    "sha256": "770f7a9a153f2ab884590fe08bc7212e95b313fb467181cdb39e68978cb16383",
+    "changed": true
+  },
+  "control.py": {
+    "source": "report\\mocap_lift_20261023\\control.py",
+    "original_sha256": "aaddad2cd6b23300e1e540571d02ea418d1e671ec5109140e0ae254224bcbc20",
+    "sha256": "aaddad2cd6b23300e1e540571d02ea418d1e671ec5109140e0ae254224bcbc20",
+    "changed": false
+  }
+}

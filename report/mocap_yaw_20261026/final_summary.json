@@ -1,0 +1,49 @@
+{
+  "manual_yaw_passed": false,
+  "raw_verdict": false,
+  "raw_error": "RuntimeError('bridge fault')",
+  "detected_faults": [
+    "exactly repeated pose stream; restart required"
+  ],
+  "endpoint_diagnostic": {
+    "input_yaw_deg": -80.2719912357307,
+    "px4_yaw_deg": -83.08609570580857,
+    "match_age_s": 0.0017636430002312409,
+    "input_change_deg": -80.98521771147053,
+    "px4_change_deg": -83.80567047920047,
+    "note": "Last accepted input matched to nearest PX4 sample; diagnostic endpoint only, no accepted stable left_turn snapshot."
+  },
+  "longest_exact_pose_repeat": {
+    "count": 83,
+    "receive_span_s": 0.677645,
+    "source_stamp_advanced": true
+  },
+  "operator_report": "Reflective markers visible; operator did not observe tracking loss.",
+  "cause": "Undetermined: do not attribute to occlusion or relax repeated-pose guard without evidence.",
+  "post_audit_passed": true,
+  "restored_parameters": {
+    "EKF2_EV_CTRL": 0,
+    "EKF2_HGT_REF": 1,
+    "EKF2_MAG_TYPE": 0,
+    "UXRCE_DDS_SYNCT": 1
+  },
+  "parameter_differences": {
+    "CAL_BARO0_OFF": {
+      "before": {
+        "value": -44.3984375,
+        "type": 9,
+        "index": 59
+      },
+      "after": {
+        "value": -39.3671875,
+        "type": 9,
+        "index": 59
+      }
+    }
+  },
+  "remaining_task_processes": [],
+  "current_fusion_running": false,
+  "flight_approval": false,
+  "run": "lift_reference_20261026T032518Z",
+  "post": "after_20261026T033215Z"
+}

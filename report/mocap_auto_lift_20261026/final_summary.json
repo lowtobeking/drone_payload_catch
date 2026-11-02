@@ -1,0 +1,40 @@
+{
+  "run": "lift_reference_20261026T031255Z",
+  "post": "after_20261026T032116Z",
+  "up_input_m": 0.7007876771530828,
+  "up_px4_m": 0.6997138412535788,
+  "displacement_difference_m": 0.0010738358995039388,
+  "plateau_sample_counts": {
+    "local": 399,
+    "input": 159
+  },
+  "same_direction": true,
+  "return_recorded": false,
+  "full_test_passed": false,
+  "error": "RuntimeError('manual interaction window expired')",
+  "restoration": {
+    "changed": true,
+    "restored": true,
+    "restore_restart_verified": true,
+    "flight_approval": false,
+    "flight_commands": 0,
+    "fc_only_reboots": 2,
+    "lease_ended": true
+  },
+  "post_audit_passed": true,
+  "parameter_differences": {
+    "CAL_BARO0_OFF": {
+      "before": {
+        "value": -34.796875,
+        "type": 9,
+        "index": 59
+      },
+      "after": {
+        "value": -44.3984375,
+        "type": 9,
+        "index": 59
+      }
+    }
+  },
+  "flight_approval": false
+}

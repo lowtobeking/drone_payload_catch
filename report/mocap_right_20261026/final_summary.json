@@ -1,0 +1,138 @@
+{
+  "updated": "2026-10-26T14:25:06.348132+08:00",
+  "run": "lift_reference_20261026T061125Z",
+  "phase": "right_turn",
+  "ground_test_passed": true,
+  "flight_approval": false,
+  "validation": {
+    "passed": true,
+    "flight_approval": false,
+    "fixed_frame": "aerolab_world_Y_X_minusZ_v1",
+    "phases": {
+      "baseline": {
+        "label": "baseline",
+        "monotonic": 1958.455904192,
+        "input_xyz": [
+          -0.4038709509446754,
+          2.1893168991396887,
+          -0.2925741676218021
+        ],
+        "px4_xyz": [
+          -0.4040011716634035,
+          2.190167515873909,
+          -0.2932917780429125
+        ],
+        "px4_z_span_m": 0.0009156167507171631,
+        "input_z_span_m": 0.0010579824447631836,
+        "input_yaw_deg": 179.65914123688302,
+        "px4_yaw_deg": 179.65422941429972,
+        "local_samples": 400,
+        "input_samples": 161,
+        "flags_samples": 4
+      },
+      "right_turn": {
+        "label": "right_turn",
+        "monotonic": 1994.243892584,
+        "input_xyz": [
+          -0.38074916154146193,
+          2.124968686699867,
+          -0.2924195915460587
+        ],
+        "px4_xyz": [
+          -0.4434888047682014,
+          2.101990340646347,
+          -0.29272463096114326
+        ],
+        "px4_z_span_m": 0.001737743616104126,
+        "input_z_span_m": 0.005647987127304077,
+        "input_yaw_deg": -122.07181693591338,
+        "px4_yaw_deg": -122.51353449039348,
+        "local_samples": 399,
+        "input_samples": 160,
+        "flags_samples": 5
+      }
+    },
+    "yaw": {
+      "input_change_deg": 58.26904182720365,
+      "px4_change_deg": 57.83223609530684,
+      "displacement_difference_deg": 0.43680573189681127,
+      "operator_physical_angle_not_measured": true
+    },
+    "lease": {
+      "changed": true,
+      "restored": true,
+      "restore_restart_verified": true,
+      "flight_approval": false,
+      "flight_commands": 0,
+      "fc_only_reboots": 2,
+      "lease_ended": true
+    },
+    "counts": {
+      "land": 64,
+      "flags": 66,
+      "status": 123,
+      "local": 6181,
+      "raw": 6358,
+      "bridge": 92,
+      "input": 1745
+    }
+  },
+  "audit": {
+    "test": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_right_20261026\\lift_reference_20261026T061125Z",
+    "post": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\caolihao\\drone_payload_catch\\report\\mocap_right_20261026\\after_20261026T061628Z",
+    "parameter_differences": {
+      "CAL_BARO0_OFF": {
+        "before": {
+          "value": -45.625,
+          "type": 9,
+          "index": 59
+        },
+        "after": {
+          "value": -48.3671875,
+          "type": 9,
+          "index": 59
+        }
+      }
+    },
+    "parameter_count": 1127,
+    "complete": true,
+    "jetson_boot": "dc981513-5789-4a7c-ba91-57367486bfa9",
+    "remaining_task_processes": [],
+    "services": "MainPID=1019\nId=payload-catch-agent.service\nActiveState=active\n\nMainPID=1024\nId=payload-catch-mav-relay.service\nActiveState=active\n\nMainPID=2770\nId=payload-catch-wifi-peer.service\nActiveState=active\n",
+    "current": "/home/nvidia/payload_catch_deploy/releases/b4453dd12c8482d808613769fb6c781bd7debff566633bf0fc4827a6d2654d37",
+    "exact_parameter_match": false,
+    "test_parameters_restored": true,
+    "jetson_boot_unchanged": true,
+    "autonomous_calibration_candidates": {
+      "CAL_BARO0_OFF": {
+        "before": {
+          "value": -45.625,
+          "type": 9,
+          "index": 59
+        },
+        "after": {
+          "value": -48.3671875,
+          "type": 9,
+          "index": 59
+        }
+      }
+    },
+    "unexpected_parameter_changes": {},
+    "services_unchanged": true,
+    "current_unchanged": true,
+    "passed": true
+  },
+  "fusion_flags_after_baseline": 37,
+  "all_observed_flags_ev_xyz_yaw_no_mag": true,
+  "latched_bridge_fault": false,
+  "exact_raw_pose_repeats_over_100ms": [],
+  "endpoint_horizontal_mean_disagreement_m": 0.06681517207621249,
+  "receipt_time_pair_diagnostic": {
+    "method": "nearest local ROS receipt time within 30ms; diagnostic only, not capture time/latency calibrated",
+    "pairs": 1428,
+    "mean_horizontal_disagreement_m": 0.009107450164137035,
+    "p95_horizontal_disagreement_m": 0.07902811124408775,
+    "max_horizontal_disagreement_m": 0.13036135793861275
+  },
+  "persistent_fusion_running": false
+}

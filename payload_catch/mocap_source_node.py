@@ -14,7 +14,7 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 from std_msgs.msg import String
 
 
-def run(reader, server, bind_ip, seconds, log_dir):
+def run(reader, server, bind_ip, seconds, log_dir, *, continuous_ground=False):
     rclpy.init(args=[])
     node = Node("a_mocap_raw_source", start_parameter_services=False)
     pub = node.create_publisher(String, "/payload/mocap/a/raw_sample",
@@ -35,14 +35,14 @@ def run(reader, server, bind_ip, seconds, log_dir):
     try:
         with (log_dir / "native.stderr.log").open("wb") as err:
             child = subprocess.Popen([str(Path(reader).resolve()), server, "planeA", bind_ip,
-                                      str(seconds)], stdout=subprocess.PIPE, stderr=err, shell=False)
+                                      str(seconds), *(["--continuous-ground"] if continuous_ground else [])], stdout=subprocess.PIPE, stderr=err, shell=False)
             (log_dir / "reader_process.json").write_text(json.dumps({
                 "pid": child.pid, "reader": str(reader), "purpose": "planeA bounded raw source"}),
                 encoding="utf-8")
             os.set_blocking(child.stdout.fileno(), False)
             selector.register(child.stdout, selectors.EVENT_READ)
             start = time.monotonic()
-            while not stop and rclpy.ok() and time.monotonic() - start < seconds:
+            while not stop and rclpy.ok() and (continuous_ground or time.monotonic() - start < seconds):
                 for _, _ in selector.select(timeout=.005):
                     block = os.read(child.stdout.fileno(), 65536)
                     if not block:
@@ -89,10 +89,13 @@ def main():
     ap.add_argument("--bind-ip", required=True)
     ap.add_argument("--seconds", type=float, default=30.)
     ap.add_argument("--log-dir", required=True)
+    ap.add_argument("--continuous-ground", action="store_true", help="explicit continuous raw ground source; requires --seconds 0")
     args = ap.parse_args()
-    if not 1 <= args.seconds <= 120:
+    if args.continuous_ground and args.seconds != 0:
+        ap.error("--continuous-ground requires --seconds 0")
+    if not args.continuous_ground and not 1 <= args.seconds <= 120:
         ap.error("--seconds must be within 1..120")
-    run(args.reader, args.server, args.bind_ip, args.seconds, args.log_dir)
+    run(args.reader, args.server, args.bind_ip, args.seconds, args.log_dir, continuous_ground=args.continuous_ground)
 
 
 if __name__ == "__main__":
