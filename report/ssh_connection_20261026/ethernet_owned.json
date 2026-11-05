@@ -1,6 +1,0 @@
-{
-  "purpose": "Temporary cable SSH only",
-  "interface": 8,
-  "prefix": 24,
-  "ip": "10.41.10.50"
-}

@@ -1,0 +1,56 @@
+{
+  "serial": "1612425621719",
+  "hostname": "nvidia-desktop",
+  "boot": "a23378e6-2870-408a-a39c-b71d213c8cca",
+  "architecture": "aarch64",
+  "current": "/home/nvidia/payload_catch_deploy/releases/907689ae1873290cf4d7a41878298ce5c6bae85bb931f021639ce334089763dd",
+  "previous": "/home/nvidia/payload_catch_deploy/releases/0635ebf62c74c8960f324e15c85a40c41862961b20afe3adb73c460d4d8523db",
+  "files": {
+    "a_solo.yaml": {
+      "sha256": "7bf915eb59a653263c2ba38b8c509d627188ab0716486821865d337542e8734d",
+      "bytes": 325
+    },
+    "ROLE": {
+      "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+      "bytes": 2
+    }
+  },
+  "services": {
+    "exit": 0,
+    "stdout": "MainPID=1010\nNRestarts=0\nId=payload-catch-agent.service\nActiveState=active\n\nMainPID=1011\nNRestarts=0\nId=payload-catch-mav-relay.service\nActiveState=active\n\nMainPID=2879\nNRestarts=1\nId=payload-catch-wifi-peer.service\nActiveState=active\n",
+    "stderr": ""
+  },
+  "releases": [
+    "0635ebf62c74c8960f324e15c85a40c41862961b20afe3adb73c460d4d8523db",
+    "107fe9ca23d7900bc37da5cb97d3ee180ae7fe3bdbc0de5c56f9b5f925868fe2",
+    "13c1e49da415339aa236e19547c63a809de15e55235584917a700e964dd1702a",
+    "1c25753ef3ce25e2c577e95d0b22ed57937c3b9a66f878ebfcdab2553c723036",
+    "4c3ba17e3cf776117471ffb93001d3def0a5d3300b4fa4add632eb57ca6ea583",
+    "51d02c034687992de78dc2bcf6ef64c008b98a8ba6d9afb182b69efb647d9cc2",
+    "701ad70c3ecb7f3cb89740ab43a4b6c82de8161eb65acb501b8b7871ce7fb779",
+    "76410cc5f564850edda4bdf493f577a4ed17f48e3e6025195b4ce9f568bf690a",
+    "7830cdf9a150b2240c709613aaecbfa2194929852b2574ef0f00bab3daaf729c",
+    "8accbc1eca8dcba99b747f953e33ffddee2ac55f16d09db4d48a6df77a4781dd",
+    "907689ae1873290cf4d7a41878298ce5c6bae85bb931f021639ce334089763dd",
+    "a83087ff6afdb251861568c19702343fa666f0dd79c13b1aef234e7221a92295",
+    "b4453dd12c8482d808613769fb6c781bd7debff566633bf0fc4827a6d2654d37",
+    "da42fba7f6b4f1d3b93e62201a4ddfac9f8203acc9f3d283ecdd23eb172233ee",
+    "da8bcec5fd2a796727a771077a9fcbaf4a064056938035e54bb42bbb8be1cff4",
+    "dc6f2c7f605b3330c021da8371ba3ced236398bf34f89351ba9b8e8c9e28041f",
+    "e27cb2caa69a0ff8fc9cf4d43adbcc3a40419dc07c803536187a1a3608a9d9cb",
+    "e2b74d36dbf81047cfb6b8e27727b95e8612c5293acc25ba7a06dc97688d5c5e",
+    "f34891e48c954dbc2b9bce55979dbc0c702a7c9ba218fe916a84a9155d5674cf",
+    "fa46032caae12d28676da9014545e6b888a944572744ad205e50fcb0812c026a"
+  ],
+  "task_processes": [],
+  "network": {
+    "exit": 0,
+    "stdout": "lo               UNKNOWN        127.0.0.1/8 ::1/128 \nwlP1p1s0         UP             192.168.1.5/22 fe80::de4a:9eff:fe38:207f/64 \ncan0             DOWN           \nenx00e04c680065  UP             192.168.1.101/24 fe80::2e0:4cff:fe68:65/64 \neno1             UP             10.41.10.100/24 fe80::3e6d:66ff:fed9:3a59/64 \nl4tbr0           DOWN           \nusb0             DOWN           \nusb1             DOWN           \ndocker0          DOWN           172.17.0.1/16 \n",
+    "stderr": ""
+  },
+  "sudo": {
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+}

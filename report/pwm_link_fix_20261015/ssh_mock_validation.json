@@ -1,8 +1,0 @@
-{
-  "result": "PASS",
-  "backend": "MockBackend on Jetson via actual SSH; no hardware access",
-  "test": "2.4s UI stall stops mock output, keeps SSH, ping recovers without restart; healthy 10s follow-up",
-  "errors": [],
-  "max_observed_receive_gap_s": 2.406,
-  "final_enabled": false
-}

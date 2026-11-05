@@ -2,7 +2,7 @@
   "schema": "a_solo_no_payload_v1",
   "scope": "a_solo_no_payload_v1",
   "passed": true,
-  "checked_at": 1792377692.752164,
+  "checked_at": 1793584865.6652772,
   "drone_ids": [
     0
   ],
@@ -12,11 +12,11 @@
   "gps": false,
   "release_allowed": false,
   "config_digest": "904329ae2d75715324680025698e2cbe0093a47c889c3035e84d43eb519a7235",
-  "code_digest": "17c415d56737039a4dd690bd84cd30e76432444922d4bae144843c023d54c6f8",
+  "code_digest": "29134463f66572d009e121bff8ec3fb9c70af5dbdeee603773a7fd83b0ac8917",
   "identity": {
     "hostname": "GAZEBO_SITL_A",
     "board_serial": "GAZEBO_ONLY_NO_BOARD",
-    "boot_id": "ISOLATED_GAZEBO_5c3af484-d78a-49f7-ae5c-eb7e766a4da9"
+    "boot_id": "ISOLATED_GAZEBO_be46d11c-4056-4ef6-b177-df5af23aa876"
   },
   "params_checked": [
     0

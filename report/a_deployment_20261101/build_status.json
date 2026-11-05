@@ -1,0 +1,6 @@
+{
+  "unit": "ExecMainStatus=0\nActiveState=inactive\nSubState=dead\n",
+  "stdout": "Starting >>> payload_catch\nFinished <<< payload_catch [3.27s]\n\nSummary: 1 package finished [3.96s]\nStaged only: /home/nvidia/payload_catch_deploy/releases/da8bcec5fd2a796727a771077a9fcbaf4a064056938035e54bb42bbb8be1cff4 (not activated, no mission started)\n",
+  "stderr": "",
+  "built": true
+}

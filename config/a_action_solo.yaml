@@ -1,0 +1,21 @@
+# A-only empty-claw action trial. Mocap raw XYZ is millimeters.
+schema: a_action_solo_v1
+expected_mocap_start_mm: [2576.0, -26.0, 290.0]
+start_tolerance_m: [0.30, 0.30, 0.20]
+travel_mocap_x_m: -2.0
+height_above_takeoff_m: 1.0
+settle_before_pwm_s: 2.0
+max_horizontal_speed_m_s: 0.30
+max_vertical_speed_m_s: 0.30
+waypoint_xy_tolerance_m: 0.15
+waypoint_height_tolerance_m: 0.10
+waypoint_speed_tolerance_m_s: 0.15
+corridor_cross_track_m: 0.45
+corridor_end_margin_m: 0.30
+max_height_above_takeoff_m: 1.30
+pwm_open_us: 1700
+pwm_output_s: 1.5
+payload_attached: false
+takeoff_timeout_s: 25.0
+translate_timeout_s: 20.0
+settle_timeout_s: 10.0

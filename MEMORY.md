@@ -836,3 +836,15 @@ EV0/HGT1/MAG0/SYNCT1恢复重启核验，after_20261026T060444Z独立1127项审�
 ## 2026-11-01 恢复工程后本地Git保存与阅读（最新）
 
 用户要求先更新提交Git并阅读工程；随后明确“更新提交git，阅读完工程就行”，本轮以此为最终范围，不继续无人机操作。恢复成果检查点a218967已保存；飞行桥接旧测试与10月28日显式接收时间配置不同步已修正，新增缺失确认拒绝测试，83项相关离线检查全部通过。生产控制/融合代码和机载参数未改。用户说A已上电、动捕暂不可用；仅一条SSH hostname只读命令成功，未启动扩展机载检查、融合、任务或执行器，远端fetch等待取消。此次只做本地版本提交，不宣称远端已更新。README/AGENTS/MEMORY、ROS节点入口、部署草稿和最近验收记录已阅读，后续待用户新指示。
+
+
+## 2026-11-01 用户授权A机真实SSH部署（最新）
+
+用户要求把单机自检→起飞1m→稳定悬停10秒→降落上锁程序部署到真实A。已SSH核对serial1612425621719/boot2e0322d9-53cb-40ae-a82b-abacfc391a3d，上传源码307056e的版本化包，ARM64构建和机载83项纯逻辑测试通过，未解锁/已落地新鲜状态通过后切换current到da8bcec5fd2a796727a771077a9fcbaf4a064056938035e54bb42bbb8be1cff4；previous保留b4453dd12c8482d808613769fb6c781bd7debff566633bf0fc4827a6d2654d37。独立复查post_verification通过，Agent1060/relay1063/Wi-Fi辅助2988以及重启计数、原配置与Jetson boot不变，本轮任务进程无残留，未运行融合/任务/电机/PWM、未改飞控参数和开机自启。原a_solo.yaml仍outdoor_gps/site_checked=false/payload_removed=false，动捕暂不可用，未伪造现场确认，不代表能室内飞。首次单测缺report父目录导致失败，补齐测试目录后全部通过，无业务代码改动。本地部署和回退记录docs/A机单机起降部署_20261101.md、report/a_deployment_20261101。后续实际运行仍需有效自检、现场条件和明确开始；不自动继续试飞。
+
+## 2026-11-01 室内动捕配置更正
+
+- 按用户要求，A机现场 a_solo.yaml 与本地单机示例选择 external_local，不要求 GPS；任务仍为相对起飞1米、稳定后悬停10秒、降落。
+- 现场配置只改变 positioning，保留 site_checked=false、payload_removed=false；备份 /home/nvidia/payload_catch_a_deploy_20261101/a_solo.before_indoor.yaml。
+- 独立SSH读回通过，host/runtime.yaml 未变，26项单机逻辑测试通过。
+- 未启动任务/桥接/解锁/执行器，未修改 PX4 参数。动捕缺失或 PX4 融合本地定位无效时仍禁止起飞。本次不是实飞验收。

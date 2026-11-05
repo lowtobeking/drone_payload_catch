@@ -71,7 +71,8 @@ PRESETS = {
     'ekf2_mocap': [
         ('EKF2_GPS_CTRL', 0, '动捕/视觉：禁用 GPS 位置'),
         ('EKF2_EV_CTRL', 11, '启用外部视觉（位置+高度+yaw）'),
-        ('EKF2_BARO_CTRL', 0, '视觉高度源，关气压计（两套高度源别混）'),
+        ('EKF2_BARO_CTRL', 1, '保留气压计辅助；视觉高度为 EKF2_HGT_REF=3'),
+        ('EKF2_HGT_REF', 3, '视觉高度参考'),
         ('EKF2_MAG_TYPE', 5, 'None —— 航向由视觉给'),
     ],
     'ekf2_rtk': [
@@ -152,7 +153,7 @@ def check_params(p: dict, profile: str = 'sitl', *, require_complete: bool = Fal
         add('COM_RC_LOSS_T ≤ 1.0', 0 < p['COM_RC_LOSS_T'] <= 1.0)
         if profile in ('indoor', 'outdoor'):
             add('GF_ACTION = 4(Land)', int(p['GF_ACTION']) == 4)
-            add('独立 RC 输入启用',int(p['COM_RC_IN_MODE'])==0)
+            add('独立 RC 输入模式',int(p['COM_RC_IN_MODE']) in (0,3))
             add('RC 切动力开关独立映射',1<=p['RC_MAP_KILL_SW']<=18
                 and p['RC_MAP_KILL_SW']!=p['RC_MAP_FLTMODE'])
             add('RC 模式开关映射',1<=p['RC_MAP_FLTMODE']<=18)
@@ -205,9 +206,10 @@ def check_params(p: dict, profile: str = 'sitl', *, require_complete: bool = Fal
             f"={p.get('COM_OF_LOSS_T')}", 'warn')
         if profile == 'indoor':
             ok = (int(p.get('EKF2_GPS_CTRL', -1)) == 0 and int(p.get('EKF2_EV_CTRL', -1)) == 11
-                  and int(p.get('EKF2_BARO_CTRL', -1)) == 0
+                  and int(p.get('EKF2_BARO_CTRL', -1)) == 1
+                  and int(p.get('EKF2_HGT_REF', -1)) == 3
                   and int(p.get('EKF2_MAG_TYPE', -1)) == 5)
-            add('EKF2 源=动捕(0/11/0/5)', ok, '与 ekf2_mocap 预置不一致')
+            add('EKF2 源=动捕(0/11/1/3/5)', ok, '与 ekf2_mocap 预置不一致')
         else:
             ok = (int(p.get('EKF2_GPS_CTRL', -1)) == 7 and int(p.get('EKF2_EV_CTRL', -1)) == 0
                   and int(p.get('EKF2_BARO_CTRL', -1)) == 1

@@ -1,0 +1,16 @@
+{
+  "positioning": "external_local",
+  "gps_required": false,
+  "height_m": 1.0,
+  "hover_s": 10.0,
+  "site_checked": false,
+  "payload_removed": false,
+  "backup": "/home/nvidia/payload_catch_a_deploy_20261101/a_solo.before_indoor.yaml",
+  "before_sha256": "c614b86ca8ae0dea2a693b4caf316b1eaf0a3daf5b0af1679c25497d2ddbf5d1",
+  "after_sha256": "2fd36e08b5e7835fae7309f66553d55e18840ef8392384288003fb54e6a9b257",
+  "changed_fields": [
+    "positioning"
+  ],
+  "px4_parameters_changed": false,
+  "mission_started": false
+}

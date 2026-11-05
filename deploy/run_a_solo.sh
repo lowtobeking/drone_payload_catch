@@ -9,6 +9,10 @@ config="$(realpath "$1")"
 receipt="$(realpath -m "$2")"
 profile="$(realpath "$3")"
 mode="$4"
+if [[ "$mode" == execute ]] && ! systemctl is-active --quiet payload-catch-mocap-a.service; then
+    echo 'A mocap bridge service is not active' >&2
+    exit 1
+fi
 fleet_base="${FLEET_BASE:-$HOME/payload_catch_deploy}"
 exec 9>"$fleet_base/mission.lock"
 flock -n 9 || { echo 'A/dual mission already running'; exit 1; }

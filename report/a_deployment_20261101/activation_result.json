@@ -1,0 +1,106 @@
+{
+  "tests": [
+    {
+      "test": "test_mocap_transform.py",
+      "exit": 0,
+      "result": [
+        "..........",
+        "----------------------------------------------------------------------",
+        "Ran 10 tests in 0.060s",
+        "",
+        "OK"
+      ]
+    },
+    {
+      "test": "test_mocap_odometry.py",
+      "exit": 0,
+      "result": [
+        ".......................",
+        "----------------------------------------------------------------------",
+        "Ran 23 tests in 0.280s",
+        "",
+        "OK"
+      ]
+    },
+    {
+      "test": "test_mocap_receive_ground.py",
+      "exit": 0,
+      "result": [
+        ".........",
+        "----------------------------------------------------------------------",
+        "Ran 9 tests in 0.105s",
+        "",
+        "OK"
+      ]
+    },
+    {
+      "test": "test_mocap_fixed_reference.py",
+      "exit": 0,
+      "result": [
+        ".....",
+        "----------------------------------------------------------------------",
+        "Ran 5 tests in 0.081s",
+        "",
+        "OK"
+      ]
+    },
+    {
+      "test": "test_mocap_height.py",
+      "exit": 0,
+      "result": [
+        ".....",
+        "----------------------------------------------------------------------",
+        "Ran 5 tests in 0.102s",
+        "",
+        "OK"
+      ]
+    },
+    {
+      "test": "test_mocap_flight_bridge.py",
+      "exit": 0,
+      "result": [
+        ".....",
+        "----------------------------------------------------------------------",
+        "Ran 5 tests in 0.055s",
+        "",
+        "OK"
+      ]
+    },
+    {
+      "test": "test_a_solo.py",
+      "exit": 0,
+      "result": [
+        "..........................",
+        "----------------------------------------------------------------------",
+        "Ran 26 tests in 0.101s",
+        "",
+        "OK"
+      ]
+    }
+  ],
+  "config": {
+    "height_m": 1.0,
+    "hover_s": 10.0,
+    "positioning": "outdoor_gps",
+    "site_checked": false,
+    "payload_removed": false
+  },
+  "disarmed": {
+    "arming_state": 1,
+    "landed": true,
+    "age_s": {
+      "status": 0.13682854500029862,
+      "land": 0.10081999900012306
+    },
+    "disarmed_constant": 1,
+    "passed": true
+  },
+  "protected": {
+    "/home/nvidia/payload_catch_deploy/a_solo.yaml": "c614b86ca8ae0dea2a693b4caf316b1eaf0a3daf5b0af1679c25497d2ddbf5d1",
+    "/home/nvidia/payload_catch_deploy/host/runtime.yaml": "1752e0550ea832ca9a8f6459b17f2c14651bebfe70922e4b10ff790bf5a771ac"
+  },
+  "activated": true,
+  "current": "/home/nvidia/payload_catch_deploy/releases/da8bcec5fd2a796727a771077a9fcbaf4a064056938035e54bb42bbb8be1cff4",
+  "previous": "/home/nvidia/payload_catch_deploy/releases/b4453dd12c8482d808613769fb6c781bd7debff566633bf0fc4827a6d2654d37",
+  "mission_started": false
+}

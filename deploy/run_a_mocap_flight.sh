@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eo pipefail
 
 if [[ $# != 3 ]]; then
   echo "usage: run_a_mocap_flight.sh CONFIG READER LOG_DIR" >&2
@@ -12,7 +12,7 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 source "$root/deploy/runtime_env.sh"
 source "$root/../ws/install/setup.bash"
 mkdir -p -- "$log_dir/source"
-export PYTHONPATH="$root"
+export PYTHONPATH="$root:$PYTHONPATH"
 export PYTHONDONTWRITEBYTECODE=1
 
 /usr/bin/python3 -m payload_catch.mocap_source_node \

@@ -75,9 +75,11 @@ print('\n=== 实机（indoor）===')
 indoor = {**good, 'GF_MAX_HOR_DIST': 3.0, 'GF_MAX_VER_DIST': 3.0,
           'RTL_RETURN_ALT': 2.0, 'COM_OBL_RC_ACT': 4, 'NAV_RCL_ACT': 3,
           'COM_LOW_BAT_ACT': 3, 'COM_OF_LOSS_T': 0.2,
-          'EKF2_GPS_CTRL': 0, 'EKF2_EV_CTRL': 11, 'EKF2_BARO_CTRL': 0, 'EKF2_MAG_TYPE': 5,
+          'EKF2_GPS_CTRL': 0, 'EKF2_EV_CTRL': 11, 'EKF2_BARO_CTRL': 1, 'EKF2_HGT_REF': 3, 'EKF2_MAG_TYPE': 5,
           'SENS_BOARD_ROT': 0}
 check('indoor 合规无 fail', not has_fail(F.check_params(indoor, 'indoor')))
+check('A 的 RC 模式 3 可用，仍需实时 RC 检查',
+      not has_fail(F.check_params({**indoor, 'COM_RC_IN_MODE': 3}, 'indoor')))
 check('围栏未启用 → fail',
       status(F.check_params({**indoor, 'GF_MAX_HOR_DIST': 0}, 'indoor'),
              '围栏已启用 (GF_MAX_* > 0)') == 'fail')
@@ -92,7 +94,7 @@ check('COM_LOW_BAT_ACT=0 → fail',
              'COM_LOW_BAT_ACT ∈ {2,3}') == 'fail')
 check('EKF2 源错（GPS 开着）→ fail',
       status(F.check_params({**indoor, 'EKF2_GPS_CTRL': 7}, 'indoor'),
-             'EKF2 源=动捕(0/11/0/5)') == 'fail')
+             'EKF2 源=动捕(0/11/1/3/5)') == 'fail')
 
 print('\n=== 实机（outdoor/RTK）===')
 outdoor = {**good, 'GF_MAX_HOR_DIST': 12.0, 'GF_MAX_VER_DIST': 15.0, 'RTL_RETURN_ALT': 10.0,

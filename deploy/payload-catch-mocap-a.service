@@ -1,0 +1,20 @@
+[Unit]
+Description=A mocap to PX4 external vision bridge
+Wants=network-online.target
+After=network-online.target payload-catch-agent.service
+Requires=payload-catch-agent.service
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=nvidia
+WorkingDirectory=/home/nvidia/payload_catch_deploy
+Environment=FLEET_HOST_PROFILE=/home/nvidia/payload_catch_deploy/host/runtime.yaml
+ExecStart=/bin/bash /home/nvidia/payload_catch_deploy/current/src/deploy/run_a_mocap_flight.sh /home/nvidia/payload_catch_deploy/current/src/config/mocap_a.solo_flight.yaml /home/nvidia/payload_catch_deploy/host/mocap_vrpn_reader /home/nvidia/payload_catch_deploy/mocap_logs
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=12
+
+[Install]
+WantedBy=multi-user.target

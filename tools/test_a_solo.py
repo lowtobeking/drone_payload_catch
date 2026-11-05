@@ -290,6 +290,14 @@ class SoloTests(unittest.TestCase):
         self.assertTrue(mission.velocity(21,"FLY",[0,0,0],[0,0,-1],[0,0,0])[1])
         self.assertEqual(mission.last_phase,"TAKEOFF_TIMEOUT")
 
+    def test_20cm_takeoff_velocity_tapers_to_target(self):
+        mission=SoloMission(replace(config(),height_m=.2))
+        initial,land=mission.velocity(0,"FLY",[0,0,0],[0,0,0],[0,0,0])
+        near,_=mission.velocity(.1,"FLY",[0,0,0],[0,0,-.16],[0,0,0])
+        self.assertFalse(land)
+        self.assertAlmostEqual(initial[2],-.3)
+        self.assertAlmostEqual(near[2],-.06)
+
     def test_mission_hover_finishes_and_never_resumes(self):
         mission=SoloMission(config())
         for t in (0,2.1):

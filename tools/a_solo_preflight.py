@@ -130,7 +130,20 @@ def main():
         identity = local_identity()
         errors += cfg.site_errors(identity)
         errors += check_runtime(ROOT, args.host_profile)
-        parameters = live_parameters(args.mavlink)
+        if args.mavlink == "passive:eno1":
+            import os
+            import subprocess
+            env = dict(os.environ, PYTHONPATH=str(ROOT) + ":" + os.environ.get("PYTHONPATH", ""))
+            proc = subprocess.run(["sudo", "-n", "/usr/bin/env",
+                "PYTHONPATH=" + env["PYTHONPATH"],
+                "/usr/bin/python3", str(ROOT / "tools/a_solo_parameters_passive.py")],
+                cwd=ROOT, timeout=65, capture_output=True, text=True,
+                encoding="utf-8", errors="replace", shell=False)
+            if proc.returncode:
+                raise RuntimeError("passive A parameter read failed: " + proc.stderr.strip())
+            parameters = json.loads(proc.stdout)
+        else:
+            parameters = live_parameters(args.mavlink)
         rows = parameter_issues(parameters, cfg)
         errors += [r["name"]+": "+r["detail"] for r in rows if r["level"] == "fail"]
         import rclpy

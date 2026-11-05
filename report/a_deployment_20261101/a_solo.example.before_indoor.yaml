@@ -1,0 +1,17 @@
+# A-only acceptance, no payload release. Copy/edit at the actual aircraft.
+scope: a_solo_no_payload_v1
+hostname: FILL_ME
+board_serial: FILL_ME
+site_checked: false
+payload_removed: false
+expected_cells: 4
+positioning: outdoor_gps  # external_local ONLY with real healthy external position + matching EKF
+height_m: 1.0
+hover_s: 10.0
+climb_speed: 0.3
+xy_speed: 0.2
+radius_m: 2.0
+max_height_m: 2.0
+max_tilt_deg: 25.0
+takeoff_timeout_s: 20.0
+max_flight_s: 60.0

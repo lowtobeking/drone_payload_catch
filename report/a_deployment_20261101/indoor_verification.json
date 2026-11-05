@@ -1,0 +1,7 @@
+{
+  "positioning": "external_local",
+  "gps_required": false,
+  "height_m": 1.0,
+  "hover_s": 10.0,
+  "host_runtime_unchanged": true
+}

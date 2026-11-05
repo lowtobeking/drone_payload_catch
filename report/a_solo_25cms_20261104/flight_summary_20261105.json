@@ -1,0 +1,62 @@
+{
+  "position_samples": 2918,
+  "flight_duration_s": 29.190641403198242,
+  "target_height_m": 0.2,
+  "height_min_m": 0.0007875710725784302,
+  "height_max_m": 0.20463916659355164,
+  "height_error_p95_abs_m": 0.19680671095848085,
+  "height_error_final_m": -0.025400501489639293,
+  "vertical_velocity_up_min_m_s": -0.03325974568724632,
+  "vertical_velocity_up_max_m_s": 0.06803853064775467,
+  "height_outside_4cm_frames": 1706,
+  "horizontal_outside_15cm_frames": 424,
+  "speed_over_15cms_frames": 63,
+  "longest_all_stable_s": 12.11050796508789,
+  "hover_duration_s": 9.948633670806885,
+  "hover_height_min_m": 0.16699695587158203,
+  "hover_height_max_m": 0.20463916659355164,
+  "hover_height_error_abs_p95_m": 0.03272036910057069,
+  "hover_vertical_speed_abs_max_m_s": 0.0455576553940773,
+  "phase_changes": [
+    [
+      1793866376.8986292,
+      "CHECK",
+      "missing/foreign/duplicate control publisher: offboard_control_mode; missing/foreign/duplicate control publisher: trajectory_setpoint; vehicle_status; vehicle_status 新鲜; failsafe_flags; failsafe_flags 新鲜; estimator_status_flags; estimator_status_flags 新鲜; battery_status; manual_control_setpoint(RC); 关键数据有限且完整; PX4 pre_flight_checks_pass; tilt/yaw 对齐; PX4 source timestamp stale / invalid; A SYSID1/component1 not freshly verified; land detector missing/stale; must start landed and disarmed; task heartbeat missing / invalid"
+    ],
+    [
+      1793866381.7555273,
+      "READY",
+      "ready; explicit start required"
+    ],
+    [
+      1793866400.4104393,
+      "PRESTREAM",
+      "operator start accepted; zero setpoint prestream"
+    ],
+    [
+      1793866402.5064151,
+      "MODE",
+      "operator start accepted; zero setpoint prestream"
+    ],
+    [
+      1793866402.5592992,
+      "ARM",
+      "operator start accepted; zero setpoint prestream"
+    ],
+    [
+      1793866402.6046376,
+      "FLY",
+      "armed + Offboard confirmed"
+    ],
+    [
+      1793866431.8053038,
+      "LAND",
+      "LAND_REQUESTED"
+    ],
+    [
+      1793866438.9567761,
+      "DONE",
+      "LAND_REQUESTED"
+    ]
+  ]
+}

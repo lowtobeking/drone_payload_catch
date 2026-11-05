@@ -5,8 +5,8 @@ board_serial: FILL_ME
 site_checked: false
 payload_removed: false
 expected_cells: 4
-positioning: outdoor_gps  # external_local ONLY with real healthy external position + matching EKF
-height_m: 1.0
+positioning: external_local  # Indoor mocap, with healthy fused PX4 local position
+height_m: 0.2
 hover_s: 10.0
 climb_speed: 0.3
 xy_speed: 0.2

@@ -1,0 +1,11 @@
+{
+  "remote": "/home/nvidia/payload_catch_a_deploy_20261101",
+  "release": "/home/nvidia/payload_catch_deploy/releases/da8bcec5fd2a796727a771077a9fcbaf4a064056938035e54bb42bbb8be1cff4",
+  "release_id": "da8bcec5fd2a796727a771077a9fcbaf4a064056938035e54bb42bbb8be1cff4",
+  "bundle_sha256": "07129ccd81f0244f8f18f126c24b056db12e2a9ba04fbe434eae874b1714ab87",
+  "git_commit": "307056e",
+  "before_current": "/home/nvidia/payload_catch_deploy/releases/b4453dd12c8482d808613769fb6c781bd7debff566633bf0fc4827a6d2654d37",
+  "before_previous": "/home/nvidia/payload_catch_deploy/releases/13c1e49da415339aa236e19547c63a809de15e55235584917a700e964dd1702a",
+  "activated": true,
+  "build_unit": "payload-catch-deploy-build-20261101"
+}

@@ -48,7 +48,7 @@ class SoloConfig:
             raise ValueError("site_checked/payload_removed must be explicit booleans")
         if type(self.expected_cells) is not int or not 2 <= self.expected_cells <= 12:
             raise ValueError("expected_cells must describe actual battery")
-        limits = dict(height_m=(0.5, 2.0), hover_s=(2, 30), climb_speed=(0.1, 0.5),
+        limits = dict(height_m=(0.2, 2.0), hover_s=(2, 30), climb_speed=(0.1, 0.5),
                       xy_speed=(0.05, 0.5), radius_m=(0.5, 3),
                       max_height_m=(0.8, 3), max_tilt_deg=(10, 35),
                       takeoff_timeout_s=(10, 40), max_flight_s=(30, 120))
@@ -374,8 +374,8 @@ class SoloMission:
         xy = error[:2]
         scale = min(1.0, self.cfg.xy_speed/max(math.hypot(*xy), 1e-9))
         command = [xy[0]*scale, xy[1]*scale,
-                   max(-self.cfg.climb_speed, min(self.cfg.climb_speed, error[2]))]
-        stable = math.hypot(*error[:2]) <= .15 and abs(error[2]) <= .15 and math.sqrt(sum(v*v for v in velocity)) <= .15
+                   max(-self.cfg.climb_speed, min(self.cfg.climb_speed, 1.5*error[2]))]
+        stable = math.hypot(*error[:2]) <= .15 and abs(error[2]) <= min(.15, .2*self.cfg.height_m) and math.sqrt(sum(v*v for v in velocity)) <= .15
         if not stable:
             self.settled_since = None
             # Hover means continuously stable, not cumulative visits to target.
